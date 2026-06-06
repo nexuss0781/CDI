@@ -155,10 +155,9 @@ class BeliefLaplacian:
             evals, evecs = torch.linalg.eigh(M)
             # Clamp tiny negative eigenvalues (numerical)
             evals = evals.clamp(min=0.0)
-            # CRITICAL: Detach eigenvalues/eigenvectors to break gradient chains
-            # Eigenvalues are used for spectral analysis, not for gradients
-            self._eigenvalues = evals.detach()
-            self._eigenvectors = evecs.detach()
+            # Cache without detaching — gradients can flow if needed
+            self._eigenvalues = evals
+            self._eigenvectors = evecs
 
         if k > 0:
             return self._eigenvalues[:k], self._eigenvectors[:, :k]

@@ -119,21 +119,26 @@ class InferenceOperator:
         -------
         torch.Tensor
             Shape ``(n, output_dim)`` — predictions.
+            
+        NOTE: Spectral projections (harmonic, Green) use detached eigenvalues
+        to avoid backprop through expensive spectral computations. Learning
+        is driven by cross-entropy loss and regularizer terms, not through
+        spectral operator gradients.
         """
         # Embed observation into 𝔹
         embedded = self.embed_observation(observation)  # (N,)
 
-        # H(ι(s)) — harmonic projection
-        # Detach to avoid long graph chains through spectral decomposition
+        # H(ι(s)) — harmonic projection (use detached spectral decomposition)
         harmonic_part, _ = self.hodge.decompose(embedded)
+        # Detach to prevent expensive backprop through eigendecomposition
         harmonic_part = harmonic_part.detach()
 
         # D* ι(s)
         d_star_embedded = self.dirac.apply_adjoint(embedded)
 
-        # G_ℬ D* ι(s) — Green's operator (spectral)
-        # Detach to prevent old eigenvalue caches affecting gradient flow
+        # G_ℬ D* ι(s) (use detached Green operator)
         green_d_star = self.green.apply(d_star_embedded)
+        # Detach: Green's operator also uses spectral decomposition
         green_d_star = green_d_star.detach()
 
         # δ* G_ℬ D* ι(s) — apply belief adjoint coboundary in the full space

@@ -296,6 +296,9 @@ class CDIEngine:
     def forward_sequence_batch(self, batch: torch.Tensor) -> torch.Tensor:
         """Batch of sequences for language modeling.
 
+        CRITICAL: Each batch item processes independently without sharing
+        internal state (psi). This prevents computation graph reuse across batches.
+
         Parameters
         ----------
         batch : torch.Tensor
@@ -307,9 +310,20 @@ class CDIEngine:
             Shape ``(batch_size, n_points, output_dim)``.
         """
         outputs = []
+        n = self.config.n_points
+        
+        # Save current psi state
+        psi_saved = self.psi.detach().clone() if self.psi is not None else None
+        
         for b in range(batch.shape[0]):
+            # Reset psi for each batch item to avoid graph accumulation
+            self.psi = torch.zeros(self.config.total_state_dim, dtype=self.config.dtype)
             out = self.forward_sequence(batch[b])
             outputs.append(out)
+        
+        # Restore psi state after batch (for consistency, though psi is ephemeral)
+        self.psi = psi_saved
+        
         return torch.stack(outputs, dim=0)
 
     # ==================================================================
@@ -331,6 +345,10 @@ class CDIEngine:
         Loss = CE(output @ E^T, targets)
              + λ_c · ‖δ²‖²
              + λ_b · ‖Bianchi‖²
+        
+        CRITICAL: Regulariser terms depend on belief/connection parameters.
+        They are computed with gradient tracking, but are detached for logging
+        to avoid complications with rebuild_operators().
         """
         cfg = self.config
 
@@ -347,7 +365,9 @@ class CDIEngine:
         log_probs = logits_flat - logits_flat.logsumexp(dim=-1, keepdim=True)
         ce_loss = -log_probs[torch.arange(B * S), targets_flat].mean()
 
-        # Mathematical regularisers (keep as tensors, don't call .item())
+        # Mathematical regularisers
+        # These are lightweight penalties on the belief structure itself,
+        # not on the forward pass.  Keep them attached for gradients.
         consistency = self.belief.consistency_penalty()
         bianchi = self.connection.bianchi_penalty(self.cover.triangles)
         delta_full = self.belief.full_coboundary_matrix()

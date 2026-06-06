@@ -132,10 +132,8 @@ def run_lm_epoch(
         # Step optimizer
         optimizer.step()
 
-        # CRITICAL: Rebuild operators AFTER backward+step, not before.
-        # This ensures the old computation graph is freed before parameters change.
-        if (batch_idx + 1) % rebuild_every == 0:
-            engine.rebuild_operators()
+        # NOTE: Do NOT rebuild operators mid-epoch. Rebuilt at epoch start only.
+        # This prevents graph reuse errors. Internal state (psi) resets per batch anyway.
 
         total_loss += loss_dict["total"]
         total_ce += loss_dict["ce"]
