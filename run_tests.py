@@ -132,6 +132,14 @@ def phase2_integration_tests():
     failed = 0
     errors = []
     
+    # Variables for cascade tests
+    output = None
+    loss = None
+    config = None
+    engine = None
+    tokenizer_for_engine = None
+    test_ids = None
+    
     # Test 1: Tokenizer encode
     try:
         print("Running: Tokenizer.encode()")
@@ -158,12 +166,25 @@ def phase2_integration_tests():
         errors.append(("Tokenizer.embed", str(e)))
     
     # Test 3: Engine forward
+    output = None
     try:
         print("Running: CDIEngine.forward_sequence_batch()")
         config = CDIConfig.tiny()
         engine = CDIEngine(config)
         engine.build()
-        batch_emb = embeddings[:config.n_points].unsqueeze(0)
+        
+        # Create new tokenizer with correct embed_dim matching config
+        tokenizer_for_engine = CDITokenizer(
+            embed_dim=config.observation_dim,
+            max_len=config.n_points,
+            dtype=config.dtype
+        )
+        
+        # Encode and embed
+        test_text = "What is photosynthesis?"
+        test_ids, test_embeddings = tokenizer_for_engine.encode_and_embed(test_text)
+        
+        batch_emb = test_embeddings.unsqueeze(0)
         output = engine.forward_sequence_batch(batch_emb)
         assert output.shape == (1, config.n_points, config.output_dim)
         print(f"  ✓ forward_sequence_batch\n")
@@ -172,25 +193,32 @@ def phase2_integration_tests():
         print(f"  ✗ forward_sequence_batch: {e}\n")
         failed += 1
         errors.append(("Engine.forward_sequence_batch", str(e)))
+        output = None
     
     # Test 4: Logits projection
     try:
+        if output is None:
+            raise RuntimeError("Skipping - forward pass failed")
         print("Running: Tokenizer.to_logits()")
-        logits = tokenizer.to_logits(output[0])
+        logits = tokenizer_for_engine.to_logits(output[0])
         assert logits.shape[0] == config.n_points
-        assert logits.shape[1] == tokenizer.vocab_size
+        assert logits.shape[1] == tokenizer_for_engine.vocab_size
         print(f"  ✓ to_logits\n")
         passed += 1
     except Exception as e:
         print(f"  ✗ to_logits: {e}\n")
         failed += 1
         errors.append(("Tokenizer.to_logits", str(e)))
+        logits = None
     
     # Test 5: Loss computation
+    loss = None
     try:
+        if output is None:
+            raise RuntimeError("Skipping - forward pass failed")
         print("Running: CDIEngine.compute_lm_loss()")
-        target_ids = ids[:config.n_points].unsqueeze(0)
-        loss, loss_dict = engine.compute_lm_loss(output, target_ids, tokenizer.embedding)
+        target_ids = test_ids[:config.n_points].unsqueeze(0)
+        loss, loss_dict = engine.compute_lm_loss(output, target_ids, tokenizer_for_engine.embedding)
         assert loss.item() > 0
         print(f"  ✓ compute_lm_loss (loss={loss_dict['ce']:.4f}, ppl={loss_dict['perplexity']:.1f})\n")
         passed += 1
@@ -198,12 +226,15 @@ def phase2_integration_tests():
         print(f"  ✗ compute_lm_loss: {e}\n")
         failed += 1
         errors.append(("Engine.compute_lm_loss", str(e)))
+        loss = None
     
     # Test 6: Backward pass
     try:
+        if loss is None:
+            raise RuntimeError("Skipping - loss computation failed")
         print("Running: Backward pass (gradient flow)")
         loss.backward()
-        has_grad = any(p.grad is not None for p in engine.get_parameters() + tokenizer.get_parameters())
+        has_grad = any(p.grad is not None for p in engine.get_parameters() + tokenizer_for_engine.get_parameters())
         assert has_grad
         print(f"  ✓ backward\n")
         passed += 1
