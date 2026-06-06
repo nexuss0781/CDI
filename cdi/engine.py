@@ -345,7 +345,7 @@ class CDIEngine:
         log_probs = logits_flat - logits_flat.logsumexp(dim=-1, keepdim=True)
         ce_loss = -log_probs[torch.arange(B * S), targets_flat].mean()
 
-        # Mathematical regularisers
+        # Mathematical regularisers (keep as tensors, don't call .item())
         consistency = self.belief.consistency_penalty()
         bianchi = self.connection.bianchi_penalty(self.cover.triangles)
         delta_full = self.belief.full_coboundary_matrix()
@@ -357,15 +357,15 @@ class CDIEngine:
             + cfg.bianchi_weight * (bianchi + compat)
         )
 
-        # Perplexity
-        perplexity = torch.exp(ce_loss).item()
+        # Perplexity (detach to avoid graph issues)
+        perplexity = torch.exp(ce_loss.detach()).item()
 
         loss_dict = {
-            "ce": ce_loss.item(),
+            "ce": ce_loss.detach().item(),
             "perplexity": perplexity,
-            "consistency": consistency.item(),
-            "bianchi": bianchi.item(),
-            "total": total.item(),
+            "consistency": consistency.detach().item(),
+            "bianchi": bianchi.detach().item(),
+            "total": total.detach().item(),
         }
         return total, loss_dict
 

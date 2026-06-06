@@ -124,7 +124,7 @@ def run_lm_epoch(
         )
 
         # Backward
-        loss.backward(retain_graph=False)
+        loss.backward()
 
         # Gradient clipping — no torch.nn
         all_params = engine.get_parameters() + tokenizer.get_parameters()
