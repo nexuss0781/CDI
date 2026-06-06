@@ -206,7 +206,7 @@ def generate_sample(
             ids = torch.cat([ids, torch.tensor([next_id], dtype=torch.long)])
 
             # Stop at EOS
-            if next_id == tokenizer.hf_tokenizer.eos_token_id:
+            if next_id == tokenizer.eos_id:
                 break
 
     return tokenizer.decode_ids(ids)
@@ -257,12 +257,11 @@ def run_interleaved_training(
 
     embed_dim = config.observation_dim
     tokenizer = CDITokenizer(
-        tokenizer_name="gpt2",
         embed_dim=embed_dim,
         max_len=seq_len,
         dtype=config.dtype,
     )
-    print(f"  Tokenizer    : GPT-2 (vocab={tokenizer.vocab_size:,})")
+    print(f"  Tokenizer    : EthioBBPE (vocab={tokenizer.vocab_size:,})")
     print(f"  Embed dim    : {embed_dim}")
 
     # ── 2. Datasets ──────────────────────────────────────────────────

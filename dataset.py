@@ -124,18 +124,19 @@ def download_wikitext(seq_len: int = 32, max_tokens: int = 200_000) -> CDITextDa
     max_tokens : int  Cap total tokens for current scale.
     """
     from datasets import load_dataset
-    from transformers import AutoTokenizer
+    from ethiobbpe import EthioBBPETokenizer
 
     print("  [TRAIN] Downloading wikitext-2-raw-v1 from HuggingFace...")
     ds = load_dataset("wikitext", "wikitext-2-raw-v1", split="train",
                        trust_remote_code=True)
 
-    print("  [TRAIN] Tokenising with GPT-2 tokenizer...")
-    tokenizer = AutoTokenizer.from_pretrained("gpt2")
+    print("  [TRAIN] Tokenising with EthioBBPE tokenizer...")
+    tokenizer = EthioBBPETokenizer.from_pretrained()
 
     # Concatenate all text and tokenise
     all_text = "\n".join([row["text"] for row in ds if row["text"].strip()])
-    all_ids = tokenizer.encode(all_text)
+    encoded = tokenizer.encode(all_text)
+    all_ids = list(encoded.ids)
 
     # Cap at max_tokens
     if len(all_ids) > max_tokens:
@@ -166,16 +167,15 @@ def download_sciq(
     max_samples : int  Maximum QA pairs.
     """
     from datasets import load_dataset
-    from transformers import AutoTokenizer
+    from ethiobbpe import EthioBBPETokenizer
 
     print("  [FINE-TUNE] Downloading allenai/sciq from HuggingFace...")
     ds = load_dataset("allenai/sciq", split="train", trust_remote_code=True)
 
-    print("  [FINE-TUNE] Tokenising QA pairs...")
-    tokenizer = AutoTokenizer.from_pretrained("gpt2")
-    if tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.eos_token
-    pad_id = tokenizer.pad_token_id
+    print("  [FINE-TUNE] Tokenising QA pairs with EthioBBPE...")
+    tokenizer = EthioBBPETokenizer.from_pretrained()
+    vocab = tokenizer.get_vocab()
+    pad_id = vocab.get("[PAD]", 0)
 
     all_input = []
     all_target = []
@@ -191,7 +191,8 @@ def download_sciq(
 
         # Format: "Q: {question} A: {answer}"
         qa_text = f"Q: {question} A: {answer}"
-        ids = tokenizer.encode(qa_text)
+        encoded = tokenizer.encode(qa_text)
+        ids = list(encoded.ids)
 
         # Pad or truncate to seq_len + 1 (need shifted target)
         if len(ids) < seq_len + 1:
@@ -261,20 +262,20 @@ def make_test_set(seq_len: int = 32) -> CDIQADataset:
     These questions were NOT in the training or fine-tuning data.
     They test whether CDI's belief complex actually learned knowledge.
     """
-    from transformers import AutoTokenizer
+    from ethiobbpe import EthioBBPETokenizer
 
     print("  [TEST] Generating test set from hand-crafted science questions...")
-    tokenizer = AutoTokenizer.from_pretrained("gpt2")
-    if tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.eos_token
-    pad_id = tokenizer.pad_token_id
+    tokenizer = EthioBBPETokenizer.from_pretrained()
+    vocab = tokenizer.get_vocab()
+    pad_id = vocab.get("[PAD]", 0)
 
     all_input = []
     all_target = []
 
     for question, answer in TEST_QUESTIONS:
         full_text = question + " " + answer
-        ids = tokenizer.encode(full_text)
+        encoded = tokenizer.encode(full_text)
+        ids = list(encoded.ids)
 
         if len(ids) < seq_len + 1:
             ids = ids + [pad_id] * (seq_len + 1 - len(ids))

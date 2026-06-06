@@ -1,20 +1,25 @@
 """
-CDI Tokenizer — Text ↔ Tensor Bridge
+CDI Tokenizer — Powered by EthioBBPE
 ======================================
 
-Wraps a HuggingFace tokenizer with learnable embeddings.
-NO nn.Module.  Just raw tensors + the tokenizer.
+Uses the EthioBBPE tokenizer (Nexuss0781/Ethio-BBPE) — a production-ready
+Byte Pair Encoding tokenizer with 16,000 tokens.
 
-The CDI engine processes numerical tensors on a manifold.
-This module converts text → token IDs → embeddings (manifold observations)
-and projects CDI outputs back → logits → text.
+Advantages over GPT-2 tokenizer for CDI:
+    - 16K vocab (vs 50K) → 3× smaller embedding matrix
+    - Supports English + Amharic + Ge'ez
+    - 100% reconstruction accuracy
+    - Auto-downloads from HuggingFace Hub
+    - Built by the CDI author — full control
 
 Architecture:
-    text → tokenizer → token_ids → embedding_matrix[ids] → (n_points, embed_dim)
-         → CDI Engine → (n_points, output_dim)
-         → output @ embedding_matrix.T → (n_points, vocab_size) → argmax → text
+    text → EthioBBPE → token_ids → embedding[ids] → (n_points, embed_dim)
+         → CDI Engine (manifold, belief, Dirac, heat equation, Hodge)
+         → (n_points, embed_dim)
+         → output @ embedding.T → logits → next token prediction
 
 Complexity: O(n) for encode/decode where n = sequence length.
+No nn.Module.  All parameters are plain tensors.
 """
 
 from __future__ import annotations
@@ -25,14 +30,12 @@ import torch
 
 
 class CDITokenizer:
-    """HuggingFace tokenizer + learnable embeddings for CDI.
+    """EthioBBPE tokenizer + learnable embeddings for CDI.
 
     No nn.Module.  All parameters are plain tensors with requires_grad.
 
     Parameters
     ----------
-    tokenizer_name : str
-        HuggingFace tokenizer identifier (e.g. "gpt2").
     embed_dim : int
         Embedding dimension (= CDI observation_dim = output_dim).
     max_len : int
@@ -43,24 +46,23 @@ class CDITokenizer:
 
     def __init__(
         self,
-        tokenizer_name: str = "gpt2",
         embed_dim: int = 64,
         max_len: int = 32,
         dtype: torch.dtype = torch.float64,
     ) -> None:
-        from transformers import AutoTokenizer
+        from ethiobbpe import EthioBBPETokenizer
 
-        self.hf_tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
-
-        # Ensure pad token exists
-        if self.hf_tokenizer.pad_token is None:
-            self.hf_tokenizer.pad_token = self.hf_tokenizer.eos_token
-
-        self.vocab_size = self.hf_tokenizer.vocab_size
+        self.hf_tokenizer = EthioBBPETokenizer.from_pretrained()
+        self.vocab_size = self.hf_tokenizer.get_vocab_size()
         self.embed_dim = embed_dim
         self.max_len = max_len
         self.dtype = dtype
-        self.pad_id = self.hf_tokenizer.pad_token_id
+
+        # Find pad token ID
+        vocab = self.hf_tokenizer.get_vocab()
+        self.pad_id = vocab.get("[PAD]", 0)
+        self.unk_id = vocab.get("[UNK]", 1)
+        self.eos_id = vocab.get("[SEP]", vocab.get("[EOS]", self.pad_id))
 
         # ── Learnable token embeddings: vocab_size × embed_dim ───
         # Xavier initialisation — no nn.Embedding
@@ -80,17 +82,19 @@ class CDITokenizer:
         Returns (max_len,) int64 tensor, padded/truncated.
         Complexity: O(n).
         """
-        ids = self.hf_tokenizer.encode(
+        encoded = self.hf_tokenizer.encode(
             text,
-            max_length=self.max_len,
             truncation=True,
-            padding=False,
+            max_length=self.max_len,
         )
+        ids = list(encoded.ids)
+
         # Pad to max_len
         if len(ids) < self.max_len:
             ids = ids + [self.pad_id] * (self.max_len - len(ids))
         else:
             ids = ids[:self.max_len]
+
         return torch.tensor(ids, dtype=torch.long)
 
     def encode_batch(self, texts: List[str]) -> torch.Tensor:
@@ -108,7 +112,9 @@ class CDITokenizer:
 
         Complexity: O(n).
         """
-        return self.embedding[token_ids]
+        # Clamp IDs to valid range
+        safe_ids = token_ids.clamp(0, self.vocab_size - 1)
+        return self.embedding[safe_ids]
 
     def encode_and_embed(self, text: str) -> Tuple[torch.Tensor, torch.Tensor]:
         """text → (token_ids, embeddings).
@@ -162,3 +168,8 @@ class CDITokenizer:
     def get_parameters(self) -> list:
         """Learnable: embedding matrix."""
         return [self.embedding]
+
+    def __repr__(self) -> str:
+        return (f"CDITokenizer(vocab={self.vocab_size}, "
+                f"embed={self.embed_dim}, max_len={self.max_len}, "
+                f"backend=EthioBBPE)")
