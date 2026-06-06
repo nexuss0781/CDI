@@ -98,14 +98,17 @@ def run_lm_epoch(
     total_perplexity = 0.0
     total_grad_norm = 0.0
     n_batches = 0
+    
+    # Rebuild operators once at start of epoch
+    engine.rebuild_operators()
 
     for batch_idx, (input_ids, target_ids) in enumerate(dataloader):
         if max_batches and batch_idx >= max_batches:
             break
 
-        # Rebuild operators periodically
-        if batch_idx % rebuild_every == 0:
-            engine.rebuild_operators()
+        # Note: rebuild_operators is called outside loop to avoid graph issues
+        # if batch_idx % rebuild_every == 0:
+        #     engine.rebuild_operators()
 
         optimizer.zero_grad()
 
@@ -121,7 +124,7 @@ def run_lm_epoch(
         )
 
         # Backward
-        loss.backward()
+        loss.backward(retain_graph=False)
 
         # Gradient clipping — no torch.nn
         all_params = engine.get_parameters() + tokenizer.get_parameters()
