@@ -262,6 +262,11 @@ class CDIEngine:
             Shape ``(n_points, output_dim)`` — output at each position.
 
         Complexity: O(n) heat steps + O(n) inference.
+        
+        Notes
+        -----
+        Each call creates a fresh computation graph. The psi state is reset
+        to zero for each sequence to prevent graph accumulation.
         """
         assert self._built, "Call engine.build() first."
         n = self.config.n_points
@@ -273,8 +278,8 @@ class CDIEngine:
         J = self.inference_op.embed_observation(obs_on_manifold)
 
         # Heat equation: evolve belief state — O(n × heat_steps)
-        # Start from detached psi to avoid long graph chains
-        psi_init = self.psi.detach() if self.psi is not None else self.psi
+        # Start from ZERO state for each sequence to avoid graph accumulation
+        psi_init = torch.zeros(self.config.total_state_dim, dtype=self.config.dtype)
         psi_evolved = self.heat.evolve_euler(
             psi_init, J,
             dt=self.config.heat_dt,
@@ -296,8 +301,8 @@ class CDIEngine:
     def forward_sequence_batch(self, batch: torch.Tensor) -> torch.Tensor:
         """Batch of sequences for language modeling.
 
-        CRITICAL: Each batch item processes independently without sharing
-        internal state (psi). This prevents computation graph reuse across batches.
+        Each batch item processes independently without sharing internal state (psi).
+        This ensures each forward pass creates a fresh computation graph.
 
         Parameters
         ----------
@@ -310,19 +315,11 @@ class CDIEngine:
             Shape ``(batch_size, n_points, output_dim)``.
         """
         outputs = []
-        n = self.config.n_points
-        
-        # Save current psi state
-        psi_saved = self.psi.detach().clone() if self.psi is not None else None
         
         for b in range(batch.shape[0]):
-            # Reset psi for each batch item to avoid graph accumulation
-            self.psi = torch.zeros(self.config.total_state_dim, dtype=self.config.dtype)
+            # Each sequence gets independent forward pass with fresh graph
             out = self.forward_sequence(batch[b])
             outputs.append(out)
-        
-        # Restore psi state after batch (for consistency, though psi is ephemeral)
-        self.psi = psi_saved
         
         return torch.stack(outputs, dim=0)
 
