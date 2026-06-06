@@ -81,6 +81,7 @@ def run_lm_epoch(
     optimizer: torch.optim.Optimizer,
     rebuild_every: int = 10,
     max_batches: int = None,
+    debug: bool = False,
 ) -> Dict[str, float]:
     """One epoch of next-token prediction training.
 
@@ -106,28 +107,110 @@ def run_lm_epoch(
         if max_batches and batch_idx >= max_batches:
             break
 
+        if debug:
+            print(f"\n{'='*70}")
+            print(f"📦 BATCH {batch_idx + 1}")
+            print(f"{'='*70}")
+            print(f"📍 Step 0: Starting batch processing")
+            print(f"   • input_ids shape: {input_ids.shape}")
+            print(f"   • target_ids shape: {target_ids.shape}")
+            print(f"   • engine.psi is None: {engine.psi is None}")
+            if engine.psi is not None:
+                print(f"   • engine.psi.requires_grad: {engine.psi.requires_grad}")
+                print(f"   • engine.psi.grad_fn: {engine.psi.grad_fn}")
+
         optimizer.zero_grad()
+        
+        if debug:
+            print(f"\n📍 Step 1: Zeroed gradients")
 
         # Embed tokens → (batch, seq_len, embed_dim)
         embeddings = tokenizer.embed(input_ids)  # (batch, seq_len, embed_dim)
+        
+        if debug:
+            print(f"\n📍 Step 2: Token embedding complete")
+            print(f"   • embeddings shape: {embeddings.shape}")
+            print(f"   • embeddings.requires_grad: {embeddings.requires_grad}")
+            print(f"   • embeddings.grad_fn: {embeddings.grad_fn}")
 
         # CDI forward — each manifold point = one token position
-        output = engine.forward_sequence_batch(embeddings)  # (batch, seq_len, embed_dim)
+        output = engine.forward_sequence_batch(embeddings, debug=debug)  # (batch, seq_len, embed_dim)
+        
+        if debug:
+            print(f"\n📍 Step 3: CDI forward pass complete")
+            print(f"   • output shape: {output.shape}")
+            print(f"   • output.requires_grad: {output.requires_grad}")
+            print(f"   • output.grad_fn: {output.grad_fn}")
+            print(f"   • engine.psi.requires_grad: {engine.psi.requires_grad}")
+            print(f"   • engine.psi.grad_fn: {engine.psi.grad_fn}")
 
         # Cross-entropy loss with weight tying
         loss, loss_dict = engine.compute_lm_loss(
             output, target_ids, tokenizer.embedding
         )
+        
+        if debug:
+            print(f"\n📍 Step 4: Loss computation complete")
+            print(f"   • loss value: {loss.item():.6f}")
+            print(f"   • loss.requires_grad: {loss.requires_grad}")
+            print(f"   • loss.grad_fn: {loss.grad_fn}")
+            print(f"   • CE: {loss_dict['ce']:.6f}")
+            print(f"   • Consistency: {loss_dict['consistency']:.6e}")
 
         # Backward pass — each batch creates a fresh computation graph
-        loss.backward()
+        if debug:
+            print(f"\n📍 Step 5: Starting backward pass...")
+            print(f"   • About to call loss.backward()")
+        
+        try:
+            loss.backward()
+            if debug:
+                print(f"   ✅ Backward pass successful!")
+        except RuntimeError as e:
+            print(f"\n❌ ERROR in backward pass!")
+            print(f"   • Error message: {str(e)}")
+            print(f"\n🔍 DIAGNOSTIC INFO:")
+            print(f"   • Batch index: {batch_idx}")
+            print(f"   • loss.grad_fn: {loss.grad_fn}")
+            print(f"   • output.grad_fn: {output.grad_fn}")
+            print(f"   • embeddings.grad_fn: {embeddings.grad_fn}")
+            print(f"   • engine.psi is None: {engine.psi is None}")
+            if engine.psi is not None:
+                print(f"   • engine.psi.grad_fn: {engine.psi.grad_fn}")
+            
+            # Check laplacian matrix
+            if hasattr(engine.laplacian, '_matrix'):
+                print(f"   • laplacian._matrix is None: {engine.laplacian._matrix is None}")
+                if engine.laplacian._matrix is not None:
+                    print(f"   • laplacian._matrix.requires_grad: {engine.laplacian._matrix.requires_grad}")
+                    print(f"   • laplacian._matrix.grad_fn: {engine.laplacian._matrix.grad_fn}")
+            
+            # Check belief parameters
+            belief_params = engine.belief.get_parameters()
+            print(f"   • Number of belief parameters: {len(belief_params)}")
+            for i, p in enumerate(belief_params[:3]):  # First 3 only
+                print(f"   • belief_param[{i}].requires_grad: {p.requires_grad}")
+                print(f"   • belief_param[{i}].grad_fn: {p.grad_fn}")
+            
+            raise
+
+        if debug:
+            print(f"\n📍 Step 6: Backward pass complete")
 
         # Gradient clipping — no torch.nn
         all_params = engine.get_parameters() + tokenizer.get_parameters()
         grad_norm = clip_grad_norm_(all_params, max_norm=1.0)
+        
+        if debug:
+            print(f"\n📍 Step 7: Gradient clipping complete")
+            print(f"   • Gradient norm: {grad_norm:.6f}")
 
         # Step optimizer
         optimizer.step()
+        
+        if debug:
+            print(f"\n📍 Step 8: Optimizer step complete")
+            print(f"   • Parameters updated")
 
         total_loss += loss_dict["total"]
         total_ce += loss_dict["ce"]
@@ -135,6 +218,12 @@ def run_lm_epoch(
         total_perplexity += loss_dict["perplexity"]
         total_grad_norm += grad_norm
         n_batches += 1
+        
+        if debug and batch_idx == 0:
+            print(f"\n{'='*70}")
+            print(f"✅ BATCH {batch_idx + 1} COMPLETE - CONTINUING WITH DEBUG OFF")
+            print(f"{'='*70}")
+            debug = False  # Only debug first batch
 
     d = max(n_batches, 1)
     return {
@@ -322,9 +411,12 @@ def run_interleaved_training(
         for ep in range(1, lap_epochs + 1):
             global_epoch += 1
             t0 = time.time()
+            # Enable debug for first epoch of first lap
+            debug_mode = (lap == 1 and ep == 1)
             metrics = run_lm_epoch(
                 engine, tokenizer, train_loader, optimizer,
                 rebuild_every=15, max_batches=max_batches_per_epoch,
+                debug=debug_mode,
             )
             dt = time.time() - t0
             history["train"].append({"global_epoch": global_epoch, "lap": lap, **metrics})
