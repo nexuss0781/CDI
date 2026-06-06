@@ -65,7 +65,8 @@ def clip_grad_norm_(params: List[torch.Tensor], max_norm: float) -> float:
     if total > max_norm:
         scale = max_norm / (total + 1e-12)
         for p in grads:
-            p.grad.data.mul_(scale)
+            # Use non-inplace operation to avoid gradient computation issues
+            p.grad.data = p.grad.data * scale
     return total
 
 
@@ -120,7 +121,7 @@ def run_lm_epoch(
         )
 
         # Backward
-        loss.backward(retain_graph=True)
+        loss.backward()
 
         # Gradient clipping — no torch.nn
         all_params = engine.get_parameters() + tokenizer.get_parameters()
