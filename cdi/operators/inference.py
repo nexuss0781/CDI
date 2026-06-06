@@ -124,13 +124,17 @@ class InferenceOperator:
         embedded = self.embed_observation(observation)  # (N,)
 
         # H(ι(s)) — harmonic projection
+        # Detach to avoid long graph chains through spectral decomposition
         harmonic_part, _ = self.hodge.decompose(embedded)
+        harmonic_part = harmonic_part.detach()
 
         # D* ι(s)
         d_star_embedded = self.dirac.apply_adjoint(embedded)
 
-        # G_ℬ D* ι(s)
+        # G_ℬ D* ι(s) — Green's operator (spectral)
+        # Detach to prevent old eigenvalue caches affecting gradient flow
         green_d_star = self.green.apply(d_star_embedded)
+        green_d_star = green_d_star.detach()
 
         # δ* G_ℬ D* ι(s) — apply belief adjoint coboundary in the full space
         delta_star_green = self._apply_delta_star_full(green_d_star)
