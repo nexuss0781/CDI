@@ -69,10 +69,19 @@ class HeatEquation:
         Returns
         -------
         torch.Tensor  Shape ``(N,)`` — state after ``steps`` steps.
+        
+        Notes
+        -----
+        Each step creates a new tensor to avoid accumulating computation graphs
+        across multiple calls to this method.
         """
+        current = psi
         for _ in range(steps):
-            psi = psi - dt * self.laplacian.apply(psi) + dt * J
-        return psi
+            # Compute update — creates new graph node
+            laplacian_term = self.laplacian.apply(current)
+            # Create new tensor for next step (not in-place)
+            current = current - dt * laplacian_term + dt * J
+        return current
 
     # ------------------------------------------------------------------
     # Exact spectral solution

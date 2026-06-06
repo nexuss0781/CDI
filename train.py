@@ -89,11 +89,11 @@ def run_lm_epoch(
         2. CDI forward_sequence_batch → (batch, seq_len, embed_dim)
         3. Cross-entropy loss via weight-tied logits
         4. Backward + clip + step
-        5. Rebuild operators AFTER backward completes (not before)
 
     Complexity per batch: O(batch × n_points × heat_steps)
     
-    CRITICAL: Rebuild operators AFTER step() to avoid graph retention.
+    CRITICAL: Do NOT rebuild operators during training to avoid graph issues.
+    Operators are built once before training begins.
     """
     total_loss = 0.0
     total_ce = 0.0
@@ -101,9 +101,6 @@ def run_lm_epoch(
     total_perplexity = 0.0
     total_grad_norm = 0.0
     n_batches = 0
-    
-    # Build operators once at start — do NOT rebuild in loop
-    engine.rebuild_operators()
 
     for batch_idx, (input_ids, target_ids) in enumerate(dataloader):
         if max_batches and batch_idx >= max_batches:
@@ -122,7 +119,7 @@ def run_lm_epoch(
             output, target_ids, tokenizer.embedding
         )
 
-        # Backward pass — graph must be complete and free of old references
+        # Backward pass — each batch creates a fresh computation graph
         loss.backward()
 
         # Gradient clipping — no torch.nn
@@ -131,9 +128,6 @@ def run_lm_epoch(
 
         # Step optimizer
         optimizer.step()
-
-        # NOTE: Do NOT rebuild operators mid-epoch. Rebuilt at epoch start only.
-        # This prevents graph reuse errors. Internal state (psi) resets per batch anyway.
 
         total_loss += loss_dict["total"]
         total_ce += loss_dict["ce"]
@@ -358,7 +352,6 @@ def run_interleaved_training(
                   f"δ²={metrics['consistency']:.2e}")
 
         # ── TEST on science questions ────────────────────────────
-        engine.rebuild_operators()
         test_metrics = evaluate_lm(engine, tokenizer, test_loader)
 
         # Track best
