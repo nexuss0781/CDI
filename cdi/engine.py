@@ -240,7 +240,7 @@ class CDIEngine:
     # Sequence forward: language modeling mode
     # ==================================================================
 
-    def forward_sequence(self, sequence: torch.Tensor, debug: bool = False) -> torch.Tensor:
+    def forward_sequence(self, sequence: torch.Tensor) -> torch.Tensor:
         """Forward pass for language modeling.
 
         Each manifold point processes ONE token position.
@@ -255,8 +255,6 @@ class CDIEngine:
         ----------
         sequence : torch.Tensor
             Shape ``(n_points, embed_dim)`` — token embeddings at each position.
-        debug : bool
-            Enable detailed diagnostic output
 
         Returns
         -------
@@ -273,71 +271,17 @@ class CDIEngine:
         assert self._built, "Call engine.build() first."
         n = self.config.n_points
 
-        if debug:
-            print(f"\n  🔬 CDI Forward Sequence Debug:")
-            print(f"     • Input sequence shape: {sequence.shape}")
-            print(f"     • sequence.requires_grad: {sequence.requires_grad}")
-            print(f"     • sequence.grad_fn: {sequence.grad_fn}")
-
-        # Each manifold point i gets its own token embedding
-        obs_on_manifold = sequence[:n]  # (n, embed_dim)
-
-        # Embed into full belief state — O(n)
+        obs_on_manifold = sequence[:n]
         J = self.inference_op.embed_observation(obs_on_manifold)
-        
-        if debug:
-            print(f"     • J (source) shape: {J.shape}")
-            print(f"     • J.requires_grad: {J.requires_grad}")
-            print(f"     • J.grad_fn: {J.grad_fn}")
-
-        # Heat equation: evolve belief state — O(n × heat_steps)
-        # Start from ZERO state for each sequence to avoid graph accumulation
         psi_init = torch.zeros(self.config.total_state_dim, dtype=self.config.dtype)
-        
-        if debug:
-            print(f"     • psi_init shape: {psi_init.shape}")
-            print(f"     • psi_init.requires_grad: {psi_init.requires_grad}")
-            print(f"     • Heat steps: {self.config.heat_steps}")
-        
-        psi_evolved = self.heat.evolve_euler(
-            psi_init, J,
-            dt=self.config.heat_dt,
-            steps=self.config.heat_steps,
-        )
-        
-        if debug:
-            print(f"     • psi_evolved shape: {psi_evolved.shape}")
-            print(f"     • psi_evolved.requires_grad: {psi_evolved.requires_grad}")
-            print(f"     • psi_evolved.grad_fn: {psi_evolved.grad_fn}")
-
-        # Hodge-theoretic inference — O(n)
+        psi_evolved = self.heat.evolve_euler(psi_init, J, dt=self.config.heat_dt, steps=self.config.heat_steps)
         pred_full = self.inference_op.infer(obs_on_manifold)
-        
-        if debug:
-            print(f"     • pred_full shape: {pred_full.shape}")
-            print(f"     • pred_full.requires_grad: {pred_full.requires_grad}")
-            print(f"     • pred_full.grad_fn: {pred_full.grad_fn}")
-
-        # Combine evolved state predictions with direct inference
         state_pred = self.inference_op.extract_prediction(psi_evolved)
-        combined = 0.5 * state_pred + 0.5 * pred_full  # (n, output_dim)
-        
-        if debug:
-            print(f"     • combined shape: {combined.shape}")
-            print(f"     • combined.requires_grad: {combined.requires_grad}")
-            print(f"     • combined.grad_fn: {combined.grad_fn}")
-
-        # Update belief state (detach to avoid memory blowup)
+        combined = 0.5 * state_pred + 0.5 * pred_full
         self.psi = psi_evolved.detach()
-        
-        if debug:
-            print(f"     • Updated self.psi (detached)")
-            print(f"     • self.psi.requires_grad: {self.psi.requires_grad}")
-            print(f"     • self.psi.grad_fn: {self.psi.grad_fn}")
-
         return combined
 
-    def forward_sequence_batch(self, batch: torch.Tensor, debug: bool = False) -> torch.Tensor:
+    def forward_sequence_batch(self, batch: torch.Tensor) -> torch.Tensor:
         """Batch of sequences for language modeling.
 
         Each batch item processes independently without sharing internal state (psi).
@@ -347,8 +291,6 @@ class CDIEngine:
         ----------
         batch : torch.Tensor
             Shape ``(batch_size, n_points, embed_dim)``.
-        debug : bool
-            Enable detailed diagnostic output
 
         Returns
         -------
@@ -356,27 +298,10 @@ class CDIEngine:
             Shape ``(batch_size, n_points, output_dim)``.
         """
         outputs = []
-        
-        if debug:
-            print(f"\n  🔬 CDI Forward Batch Debug:")
-            print(f"     • Batch shape: {batch.shape}")
-            print(f"     • Processing {batch.shape[0]} sequences")
-        
         for b in range(batch.shape[0]):
-            if debug and b == 0:
-                print(f"     • Processing sequence {b+1}/{batch.shape[0]}")
-            # Each sequence gets independent forward pass with fresh graph
-            out = self.forward_sequence(batch[b], debug=(debug and b == 0))
+            out = self.forward_sequence(batch[b])
             outputs.append(out)
-        
-        result = torch.stack(outputs, dim=0)
-        
-        if debug:
-            print(f"     • Stacked output shape: {result.shape}")
-            print(f"     • result.requires_grad: {result.requires_grad}")
-            print(f"     • result.grad_fn: {result.grad_fn}")
-        
-        return result
+        return torch.stack(outputs, dim=0)
 
     # ==================================================================
     # Language model loss (cross-entropy)
