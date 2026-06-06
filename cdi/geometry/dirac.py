@@ -121,9 +121,13 @@ class DiracOperator:
         -------
         torch.Tensor
             Shape ``(N, N)`` where N = n·s·B.
+            
+        Notes
+        -----
+        Always rebuilds to avoid stale computation graphs between batches.
         """
-        if self._matrix is None:
-            self.build()
+        # Always rebuild for fresh computation graph
+        self.build()
         return self._matrix
 
     # ------------------------------------------------------------------
