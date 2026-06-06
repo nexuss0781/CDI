@@ -273,8 +273,10 @@ class CDIEngine:
         J = self.inference_op.embed_observation(obs_on_manifold)
 
         # Heat equation: evolve belief state — O(n × heat_steps)
+        # Start from detached psi to avoid long graph chains
+        psi_init = self.psi.detach() if self.psi is not None else self.psi
         psi_evolved = self.heat.evolve_euler(
-            self.psi, J,
+            psi_init, J,
             dt=self.config.heat_dt,
             steps=self.config.heat_steps,
         )
@@ -442,6 +444,9 @@ class CDIEngine:
 
         This is necessary because the operators depend on the
         learnable metric, connection, and coboundary maps.
+        
+        CRITICAL: Invalidate all caches to prevent old computation graphs
+        from persisting when parameters change.
         """
         if not self._built:
             self.build()
@@ -451,7 +456,7 @@ class CDIEngine:
         self.cover = GoodCover(self.manifold, self.config)
         self.connection = BeliefConnection(self.config, self.cover.edges)
 
-        # Rebuild operators
+        # Rebuild operators — this creates NEW matrix instances
         self.dirac.invalidate()
         self.dirac = DiracOperator(
             self.manifold, self.clifford, self.connection,
@@ -465,6 +470,9 @@ class CDIEngine:
         )
         self.laplacian.build()
 
+        # Invalidate spectral decomposition cache — CRITICAL
+        self.heat.invalidate_cache()
+
         self.hodge = HodgeDecomposition(self.laplacian)
         self.green = GreenOperator(self.laplacian)
 
@@ -473,8 +481,8 @@ class CDIEngine:
             self.belief, self.sheaf, self.config
         )
 
+        # Rebuild heat equation to use new laplacian
         self.heat = HeatEquation(self.laplacian, self.config)
-        self.heat.invalidate_cache()
 
         self.superconn = Superconnection(
             self.dirac, self.belief, self.connection, self.config

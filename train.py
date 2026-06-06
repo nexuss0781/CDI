@@ -89,8 +89,11 @@ def run_lm_epoch(
         2. CDI forward_sequence_batch → (batch, seq_len, embed_dim)
         3. Cross-entropy loss via weight-tied logits
         4. Backward + clip + step
+        5. Rebuild operators AFTER backward completes (not before)
 
     Complexity per batch: O(batch × n_points × heat_steps)
+    
+    CRITICAL: Rebuild operators AFTER step() to avoid graph retention.
     """
     total_loss = 0.0
     total_ce = 0.0
@@ -99,16 +102,12 @@ def run_lm_epoch(
     total_grad_norm = 0.0
     n_batches = 0
     
-    # Rebuild operators once at start of epoch
+    # Build operators once at start — do NOT rebuild in loop
     engine.rebuild_operators()
 
     for batch_idx, (input_ids, target_ids) in enumerate(dataloader):
         if max_batches and batch_idx >= max_batches:
             break
-
-        # Note: rebuild_operators is called outside loop to avoid graph issues
-        # if batch_idx % rebuild_every == 0:
-        #     engine.rebuild_operators()
 
         optimizer.zero_grad()
 
@@ -123,14 +122,20 @@ def run_lm_epoch(
             output, target_ids, tokenizer.embedding
         )
 
-        # Backward
+        # Backward pass — graph must be complete and free of old references
         loss.backward()
 
         # Gradient clipping — no torch.nn
         all_params = engine.get_parameters() + tokenizer.get_parameters()
         grad_norm = clip_grad_norm_(all_params, max_norm=1.0)
 
+        # Step optimizer
         optimizer.step()
+
+        # CRITICAL: Rebuild operators AFTER backward+step, not before.
+        # This ensures the old computation graph is freed before parameters change.
+        if (batch_idx + 1) % rebuild_every == 0:
+            engine.rebuild_operators()
 
         total_loss += loss_dict["total"]
         total_ce += loss_dict["ce"]
