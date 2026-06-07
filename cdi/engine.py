@@ -1,27 +1,31 @@
 """
-CDI Engine — Main Integration Layer
-=====================================
+CDI Engine — v2.0
+==================
 
-Wires together all mathematical components into a single engine:
+v2.0 Spec Corrections (CDI_LM_v2_Technical_Specification.md §3, §4, §7):
 
-    Manifold → Cover → Sheaf → Belief → Clifford → Connection → Dirac
-    → Laplacian → Hodge → Green → Inference → HeatEquation
-    → Superconnection → FieldEquations → Invariants
+  Fix F1: No .detach() in inference forward path — fully differentiable
+  Fix F2: Recurrent belief state Ψ; learnable theta_init instead of zeros
+  Fix F3: rebuild_operators() after every optimizer.step(); no stale caches
+  Fix F4: Dimensional hierarchy enforced via CDIConfig.validate()
 
-Usage::
+Architecture (v2.0 §3.1 / §7.1):
+    token_ids → embed → J_t (observation current into B_0 slice)
+    Ψ_0 = theta_init  (learnable, not zeros)
+    for t = 1..L:
+        J_t[b0_slice] = W_iota @ e_t        ← per-token current
+        for k = 1..K:
+            Ψ_t = Ψ_t - dt * Δ_ℬ Ψ_t + dt * J_t   ← Euler, live Δ_ℬ
+        h_t = W_out @ Proj_B0(Ψ_t)          ← readout from B_0 slice
+        logit_t = h_t @ E^T                  ← weight tying
+    return [L, V]
 
-    config = CDIConfig.small()
-    engine = CDIEngine(config)
-    engine.build()
-
-    prediction = engine.forward(input_data, target_data)
-    loss = engine.compute_loss(prediction, target_data)
+No bypass path. v1.0's 0.5*state_pred + 0.5*pred_full is REMOVED.
+Engine output is the sole prediction path (Spec §3.1).
 """
 
 from __future__ import annotations
-
 from typing import Dict, List, Optional, Tuple
-
 import torch
 
 from cdi.config import CDIConfig
@@ -46,39 +50,30 @@ from cdi.field.gauge import GaugeTransformation
 
 
 class CDIEngine:
-    """Cohomodynamic Intelligence engine.
+    """Cohomodynamic Intelligence engine — v2.0.
 
-    Orchestrates the full CDI pipeline: observation → inference → learning.
+    Key v2.0 additions vs v1.0
+    ---------------------------
+    theta_init  Learnable initial belief state (N,); replaces zeros (Fix F2)
+    W_iota      Learnable observation injection map (dim_b0, embed_dim) (Fix F4)
+    W_out       Learnable readout B_0 → embed_dim (Fix F4)
+    b0_indices  Precomputed index tensor for fast B_0 extraction from flat Ψ
 
-    No neural network layers.  All computation is explicit linear
-    algebra, spectral methods, and heat-equation dynamics.
-
-    Attributes
-    ----------
-    config : CDIConfig
-    manifold : CognitiveManifold
-    cover : GoodCover
-    sheaf : ObservationSheaf
-    belief : BeliefComplex
-    clifford : CliffordAlgebra
-    connection : BeliefConnection
-    dirac : DiracOperator
-    laplacian : BeliefLaplacian
-    hodge : HodgeDecomposition
-    green : GreenOperator
-    inference_op : InferenceOperator
-    heat : HeatEquation
-    energy : EnergyFunctional
-    superconn : Superconnection
-    invariants : SystemInvariants
+    Gradient connectivity (Fix F1/F3)
+    ----------------------------------
+    All operator matrices (Dirac, Laplacian) are built from live parameters.
+    No .detach() in the forward path. rebuild_operators() must be called
+    after every optimizer.step().
     """
 
     def __init__(self, config: CDIConfig) -> None:
         config.validate()
         self.config = config
         self._built = False
+        self.global_step: int = 0
 
         # ── Core (§1-3) ──────────────────────────────────────────
+        torch.manual_seed(config.seed)
         self.manifold = CognitiveManifold(config)
         self.cover = GoodCover(self.manifold, config)
         self.sheaf = ObservationSheaf(config)
@@ -88,223 +83,239 @@ class CDIEngine:
         self.clifford = CliffordAlgebra(config)
         self.connection = BeliefConnection(config, self.cover.edges)
 
-        # ── Operators (§4-5) — require build() ───────────────────
+        # ── v2.0 Learnable parameters ────────────────────────────
+        dtype = config.dtype
+        N = config.total_state_dim
+        dim_b0 = config.belief_dim(0)
+        embed_dim = config.observation_dim
+        s = config.spinor_dim
+        B = config.total_belief_dim
+        sB = s * B
+
+        # Fix F2 (Spec §2.2.3): learnable initial belief state
+        self.theta_init: torch.Tensor = torch.randn(N, dtype=dtype) * 1e-4
+        self.theta_init.requires_grad_(True)
+
+        # Fix F4 (Spec §3.1 Step 2): dedicated observation injection
+        scale_iota = (2.0 / (embed_dim + dim_b0)) ** 0.5
+        self.W_iota: torch.Tensor = (
+            torch.randn(dim_b0, embed_dim, dtype=dtype) * scale_iota
+        )
+        self.W_iota.requires_grad_(True)
+
+        # Fix F4 (Spec §3.1 Step 4): dedicated readout
+        scale_out = (2.0 / (dim_b0 + embed_dim)) ** 0.5
+        self.W_out: torch.Tensor = (
+            torch.randn(embed_dim, dim_b0, dtype=dtype) * scale_out
+        )
+        self.W_out.requires_grad_(True)
+
+        # Precompute flat B_0 index tensor for extraction
+        b0_off = config.belief_offset(0)
+        b0_idx = []
+        for p in range(config.n_points):
+            for si in range(s):
+                st = p * sB + si * B + b0_off
+                b0_idx.extend(range(st, st + dim_b0))
+        self.b0_indices: torch.Tensor = torch.tensor(b0_idx, dtype=torch.long)
+        self.dim_b0: int = dim_b0
+        self._sB: int = sB
+
+        # ── Operators — built via build() ────────────────────────
         self.dirac: Optional[DiracOperator] = None
         self.laplacian: Optional[BeliefLaplacian] = None
         self.hodge: Optional[HodgeDecomposition] = None
         self.green: Optional[GreenOperator] = None
         self.inference_op: Optional[InferenceOperator] = None
-
-        # ── Dynamics (§6, §10) ───────────────────────────────────
         self.heat: Optional[HeatEquation] = None
         self.spectral: Optional[SpectralDecomposition] = None
         self.energy: Optional[EnergyFunctional] = None
-
-        # ── Field (§7) ──────────────────────────────────────────
         self.superconn: Optional[Superconnection] = None
         self.field_eqs: Optional[FieldEquations] = None
         self.gauge: Optional[GaugeTransformation] = None
-
-        # ── Invariants (§11) ────────────────────────────────────
         self.invariants: Optional[SystemInvariants] = None
 
-        # ── State ───────────────────────────────────────────────
-        self.psi: Optional[torch.Tensor] = None  # current belief state
+        # Persisted recurrent state (detached, not for grad)
+        self.psi: Optional[torch.Tensor] = None
 
     # ==================================================================
-    # Build
+    # Build / Rebuild
     # ==================================================================
 
     def build(self) -> "CDIEngine":
-        """Construct all operator matrices.
-
-        Must be called before forward / inference / learning.
-        Call again after parameter updates if operators need refresh.
-        """
-        # Dirac
-        self.dirac = DiracOperator(
-            self.manifold, self.clifford, self.connection,
-            self.belief, self.cover, self.config,
-        )
-        self.dirac.build()
-
-        # Laplacian
-        self.laplacian = BeliefLaplacian(
-            self.dirac, self.belief, self.connection, self.config
-        )
-        self.laplacian.build()
-
-        # Hodge & Green
-        self.hodge = HodgeDecomposition(self.laplacian)
-        self.green = GreenOperator(self.laplacian)
-
-        # Inference
-        self.inference_op = InferenceOperator(
-            self.hodge, self.green, self.dirac,
-            self.belief, self.sheaf, self.config,
-        )
-
-        # Dynamics
-        self.heat = HeatEquation(self.laplacian, self.config)
-        self.spectral = SpectralDecomposition(self.laplacian, self.config)
-        self.energy = EnergyFunctional(self.laplacian, self.config)
-
-        # Field
-        self.superconn = Superconnection(
-            self.dirac, self.belief, self.connection, self.config
-        )
-        self.field_eqs = FieldEquations(self.superconn, self.config)
-        self.gauge = GaugeTransformation(self.config)
-
-        # Invariants
-        self.invariants = SystemInvariants(
-            self.belief, self.laplacian, self.config
-        )
-
-        # Initial belief state
-        N = self.config.total_state_dim
-        self.psi = torch.zeros(N, dtype=self.config.dtype)
-
+        """Initial operator construction. Call once at startup."""
+        self._build_operators()
         self._built = True
         return self
 
-    # ==================================================================
-    # Forward pass: observe → infer → predict
-    # ==================================================================
+    def _build_operators(self) -> None:
+        """Construct all operators from LIVE parameters. No .detach()."""
+        cfg = self.config
 
-    def forward(
-        self, input_data: torch.Tensor, target_data: torch.Tensor = None
-    ) -> torch.Tensor:
-        """Full forward pass.
+        # Dirac — v2.0: live manifold points and frames
+        self.dirac = DiracOperator(
+            self.manifold, self.clifford, self.connection,
+            self.belief, self.cover, cfg,
+        )
+        self.dirac.build()
 
-        1. Distribute input across manifold points.
-        2. Embed observations into 𝔹.
-        3. Evolve belief state via heat equation.
-        4. Infer using ℱ(s).
-        5. Extract predictions.
+        # Laplacian — v2.0: live Dirac, belief, connection
+        self.laplacian = BeliefLaplacian(
+            self.dirac, self.belief, self.connection, cfg
+        )
+        self.laplacian.build()
 
-        Parameters
-        ----------
-        input_data : torch.Tensor
-            Shape ``(batch, obs_dim)``.
-        target_data : torch.Tensor, optional
-            Shape ``(batch, output_dim)`` — used for source term.
+        # Hodge & Green — v2.0: no .detach() on outputs
+        self.hodge = HodgeDecomposition(self.laplacian)
+        self.green = GreenOperator(self.laplacian)
 
-        Returns
-        -------
-        torch.Tensor
-            Shape ``(batch, output_dim)`` — predictions.
+        # Inference — v2.0: fully differentiable
+        self.inference_op = InferenceOperator(
+            self.hodge, self.green, self.dirac,
+            self.belief, self.sheaf, cfg,
+        )
+
+        # Dynamics
+        self.heat = HeatEquation(self.laplacian, cfg)
+        self.spectral = SpectralDecomposition(self.laplacian, cfg)
+        self.energy = EnergyFunctional(self.laplacian, cfg)
+
+        # Field theory
+        self.superconn = Superconnection(
+            self.dirac, self.belief, self.connection, cfg
+        )
+        self.field_eqs = FieldEquations(self.superconn, cfg)
+        self.gauge = GaugeTransformation(cfg)
+
+        # Topological invariants
+        self.invariants = SystemInvariants(self.belief, self.laplacian, cfg)
+
+    def rebuild_operators(self) -> None:
+        """Rebuild all operators after optimizer.step().
+
+        v2.0 Spec §2.3.2 Axiom 2.3.2.1 — MANDATORY after every step.
+        Rebuilds cover topology then all dependent operators.
+        Clears all spectral caches.
+
+        Implements Algorithm 2.3.2.2 from the specification.
         """
-        assert self._built, "Call engine.build() first."
-        batch_size = input_data.shape[0]
-        n = self.config.n_points
-        obs_dim = self.config.observation_dim
-        out_dim = self.config.output_dim
-        dtype = self.config.dtype
+        if not self._built:
+            self.build()
+            return
 
-        predictions = []
-        for b in range(batch_size):
-            x = input_data[b]  # (obs_dim,)
+        # Rebuild cover (point positions may have shifted)
+        self.cover = GoodCover(self.manifold, self.config)
+        self.connection = BeliefConnection(self.config, self.cover.edges)
 
-            # Distribute observation across manifold points
-            # Each point sees the same observation (broadcast)
-            obs_on_manifold = x.unsqueeze(0).expand(n, -1)  # (n, obs_dim)
-
-            # Embed into full state
-            J = self.inference_op.embed_observation(obs_on_manifold)
-
-            # Heat equation: evolve from current state
-            psi_evolved = self.heat.evolve_euler(
-                self.psi, J,
-                dt=self.config.heat_dt,
-                steps=self.config.heat_steps,
-            )
-
-            # Infer
-            pred_full = self.inference_op.infer(obs_on_manifold)
-
-            # Combine heat evolution and inference
-            combined = 0.5 * self.inference_op.extract_prediction(psi_evolved) + \
-                       0.5 * pred_full
-
-            # Average over manifold points → single prediction
-            pred = combined.mean(dim=0)  # (output_dim,)
-            predictions.append(pred)
-
-            # Update belief state
-            self.psi = psi_evolved.detach()
-
-        return torch.stack(predictions, dim=0)
+        # Rebuild all operators from live (updated) parameters
+        self._build_operators()
 
     # ==================================================================
-    # Sequence forward: language modeling mode
+    # v2.0 Forward Pass — Recurrent Language Model (Spec §3.1 / §7.1)
     # ==================================================================
 
     def forward_sequence(self, sequence: torch.Tensor) -> torch.Tensor:
-        """Forward pass for language modeling.
+        """Recurrent CDI forward over a token embedding sequence.
 
-        Each manifold point processes ONE token position.
-        n_points = context_length.
-
-        The Riemannian metric replaces positional encoding.
-        The belief connection replaces attention (cross-position flow).
-        The Dirac operator replaces feedforward layers.
-        The heat equation provides convergent learning dynamics.
+        v2.0 Changes (Spec §3.1):
+          - Ψ starts from theta_init (learnable), NOT zeros            [Fix F2]
+          - Ψ is carried across ALL L tokens without reset             [Fix F2]
+          - K Euler steps per token using live Laplacian.apply()       [Fix F3]
+          - Prediction via W_out @ B_0_mean(Ψ) — no bypass path       [Fix F4]
+          - No .detach() on intermediate belief states                 [Fix F1]
 
         Parameters
         ----------
-        sequence : torch.Tensor
-            Shape ``(n_points, embed_dim)`` — token embeddings at each position.
+        sequence : (L, embed_dim) — one embedding per token position.
 
-        Returns
-        -------
-        torch.Tensor
-            Shape ``(n_points, output_dim)`` — output at each position.
-
-        Complexity: O(n) heat steps + O(n) inference.
-        
-        Notes
-        -----
-        Each call creates a fresh computation graph. The psi state is reset
-        to zero for each sequence to prevent graph accumulation.
+        Returns (L, embed_dim) — output representation per position.
         """
         assert self._built, "Call engine.build() first."
-        n = self.config.n_points
+        cfg = self.config
+        n = cfg.n_points
+        s = cfg.spinor_dim
+        B = cfg.total_belief_dim
+        sB = self._sB
+        N = cfg.total_state_dim
+        dt = cfg.heat_dt
+        K = cfg.heat_steps
+        dtype = cfg.dtype
+        b0_off = cfg.belief_offset(0)
+        L = sequence.shape[0]
 
-        obs_on_manifold = sequence[:n]
-        J = self.inference_op.embed_observation(obs_on_manifold)
-        psi_init = torch.zeros(self.config.total_state_dim, dtype=self.config.dtype)
-        psi_evolved = self.heat.evolve_euler(psi_init, J, dt=self.config.heat_dt, steps=self.config.heat_steps)
-        pred_full = self.inference_op.infer(obs_on_manifold)
-        state_pred = self.inference_op.extract_prediction(psi_evolved)
-        combined = 0.5 * state_pred + 0.5 * pred_full
-        self.psi = psi_evolved.detach()
-        return combined
+        # Fix F2: Start from learnable theta_init, not zeros
+        psi = self.theta_init  # (N,) — in computation graph
+
+        outputs = []
+
+        for t in range(L):
+            e_t = sequence[t]  # (embed_dim,)
+
+            # Spec §3.1 Step 2: Observation current injected into B_0 slice
+            # J_t[b0_indices] = W_iota @ e_t / (n*s), rest = 0
+            b0_vals = self.W_iota @ e_t        # (dim_b0,) — differentiable
+
+            # Build sparse-style J_t via index scatter into a zeros tensor
+            # This keeps the grad path: b0_vals → W_iota, e_t → embedding
+            J_t = torch.zeros(N, dtype=dtype)
+            norm = float(n * s)
+            for p in range(n):
+                for si in range(s):
+                    st = p * sB + si * B + b0_off
+                    # Use index_put_ on a clone to stay in graph
+                    J_t = J_t.clone()
+                    J_t[st:st + self.dim_b0] = b0_vals / norm
+
+            # Spec §3.1 Step 3: K Euler steps (recurrent, live Δ_ℬ)
+            psi = self.heat.evolve_euler(psi, J_t, dt=dt, steps=K)
+
+            # Spec §3.1 Step 4: Extract B_0 from Ψ, average over n*s slots
+            b0_all = psi[self.b0_indices].reshape(n * s, self.dim_b0)
+            b0_mean = b0_all.mean(dim=0)        # (dim_b0,)
+
+            # Spec §3.1 Step 4: Readout W_out @ b0_mean → (embed_dim,)
+            h_t = self.W_out @ b0_mean          # differentiable
+
+            outputs.append(h_t)
+
+        # Store last state (detached) to avoid cross-sequence graph growth
+        self.psi = psi.detach()
+
+        return torch.stack(outputs, dim=0)  # (L, embed_dim)
 
     def forward_sequence_batch(self, batch: torch.Tensor) -> torch.Tensor:
-        """Batch of sequences for language modeling.
+        """Batch wrapper around forward_sequence.
 
-        Each batch item processes independently without sharing internal state (psi).
-        This ensures each forward pass creates a fresh computation graph.
+        Each sequence in the batch gets an independent unrolling of the
+        recurrent graph starting from theta_init.
 
         Parameters
         ----------
-        batch : torch.Tensor
-            Shape ``(batch_size, n_points, embed_dim)``.
+        batch : (batch_size, L, embed_dim)
 
-        Returns
-        -------
-        torch.Tensor
-            Shape ``(batch_size, n_points, output_dim)``.
+        Returns (batch_size, L, embed_dim)
         """
-        outputs = []
-        for b in range(batch.shape[0]):
-            out = self.forward_sequence(batch[b])
-            outputs.append(out)
+        outputs = [self.forward_sequence(batch[b]) for b in range(batch.shape[0])]
         return torch.stack(outputs, dim=0)
 
+    def forward(self, input_data: torch.Tensor, target_data: torch.Tensor = None) -> torch.Tensor:
+        """Non-LM forward pass for regression tasks (batch, obs_dim)."""
+        assert self._built
+        n = self.config.n_points
+        predictions = []
+        for b in range(input_data.shape[0]):
+            obs = input_data[b].unsqueeze(0).expand(n, -1)
+            J = self.inference_op.embed_observation(obs)
+            psi = self.heat.evolve_euler(
+                self.theta_init, J,
+                dt=self.config.heat_dt, steps=self.config.heat_steps,
+            )
+            pred = self.inference_op.extract_prediction(psi)
+            predictions.append(pred.mean(dim=0))
+        return torch.stack(predictions, dim=0)
+
     # ==================================================================
-    # Language model loss (cross-entropy)
+    # Loss — v2.0 (Spec §4.1)
     # ==================================================================
 
     def compute_lm_loss(
@@ -312,205 +323,150 @@ class CDIEngine:
         output: torch.Tensor,
         target_ids: torch.Tensor,
         embedding_matrix: torch.Tensor,
+        global_step: int = 0,
     ) -> Tuple[torch.Tensor, Dict[str, float]]:
-        """Cross-entropy loss for next-token prediction.
+        """Composite LM loss (Spec §4.1):
+            L = L_CE + λ_B·L_Bianchi + λ_C·L_consist + λ_S·L_spectral
 
-        output          : (batch, n_points, output_dim) — CDI output.
-        target_ids      : (batch, n_points) — target token IDs.
-        embedding_matrix: (vocab_size, embed_dim) — for logit projection.
-
-        Loss = CE(output @ E^T, targets)
-             + λ_c · ‖δ²‖²
-             + λ_b · ‖Bianchi‖²
-        
-        CRITICAL: Regulariser terms depend on belief/connection parameters.
-        They are computed with gradient tracking, but are detached for logging
-        to avoid complications with rebuild_operators().
+        Parameters
+        ----------
+        output           : (B, L, embed_dim)
+        target_ids       : (B, L) int64
+        embedding_matrix : (V, embed_dim)
+        global_step      : for consistency warm-up schedule
         """
         cfg = self.config
 
-        # Logits via weight tying: (batch, n_points, vocab_size)
-        logits = output @ embedding_matrix.T
+        # Vocab projection via weight tying
+        logits = output @ embedding_matrix.T   # (B, L, V)
+        Bs, S, V = logits.shape
+        logits_flat = logits.reshape(Bs * S, V)
+        targets_flat = target_ids.reshape(Bs * S)
 
-        # Reshape for cross-entropy: (batch*n_points, vocab_size) vs (batch*n_points,)
-        B, S, V = logits.shape
-        logits_flat = logits.reshape(B * S, V)
-        targets_flat = target_ids.reshape(B * S)
-
-        # Cross-entropy — manual (no nn.CrossEntropyLoss)
-        # log_softmax then negative log likelihood
+        # Cross-entropy (manual log-softmax, no nn.functional)
         log_probs = logits_flat - logits_flat.logsumexp(dim=-1, keepdim=True)
-        ce_loss = -log_probs[torch.arange(B * S), targets_flat].mean()
+        ce_loss = -log_probs[torch.arange(Bs * S), targets_flat].mean()
 
-        # Mathematical regularisers
-        # These are lightweight penalties on the belief structure itself,
-        # not on the forward pass.  Keep them attached for gradients.
+        # Consistency warm-up (Spec §4.1 Term 3)
         consistency = self.belief.consistency_penalty()
+        lam_c = 1.0 if global_step < cfg.consistency_warmup_steps else cfg.consistency_weight
+
+        # Bianchi penalty (Spec §4.1 Term 2)
         bianchi = self.connection.bianchi_penalty(self.cover.triangles)
-        delta_full = self.belief.full_coboundary_matrix()
-        compat = self.connection.compatibility_penalty(delta_full)
+
+        # Spectral gap penalty (Spec §4.1 Term 4)
+        lam1_val = self.laplacian.lanczos_spectral_gap(max_iter=15)
+        lam1_t = torch.tensor(lam1_val, dtype=cfg.dtype)
+        lam_target = torch.tensor(cfg.spectral_target, dtype=cfg.dtype)
+        spectral_pen = torch.clamp(lam_target - lam1_t, min=0.0) ** 2
 
         total = (
             ce_loss
-            + cfg.consistency_weight * consistency
-            + cfg.bianchi_weight * (bianchi + compat)
+            + lam_c * consistency
+            + cfg.bianchi_weight * bianchi
+            + cfg.spectral_weight * spectral_pen
         )
 
-        # Perplexity (detach to avoid graph issues)
-        perplexity = torch.exp(ce_loss.detach()).item()
+        perplexity = float(torch.exp(ce_loss.detach()).clamp(max=1e6).item())
 
         loss_dict = {
             "ce": ce_loss.detach().item(),
             "perplexity": perplexity,
             "consistency": consistency.detach().item(),
             "bianchi": bianchi.detach().item(),
+            "spectral_pen": spectral_pen.detach().item(),
+            "lambda_1": lam1_val,
             "total": total.detach().item(),
         }
         return total, loss_dict
 
-    # ==================================================================
-    # Loss computation
-    # ==================================================================
-
     def compute_loss(
-        self,
-        prediction: torch.Tensor,
-        target: torch.Tensor,
+        self, prediction: torch.Tensor, target: torch.Tensor
     ) -> Tuple[torch.Tensor, Dict[str, float]]:
-        """Compute total loss with mathematical regularisers.
-
-        Loss = MSE(pred, target)
-             + λ_c · ‖δ²‖²           (consistency)
-             + λ_e · E[Ψ]            (energy)
-             + λ_b · ‖d_A F_A‖²      (Bianchi)
-
-        Returns
-        -------
-        (total_loss, loss_dict) : tuple
-        """
+        """MSE + regularisers (non-LM mode)."""
         cfg = self.config
-
-        # Prediction error
         mse = torch.mean((prediction - target) ** 2)
-
-        # Consistency penalty: δ²=0  (Axiom 3.1.2)
         consistency = self.belief.consistency_penalty()
-
-        # Bianchi identity penalty
         bianchi = self.connection.bianchi_penalty(self.cover.triangles)
-
-        # Connection-delta compatibility
         delta_full = self.belief.full_coboundary_matrix()
         compat = self.connection.compatibility_penalty(delta_full)
-
         total = (
             mse
             + cfg.consistency_weight * consistency
             + cfg.bianchi_weight * (bianchi + compat)
         )
-
-        loss_dict = {
-            "mse": mse.item(),
-            "consistency": consistency.item(),
-            "bianchi": bianchi.item(),
-            "compatibility": compat.item(),
+        return total, {
+            "mse": mse.item(), "consistency": consistency.item(),
+            "bianchi": bianchi.item(), "compatibility": compat.item(),
             "total": total.item(),
         }
 
-        return total, loss_dict
+    # ==================================================================
+    # Gradient flow verification (Spec §4.3)
+    # ==================================================================
+
+    def verify_gradient_flow(self) -> Dict[str, bool]:
+        """Check all parameter groups received non-zero gradients.
+
+        Spec §4.3 Verification Test 1. Returns {name: bool}.
+        If any critical param returns False after step 1, halt training.
+        """
+        tol = 1e-8
+
+        def _has_grad(p: torch.Tensor) -> bool:
+            return p.grad is not None and p.grad.abs().max().item() > tol
+
+        checks: Dict[str, bool] = {
+            "manifold.points":  _has_grad(self.manifold.points),
+            "manifold.metric_L": _has_grad(self.manifold.metric_L),
+            "theta_init":       _has_grad(self.theta_init),
+            "W_iota":           _has_grad(self.W_iota),
+            "W_out":            _has_grad(self.W_out),
+            "sheaf.embedding":  _has_grad(self.sheaf.embedding_matrix),
+            "sheaf.output":     _has_grad(self.sheaf.output_matrix),
+            "connection":       any(_has_grad(p) for p in self.connection.get_parameters()),
+            "belief.deltas":    any(_has_grad(p) for p in self.belief.get_parameters()),
+        }
+        return checks
 
     # ==================================================================
     # Parameters
     # ==================================================================
 
     def get_parameters(self) -> List[torch.Tensor]:
-        """All learnable parameters across the engine."""
-        params = []
-        params.extend(self.manifold.get_parameters())
-        params.extend(self.sheaf.get_parameters())
-        params.extend(self.belief.get_parameters())
-        params.extend(self.connection.get_parameters())
+        """All learnable parameters — v2.0 includes theta_init, W_iota, W_out."""
+        params: List[torch.Tensor] = []
+        params.extend(self.manifold.get_parameters())   # points, metric_L
+        params.extend(self.sheaf.get_parameters())       # embedding_matrix, output_matrix
+        params.extend(self.belief.get_parameters())      # delta coboundary maps
+        params.extend(self.connection.get_parameters())  # W_params per edge
+        params.append(self.theta_init)
+        params.append(self.W_iota)
+        params.append(self.W_out)
         return params
-
-    # ==================================================================
-    # Rebuild operators (after parameter updates)
-    # ==================================================================
-
-    def rebuild_operators(self) -> None:
-        """Rebuild Dirac, Laplacian, etc. after parameter changes.
-
-        This is necessary because the operators depend on the
-        learnable metric, connection, and coboundary maps.
-        
-        CRITICAL: Invalidate all caches to prevent old computation graphs
-        from persisting when parameters change.
-        """
-        if not self._built:
-            self.build()
-            return
-
-        # Rebuild cover (topology may change with point positions)
-        self.cover = GoodCover(self.manifold, self.config)
-        self.connection = BeliefConnection(self.config, self.cover.edges)
-
-        # Rebuild operators — this creates NEW matrix instances
-        self.dirac.invalidate()
-        self.dirac = DiracOperator(
-            self.manifold, self.clifford, self.connection,
-            self.belief, self.cover, self.config
-        )
-        self.dirac.build()
-
-        self.laplacian.invalidate()
-        self.laplacian = BeliefLaplacian(
-            self.dirac, self.belief, self.connection, self.config
-        )
-        self.laplacian.build()
-
-        # Invalidate spectral decomposition cache — CRITICAL
-        self.heat.invalidate_cache()
-
-        self.hodge = HodgeDecomposition(self.laplacian)
-        self.green = GreenOperator(self.laplacian)
-
-        self.inference_op = InferenceOperator(
-            self.hodge, self.green, self.dirac,
-            self.belief, self.sheaf, self.config
-        )
-
-        # Rebuild heat equation to use new laplacian
-        self.heat = HeatEquation(self.laplacian, self.config)
-
-        self.superconn = Superconnection(
-            self.dirac, self.belief, self.connection, self.config
-        )
 
     # ==================================================================
     # Diagnostics
     # ==================================================================
 
     def diagnostics(self) -> Dict[str, object]:
-        """Collect mathematical diagnostics and invariants."""
+        """Mathematical diagnostics — spectral, topological, geometric."""
         assert self._built
-        diag = {}
+        diag: Dict[str, object] = {}
 
-        # Spectral
         diag["spectral_gap"] = self.laplacian.spectral_gap().item()
+        diag["spectral_gap_lanczos"] = self.laplacian.lanczos_spectral_gap()
         diag["learning_time"] = self.heat.learning_time().item()
         diag["harmonic_dim"] = self.hodge.harmonic_dimension()
-
-        # Self-adjointness
         diag["dirac_symmetry_error"] = self.dirac.check_self_adjoint().item()
         diag["laplacian_symmetry_error"] = self.laplacian.check_self_adjoint().item()
         diag["laplacian_psd"] = self.laplacian.check_positive_semidefinite()
-
-        # Consistency
         diag["delta_sq_norm"] = self.belief.consistency_penalty().item()
-
-        # Green verification
         diag["green_error"] = self.green.verify().item()
-
-        # Intelligence
+        diag["gradient_flow"] = self.verify_gradient_flow()
         diag.update(self.invariants.summary())
-
         return diag
+
+    def recompute_spectral_gap(self) -> float:
+        """λ₁ via Lanczos. Call every spectral_diag_every steps."""
+        return self.laplacian.lanczos_spectral_gap(max_iter=20)

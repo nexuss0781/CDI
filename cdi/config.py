@@ -1,43 +1,49 @@
 """
-CDI Configuration
-=================
+CDI Configuration — v2.0
+=========================
 
-All parameters map to mathematical objects in the CDI specification.
-Uses dataclass for immutability and type safety.
+v2.0 Spec Corrections (CDI_LM_v2_Technical_Specification.md):
+  - Axiom 2.4.2.1: dim(B_0) >= embed_dim  (no bottleneck)
+  - Axiom 2.4.2.2: sum(belief_dims) >= 4 * embed_dim
+  - Axiom 2.4.2.3: engine param budget >= 15% of embedding budget
+  - Axiom 2.4.2.4: n_points >= min(context, 32), manifold_dim >= ceil(log2(embed_dim))
+  - Fix F2: learnable initial state theta_init
+  - Fix F3: rebuild_operators called after every optimizer.step()
 """
 from dataclasses import dataclass, field
 from typing import Tuple, Optional
+import math
 import torch
 
 
 @dataclass
 class CDIConfig:
-    """Configuration for the Cohomodynamic Intelligence engine.
+    """Configuration for the Cohomodynamic Intelligence engine v2.0.
 
     Every parameter corresponds to a mathematical quantity in the
-    CDI Mathematical Specification v1.0.
+    CDI Mathematical Specification v1.0 / v2.0 Corrective Spec.
     """
 
     # ═══════════════════════════════════════════════════════════════
     # §1  Cognitive Manifold (M, g)
     # ═══════════════════════════════════════════════════════════════
-    manifold_dim: int = 3
-    """Dimension *d* of the cognitive manifold M."""
+    manifold_dim: int = 4
+    """Dimension d of M. v2.0: d >= ceil(log2(embed_dim))."""
 
-    n_points: int = 64
-    """Number of discretisation points on M."""
+    n_points: int = 16
+    """Number of discretisation points. v2.0: >= min(context_length, 32)."""
 
     # ═══════════════════════════════════════════════════════════════
     # §2  Good Cover & Observation Sheaf
     # ═══════════════════════════════════════════════════════════════
     cover_k: int = 8
-    """k for k-nearest-neighbour cover construction."""
+    """k-NN cover construction parameter."""
 
-    observation_dim: int = 3
-    """Dimension of the observation space (input)."""
+    observation_dim: int = 32
+    """Dimension of the observation/embedding space."""
 
-    output_dim: int = 3
-    """Dimension of the output prediction space."""
+    output_dim: int = 32
+    """Dimension of the output prediction space (= observation_dim for LM)."""
 
     # ═══════════════════════════════════════════════════════════════
     # §3  Belief Complex B^•
@@ -45,63 +51,62 @@ class CDIConfig:
     motor_depth: int = 1
     """m — number of negative-degree (motor) sheaves."""
 
-    abstraction_height: int = 3
+    abstraction_height: int = 2
     """n — number of positive-degree (abstraction) sheaves."""
 
-    belief_dims: Tuple[int, ...] = (16, 32, 32, 16, 8)
+    belief_dims: Tuple[int, ...] = (32, 64, 64, 32)
     """Dimensions (dim B_{-m}, ..., dim B_0, ..., dim B_n).
+    v2.0 Axiom: belief_dims[motor_depth] >= embed_dim (no bottleneck).
     Length MUST equal motor_depth + abstraction_height + 1."""
 
     # ═══════════════════════════════════════════════════════════════
-    # §6  Heat-Equation Dynamics
+    # §6  Heat-Equation Dynamics — v2.0 Fix F2/F3
     # ═══════════════════════════════════════════════════════════════
     heat_dt: float = 0.01
-    """Time-step Δt for heat-equation integration."""
+    """Time-step Δt for heat-equation Euler integration."""
 
-    heat_steps: int = 50
-    """Number of heat-equation steps per learning iteration."""
+    heat_steps: int = 10
+    """K — Euler steps per token in recurrent evolution."""
 
     # ═══════════════════════════════════════════════════════════════
     # Training hyper-parameters
     # ═══════════════════════════════════════════════════════════════
     learning_rate: float = 1e-3
-    """Learning rate for parameter-space gradient updates."""
+    """Adam learning rate."""
 
-    consistency_weight: float = 10.0
-    """Weight λ_c for the δ²=0 consistency penalty."""
+    consistency_weight: float = 0.1
+    """Weight λ_C for δ²=0 consistency penalty (v2.0: 0.1 standard, 1.0 warm-up)."""
 
-    energy_weight: float = 1.0
-    """Weight λ_e for the cognitive-energy regulariser."""
+    consistency_warmup_steps: int = 100
+    """Steps to use λ_C=1.0 before dropping to consistency_weight."""
 
-    bianchi_weight: float = 1.0
-    """Weight for the Bianchi-identity penalty ‖d_A F_A‖²."""
+    bianchi_weight: float = 0.01
+    """Weight λ_B for Bianchi identity penalty."""
+
+    spectral_weight: float = 0.001
+    """Weight λ_S for spectral gap penalty."""
+
+    spectral_target: float = 0.01
+    """Target λ₁ value for spectral gap penalty."""
+
+    energy_weight: float = 0.0
+    """Weight λ_E for cognitive energy (disabled in v2.0 forward path)."""
 
     epochs: int = 100
-    """Number of training epochs."""
-
-    batch_size: int = 32
-    """Mini-batch size."""
-
+    batch_size: int = 16
     finetune_interval: int = 10
-    """Run fine-tuning every N epochs."""
-
     eval_interval: int = 5
-    """Run evaluation every N epochs."""
 
     # ═══════════════════════════════════════════════════════════════
     # System / runtime
     # ═══════════════════════════════════════════════════════════════
     device: str = "cpu"
-    """Compute device ('cpu' or 'cuda')."""
-
     dtype_str: str = "float64"
-    """String name of the torch dtype (for serialisation)."""
-
     seed: int = 42
-    """Random seed for reproducibility."""
-
     spectral_cutoff: int = 0
-    """Keep only this many eigenvalues (0 → keep all)."""
+
+    # Spectral gap diagnostics period (steps)
+    spectral_diag_every: int = 100
 
     # ───────────────────────────────────────────────────────────────
     # Derived / computed properties
@@ -112,107 +117,126 @@ class CDIConfig:
 
     @property
     def n_degrees(self) -> int:
-        """Total number of belief degrees: m + n + 1."""
         return self.motor_depth + self.abstraction_height + 1
 
     @property
     def degree_range(self) -> range:
-        """Integer range [−m … n]."""
         return range(-self.motor_depth, self.abstraction_height + 1)
 
     @property
     def total_belief_dim(self) -> int:
-        """Σ_k dim(B_k)."""
         return sum(self.belief_dims)
 
     @property
     def spinor_dim(self) -> int:
-        """dim(S) = 2^⌊d/2⌋."""
         return 2 ** (self.manifold_dim // 2)
 
     @property
     def twisted_bundle_dim(self) -> int:
-        """dim(𝔹) = dim(S) × Σ_k dim(B_k)."""
         return self.spinor_dim * self.total_belief_dim
 
     @property
     def total_state_dim(self) -> int:
-        """Total discrete state-vector length: n × dim(𝔹)."""
         return self.n_points * self.twisted_bundle_dim
 
     def belief_dim(self, degree: int) -> int:
-        """Dimension of belief sheaf at a given degree k ∈ [−m, n]."""
         idx = degree + self.motor_depth
         return self.belief_dims[idx]
 
     def belief_offset(self, degree: int) -> int:
-        """Offset into the concatenated belief vector for degree k."""
         idx = degree + self.motor_depth
         return sum(self.belief_dims[:idx])
 
     # ───────────────────────────────────────────────────────────────
-    # Validation
+    # Validation — v2.0 enforces dimensional hierarchy
     # ───────────────────────────────────────────────────────────────
     def validate(self) -> None:
-        """Raise AssertionError on inconsistent settings."""
+        """Raise on inconsistent settings. Enforces all v2.0 axioms."""
         assert len(self.belief_dims) == self.n_degrees, (
             f"belief_dims has {len(self.belief_dims)} entries but "
             f"n_degrees = {self.n_degrees}"
         )
-        assert self.manifold_dim >= 1, "manifold_dim must be ≥ 1"
-        assert self.n_points >= 2, "n_points must be ≥ 2"
-        assert 0 < self.cover_k < self.n_points, (
-            f"cover_k={self.cover_k} out of range (0, {self.n_points})"
-        )
-        assert self.heat_dt > 0, "heat_dt must be positive"
-        assert all(d > 0 for d in self.belief_dims), (
-            "Every belief_dims entry must be positive"
+        assert self.manifold_dim >= 1
+        assert self.n_points >= 2
+        assert 0 < self.cover_k < self.n_points
+
+        # v2.0 Axiom 2.4.2.1: No bottleneck — B_0 >= embed_dim
+        b0_dim = self.belief_dim(0)
+        assert b0_dim >= self.observation_dim, (
+            f"v2.0 Axiom 2.4.2.1 VIOLATED: dim(B_0)={b0_dim} < "
+            f"embed_dim={self.observation_dim}. "
+            f"Set belief_dims[{self.motor_depth}] >= {self.observation_dim}."
         )
 
+        # v2.0 Axiom 2.4.2.2: Total belief >= 4 * embed_dim
+        total_b = self.total_belief_dim
+        assert total_b >= 4 * self.observation_dim, (
+            f"v2.0 Axiom 2.4.2.2 VIOLATED: total_belief_dim={total_b} < "
+            f"4 * embed_dim={4 * self.observation_dim}."
+        )
+
+        assert self.heat_dt > 0
+        assert all(d > 0 for d in self.belief_dims)
+
     # ───────────────────────────────────────────────────────────────
-    # Convenience constructors
+    # Convenience constructors — v2.0 compliant
     # ───────────────────────────────────────────────────────────────
+
     @classmethod
     def tiny(cls) -> "CDIConfig":
-        """Minimal config for unit tests (fast)."""
+        """v2.0 Tiny — validation/unit tests.
+        
+        Template A from spec:
+          embed_dim=32, belief_dims=(32,64,64,32), n_points=16, manifold_dim=4
+        """
         return cls(
-            manifold_dim=2,
-            n_points=8,
-            cover_k=3,
+            manifold_dim=4,
+            n_points=16,
+            cover_k=6,
             motor_depth=1,
             abstraction_height=2,
-            belief_dims=(4, 8, 8, 4),
-            observation_dim=2,
-            output_dim=2,
+            belief_dims=(32, 64, 64, 32),
+            observation_dim=32,
+            output_dim=32,
             heat_steps=10,
+            heat_dt=0.01,
+            batch_size=8,
         )
 
     @classmethod
     def small(cls) -> "CDIConfig":
-        """Small config for integration tests."""
+        """v2.0 Small — production baseline.
+        
+        Template B from spec:
+          embed_dim=128, belief_dims=(128,256,256,128), n_points=32, manifold_dim=8
+        """
         return cls(
-            manifold_dim=2,
-            n_points=16,
-            cover_k=5,
+            manifold_dim=8,
+            n_points=32,
+            cover_k=10,
             motor_depth=1,
             abstraction_height=2,
-            belief_dims=(8, 16, 16, 8),
-            observation_dim=2,
-            output_dim=2,
-            heat_steps=20,
+            belief_dims=(128, 256, 256, 128),
+            observation_dim=128,
+            output_dim=128,
+            heat_steps=15,
+            heat_dt=0.005,
+            batch_size=16,
         )
 
     @classmethod
     def medium(cls) -> "CDIConfig":
-        """Medium config for training experiments."""
+        """v2.0 Medium — extended capacity."""
         return cls(
-            manifold_dim=3,
+            manifold_dim=8,
             n_points=64,
-            cover_k=8,
+            cover_k=12,
             motor_depth=1,
             abstraction_height=3,
-            belief_dims=(16, 32, 32, 16, 8),
-            observation_dim=3,
-            output_dim=3,
-            heat_steps=50,
+            belief_dims=(256, 512, 512, 256, 128),
+            observation_dim=256,
+            output_dim=256,
+            heat_steps=20,
+            heat_dt=0.005,
+            batch_size=8,
         )

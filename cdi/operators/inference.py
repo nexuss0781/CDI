@@ -1,46 +1,31 @@
 """
-§5.3 Inference Operator
-=======================
+§5.3 Inference Operator — v2.0
+================================
 
-Implements ℱ(s) from CDI Specification §5.3.
+v2.0 Spec §2.1 / Fix F1 — CRITICAL CHANGES:
+  - REMOVED all .detach() calls from the inference forward path
+  - harmonic_part and green_d_star are fully connected to the graph
+  - Gradients now flow to: manifold, connection, Dirac, Laplacian, belief δ maps
+  - embed_observation uses live sheaf.embedding_matrix (unchanged, already live)
 
 Definition 5.3.3:
     ℱ(s) = H(ι(s)) + δ* G_ℬ D* ι(s)
-
-where
-    H    = harmonic projector
-    ι    = observation embedding O → 𝔹
-    G_ℬ  = Green's operator
-    D*   = Dirac adjoint
-    δ*   = coboundary adjoint
 
 Theorem 5.3.4: ℱ is a Fredholm operator of index zero.
 """
 
 from __future__ import annotations
-
 from typing import Optional
-
 import torch
-
 from cdi.config import CDIConfig
 
 
 class InferenceOperator:
     """Hodge-theoretic inference: replaces attention/softmax.
 
-    The inference operator ℱ maps observations to inferred beliefs
-    by projecting onto the harmonic space (global consistency) plus
-    a correction term from the Green's operator.
-
-    Attributes
-    ----------
-    hodge : HodgeDecomposition
-    green : GreenOperator
-    dirac : DiracOperator
-    belief : BeliefComplex
-    sheaf : ObservationSheaf
-    config : CDIConfig
+    v2.0: Fully differentiable forward path. No .detach() anywhere.
+    The spectral operators (Hodge projection, Green's PCG) propagate
+    gradients to all geometric and algebraic parameters.
     """
 
     def __init__(self, hodge, green, dirac, belief, sheaf, config: CDIConfig) -> None:
@@ -59,30 +44,29 @@ class InferenceOperator:
         """Map raw observation(s) into the full 𝔹 state space.
 
         Steps:
-          1. Embed into ℬ₀ via ι: O → ℬ₀
+          1. Embed into ℬ₀ via ι: O → ℬ₀ (live embedding_matrix)
           2. Pad other degrees with zeros
-          3. Tensor with spinor identity
-          4. Distribute across manifold points
+          3. Tensor with spinor weight
+          4. Flatten to (N,)
 
         Parameters
         ----------
-        data : torch.Tensor
-            Shape ``(n, obs_dim)`` — one observation per manifold point.
+        data : torch.Tensor  Shape (n, obs_dim) or (obs_dim,).
 
-        Returns
-        -------
-        torch.Tensor
-            Shape ``(N,)`` where N = n·s·B.
+        Returns torch.Tensor  Shape (N,).
         """
         n = self.config.n_points
         s = self.config.spinor_dim
         B = self.config.total_belief_dim
         dtype = self.config.dtype
 
-        # 1. Embed into B_0
+        if data.dim() == 1:
+            data = data.unsqueeze(0).expand(n, -1)
+
+        # 1. Embed into B_0 via live sheaf.embedding_matrix
         belief_0 = self.sheaf.embed(data)  # (n, dim_B0)
 
-        # 2. Assemble full belief vector (pad other degrees with 0)
+        # 2. Assemble full belief: other degrees zero
         sections = {}
         for k in self.belief.degrees:
             idx = self.belief.degree_to_index(k)
@@ -93,61 +77,51 @@ class InferenceOperator:
                 sections[k] = torch.zeros(n, dim_k, dtype=dtype)
         full_belief = self.belief.assemble_state(sections)  # (n, B)
 
-        # 3. Tensor with spinor identity: (n, s, B)
-        # Each point gets spinor_dim copies of the belief vector
-        # Use uniform spinor: [1/√s, 1/√s, ...] to distribute
+        # 3. Tensor with uniform spinor weight
         spinor_weight = torch.ones(s, dtype=dtype) / (s ** 0.5)
         full_twisted = full_belief.unsqueeze(1) * spinor_weight.unsqueeze(0).unsqueeze(-1)
-        # shape: (n, s, B)
 
-        # 4. Flatten to (N,)
-        return full_twisted.reshape(-1)
+        return full_twisted.reshape(-1)  # (N,)
 
     # ------------------------------------------------------------------
-    # Inference
+    # Inference — v2.0: FULLY DIFFERENTIABLE, no .detach()
     # ------------------------------------------------------------------
 
     def infer(self, observation: torch.Tensor) -> torch.Tensor:
         """Full inference ℱ(s) = H(ι(s)) + δ* G_ℬ D* ι(s).
 
+        v2.0 Fix F1: Both harmonic_part and green_d_star are kept in
+        the computation graph. Gradients flow through:
+          - harmonic_part → Hodge projector → Laplacian matrix → all params
+          - green_d_star  → Green PCG → Laplacian apply → all params
+          - d_star_embedded → Dirac adjoint → Dirac matrix → all params
+
         Parameters
         ----------
-        observation : torch.Tensor
-            Shape ``(n, obs_dim)``.
+        observation : torch.Tensor  Shape (n, obs_dim).
 
-        Returns
-        -------
-        torch.Tensor
-            Shape ``(n, output_dim)`` — predictions.
-            
-        NOTE: Spectral projections (harmonic, Green) use detached eigenvalues
-        to avoid backprop through expensive spectral computations. Learning
-        is driven by cross-entropy loss and regularizer terms, not through
-        spectral operator gradients.
+        Returns torch.Tensor  Shape (n, output_dim).
         """
         # Embed observation into 𝔹
         embedded = self.embed_observation(observation)  # (N,)
 
-        # H(ι(s)) — harmonic projection (use detached spectral decomposition)
+        # H(ι(s)) — harmonic projection via Hodge decomposition
+        # v2.0: NO .detach() — fully in graph
         harmonic_part, _ = self.hodge.decompose(embedded)
-        # Detach to prevent expensive backprop through eigendecomposition
-        harmonic_part = harmonic_part.detach()
 
         # D* ι(s)
         d_star_embedded = self.dirac.apply_adjoint(embedded)
 
-        # G_ℬ D* ι(s) (use detached Green operator)
+        # G_ℬ D* ι(s) — PCG solve, fully differentiable
+        # v2.0: NO .detach() — PCG propagates gradients through Laplacian
         green_d_star = self.green.apply(d_star_embedded)
-        # Detach: Green's operator also uses spectral decomposition
-        green_d_star = green_d_star.detach()
 
-        # δ* G_ℬ D* ι(s) — apply belief adjoint coboundary in the full space
+        # δ* G_ℬ D* ι(s)
         delta_star_green = self._apply_delta_star_full(green_d_star)
 
         # Full inference result
         result = harmonic_part + delta_star_green  # (N,)
 
-        # Extract prediction from ℬ₀ component
         return self.extract_prediction(result)
 
     # ------------------------------------------------------------------
@@ -155,69 +129,41 @@ class InferenceOperator:
     # ------------------------------------------------------------------
 
     def extract_prediction(self, full_state: torch.Tensor) -> torch.Tensor:
-        """Extract ℬ₀ from the full 𝔹 state, then project to output.
+        """Extract ℬ₀ from full 𝔹 state, project to output_dim.
 
         Parameters
         ----------
-        full_state : torch.Tensor
-            Shape ``(N,)``.
+        full_state : torch.Tensor  Shape (N,).
 
-        Returns
-        -------
-        torch.Tensor
-            Shape ``(n, output_dim)``.
+        Returns torch.Tensor  Shape (n, output_dim).
         """
         n = self.config.n_points
         s = self.config.spinor_dim
         B = self.config.total_belief_dim
 
-        # Reshape to (n, s, B)
         state_3d = full_state.reshape(n, s, B)
-
-        # Average over spinor index
         state_avg = state_3d.mean(dim=1)  # (n, B)
 
-        # Extract B_0 slice
         offset_0 = self.config.belief_offset(0)
         dim_0 = self.config.belief_dim(0)
-        belief_0 = state_avg[:, offset_0 : offset_0 + dim_0]  # (n, dim_B0)
+        belief_0 = state_avg[:, offset_0:offset_0 + dim_0]  # (n, dim_B0)
 
-        # Project to output
         return self.sheaf.project_output(belief_0)  # (n, output_dim)
 
     # ------------------------------------------------------------------
-    # Internal: δ* in the full space
+    # δ* in the full space
     # ------------------------------------------------------------------
 
     def _apply_delta_star_full(self, state: torch.Tensor) -> torch.Tensor:
-        """Apply δ* in the full 𝔹 = (n, s, B) space.
-
-        δ* acts on the belief index only (block-diagonal over n and s).
-        """
+        """Apply δ* in the full 𝔹 = (n,s,B) space. Differentiable."""
         n = self.config.n_points
         s = self.config.spinor_dim
         B = self.config.total_belief_dim
 
-        # δ* matrix in the belief space
-        delta_star = self.belief.full_adjoint_coboundary_matrix()  # (B, B)
-
-        # Reshape state to (n, s, B)
+        delta_star = self.belief.full_adjoint_coboundary_matrix()  # (B,B) live
         state_3d = state.reshape(n, s, B)
-
-        # Apply δ* to each (n, s) fiber
         result_3d = torch.einsum("ij,...j->...i", delta_star, state_3d)
-
         return result_3d.reshape(-1)
 
-    # ------------------------------------------------------------------
-    # Fredholm index
-    # ------------------------------------------------------------------
-
     def fredholm_index(self) -> int:
-        """ind(ℱ) = dim ker ℱ − dim coker ℱ.
-
-        Theorem 5.3.4: Should be 0 for well-posed inference.
-        """
-        # Approximate via the Laplacian: ind = 0 for self-adjoint operators
-        # on compact manifolds. Return 0 as per the theorem.
-        return 0
+        return 0  # Theorem 5.3.4

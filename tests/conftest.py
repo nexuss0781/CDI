@@ -1,5 +1,7 @@
 """
-Shared test fixtures for CDI test suite.
+Shared test fixtures for CDI v2.0 test suite.
+
+v2.0: All fixtures use v2.0-compliant configs (dim B_0 >= embed_dim).
 """
 
 import pytest
@@ -23,12 +25,13 @@ from cdi.engine import CDIEngine
 
 @pytest.fixture
 def tiny_config():
-    """Minimal config for fast tests."""
+    """v2.0 tiny config — spec-compliant (B_0=32 >= embed=32)."""
     return CDIConfig.tiny()
 
 
 @pytest.fixture
 def small_config():
+    """v2.0 small config."""
     return CDIConfig.small()
 
 
@@ -64,6 +67,7 @@ def connection(tiny_config, cover):
 
 @pytest.fixture
 def dirac(manifold, clifford, connection, belief, cover, tiny_config):
+    """v2.0: built without .detach() — live parameters."""
     d = DiracOperator(manifold, clifford, connection, belief, cover, tiny_config)
     d.build()
     return d
@@ -71,6 +75,7 @@ def dirac(manifold, clifford, connection, belief, cover, tiny_config):
 
 @pytest.fixture
 def laplacian(dirac, belief, connection, tiny_config):
+    """v2.0: built from live Dirac — differentiable."""
     lap = BeliefLaplacian(dirac, belief, connection, tiny_config)
     lap.build()
     return lap
@@ -88,7 +93,7 @@ def green(laplacian):
 
 @pytest.fixture
 def built_engine(tiny_config):
-    """A fully built CDI engine for integration tests."""
+    """Fully built v2.0 CDI engine."""
     engine = CDIEngine(tiny_config)
     engine.build()
     return engine
