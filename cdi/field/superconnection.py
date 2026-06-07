@@ -95,7 +95,7 @@ class Superconnection:
 
         Returns shape ``(N, N)``.
         """
-        D = self.dirac.matrix()
+        D = self.dirac.matrix          # property access — LIVE, not a call
         delta = self._delta_full_matrix()
         delta_star = self._delta_star_full_matrix()
         A = self._connection_full_matrix()

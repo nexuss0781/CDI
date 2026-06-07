@@ -191,28 +191,60 @@ class CDIEngine:
         self.invariants = SystemInvariants(self.belief, self.laplacian, cfg)
 
     def rebuild_operators(self) -> None:
-        """Rebuild all operators after optimizer.step().
+        """Rebuild all operator matrices after optimizer.step().
 
         v2.0 Spec §2.3.2 Axiom 2.3.2.1 — MANDATORY after every step.
-        Rebuilds cover topology then all dependent operators.
+        Rebuilds all operator matrices from the CURRENT (updated) parameter
+        values. Cover topology and connection W_params are preserved so
+        optimizer parameter references remain valid across steps.
         Clears all spectral caches.
 
         Implements Algorithm 2.3.2.2 from the specification.
+
+        NOTE: The cover topology (edges, triangles) is NOT rebuilt here —
+        it was fixed at construction time. Only the dense matrices (Dirac,
+        Laplacian) are recomputed from the current manifold.points,
+        metric_L, and connection.W_params values.
         """
         if not self._built:
             self.build()
             return
 
-        # Rebuild cover (point positions may have shifted)
-        self.cover = GoodCover(self.manifold, self.config)
-        self.connection = BeliefConnection(self.config, self.cover.edges)
-
-        # Rebuild all operators from live (updated) parameters
+        # Rebuild all operator matrices from live (updated) parameters
+        # Cover and connection W_params stay the same (optimizer holds refs)
         self._build_operators()
 
     # ==================================================================
     # v2.0 Forward Pass — Recurrent Language Model (Spec §3.1 / §7.1)
     # ==================================================================
+
+    def _build_J_t(self, b0_vals: torch.Tensor) -> torch.Tensor:
+        """Build the observation current J_t ∈ ℝ^N from B_0 values.
+
+        Injects b0_vals into every (point, spinor) slot of the B_0 sub-block
+        using index_put so the gradient path to W_iota is preserved.
+
+        Parameters
+        ----------
+        b0_vals : (dim_b0,) — output of W_iota @ e_t, fully in the graph.
+
+        Returns (N,) — sparse-style observation current.
+        """
+        cfg = self.config
+        N = cfg.total_state_dim
+        dtype = cfg.dtype
+        norm_val = float(cfg.n_points * cfg.spinor_dim)
+        scaled = b0_vals / norm_val  # (dim_b0,) — still in graph
+
+        # Repeat scaled across all n*s slots: (n*s, dim_b0)
+        n_slots = cfg.n_points * cfg.spinor_dim
+        vals_repeated = scaled.unsqueeze(0).expand(n_slots, -1).contiguous()  # (n*s, dim_b0)
+        vals_flat = vals_repeated.reshape(-1)                                  # (n*s*dim_b0,)
+
+        # index_put into a zeros base — single op, gradient flows through vals_flat
+        J_t = torch.zeros(N, dtype=dtype)
+        J_t = J_t.index_put((self.b0_indices,), vals_flat)
+        return J_t
 
     def forward_sequence(self, sequence: torch.Tensor) -> torch.Tensor:
         """Recurrent CDI forward over a token embedding sequence.
@@ -223,6 +255,7 @@ class CDIEngine:
           - K Euler steps per token using live Laplacian.apply()       [Fix F3]
           - Prediction via W_out @ B_0_mean(Ψ) — no bypass path       [Fix F4]
           - No .detach() on intermediate belief states                 [Fix F1]
+          - J_t built via single index_put — clean gradient path       [Fix F1]
 
         Parameters
         ----------
@@ -234,13 +267,8 @@ class CDIEngine:
         cfg = self.config
         n = cfg.n_points
         s = cfg.spinor_dim
-        B = cfg.total_belief_dim
-        sB = self._sB
-        N = cfg.total_state_dim
         dt = cfg.heat_dt
         K = cfg.heat_steps
-        dtype = cfg.dtype
-        b0_off = cfg.belief_offset(0)
         L = sequence.shape[0]
 
         # Fix F2: Start from learnable theta_init, not zeros
@@ -251,30 +279,21 @@ class CDIEngine:
         for t in range(L):
             e_t = sequence[t]  # (embed_dim,)
 
-            # Spec §3.1 Step 2: Observation current injected into B_0 slice
-            # J_t[b0_indices] = W_iota @ e_t / (n*s), rest = 0
-            b0_vals = self.W_iota @ e_t        # (dim_b0,) — differentiable
+            # Spec §3.1 Step 2: W_iota @ e_t → B_0 values (fully in graph)
+            b0_vals = self.W_iota @ e_t  # (dim_b0,)
 
-            # Build sparse-style J_t via index scatter into a zeros tensor
-            # This keeps the grad path: b0_vals → W_iota, e_t → embedding
-            J_t = torch.zeros(N, dtype=dtype)
-            norm = float(n * s)
-            for p in range(n):
-                for si in range(s):
-                    st = p * sB + si * B + b0_off
-                    # Use index_put_ on a clone to stay in graph
-                    J_t = J_t.clone()
-                    J_t[st:st + self.dim_b0] = b0_vals / norm
+            # Build J_t: inject b0_vals into all (point, spinor) B_0 slots
+            J_t = self._build_J_t(b0_vals)  # (N,) — gradient flows to W_iota
 
             # Spec §3.1 Step 3: K Euler steps (recurrent, live Δ_ℬ)
             psi = self.heat.evolve_euler(psi, J_t, dt=dt, steps=K)
 
             # Spec §3.1 Step 4: Extract B_0 from Ψ, average over n*s slots
             b0_all = psi[self.b0_indices].reshape(n * s, self.dim_b0)
-            b0_mean = b0_all.mean(dim=0)        # (dim_b0,)
+            b0_mean = b0_all.mean(dim=0)  # (dim_b0,)
 
-            # Spec §3.1 Step 4: Readout W_out @ b0_mean → (embed_dim,)
-            h_t = self.W_out @ b0_mean          # differentiable
+            # Readout: W_out @ b0_mean → (embed_dim,)
+            h_t = self.W_out @ b0_mean  # differentiable
 
             outputs.append(h_t)
 
