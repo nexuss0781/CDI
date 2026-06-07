@@ -34,6 +34,8 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
+import resource
 import time
 from pathlib import Path
 from typing import Dict, List, Tuple
@@ -49,6 +51,28 @@ from dataset import (
     make_test_set,
     make_dataloader,
 )
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  RAM Guard — limit process to 10 GB
+# ═══════════════════════════════════════════════════════════════════════════
+
+def _limit_ram_gb(gb: float = 10.0) -> None:
+    """Hard-limit process RAM to ``gb`` gigabytes (Linux/macOS only)."""
+    try:
+        limit = int(gb * 1024 ** 3)
+        resource.setrlimit(resource.RLIMIT_AS, (limit, limit))
+    except Exception:
+        pass  # Windows or permission denied — skip silently
+
+
+def _ram_used_gb() -> float:
+    """Current process RSS in GB."""
+    try:
+        import psutil
+        return psutil.Process(os.getpid()).memory_info().rss / 1024 ** 3
+    except Exception:
+        return 0.0
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -81,17 +105,9 @@ def run_lm_epoch(
     optimizer: torch.optim.Optimizer,
     rebuild_every: int = 10,
     max_batches: int = None,
+    label: str = "",
 ) -> Dict[str, float]:
-    """One epoch of next-token prediction training.
-
-    For each batch:
-        1. Embed token IDs → (batch, seq_len, embed_dim)
-        2. CDI forward_sequence_batch → (batch, seq_len, embed_dim)
-        3. Cross-entropy loss via weight-tied logits
-        4. Backward + clip + step
-
-    Complexity per batch: O(batch × n_points × heat_steps)
-    """
+    """One epoch of next-token prediction training."""
     total_loss = 0.0
     total_ce = 0.0
     total_consistency = 0.0
@@ -99,12 +115,11 @@ def run_lm_epoch(
     total_grad_norm = 0.0
     n_batches = 0
 
+    total = max_batches if max_batches else len(dataloader)
+
     for batch_idx, (input_ids, target_ids) in enumerate(dataloader):
         if max_batches and batch_idx >= max_batches:
             break
-
-        if batch_idx % 50 == 0:
-            print(".", end="", flush=True)
 
         optimizer.zero_grad()
         embeddings = tokenizer.embed(input_ids)
@@ -122,6 +137,19 @@ def run_lm_epoch(
         total_perplexity += loss_dict["perplexity"]
         total_grad_norm += grad_norm
         n_batches += 1
+
+        # Real-time progress: overwrite current line
+        done = n_batches
+        remaining = total - done
+        ram = _ram_used_gb()
+        print(
+            f"\r  │    {label}  batch {done}/{total}  remaining {remaining}"
+            f"  CE={loss_dict['ce']:.4f}  RAM={ram:.1f}GB   ",
+            end="", flush=True,
+        )
+
+    # Clear the progress line before returning
+    print("\r" + " " * 80 + "\r", end="", flush=True)
 
     d = max(n_batches, 1)
     return {
@@ -223,7 +251,9 @@ def run_interleaved_training(
             continue
     """
     Path(output_dir).mkdir(parents=True, exist_ok=True)
-    seq_len = config.n_points  # context length = manifold points
+    seq_len = config.n_points
+
+    _limit_ram_gb(10.0)
 
     # ── Header ────────────────────────────────────────────────────────
     print()
@@ -309,32 +339,31 @@ def run_interleaved_training(
         for ep in range(1, lap_epochs + 1):
             global_epoch += 1
             t0 = time.time()
-            print(f"  │    Epoch {ep}/{lap_epochs}: ", end="", flush=True)
             metrics = run_lm_epoch(
                 engine, tokenizer, train_loader, optimizer,
                 rebuild_every=15, max_batches=max_batches_per_epoch,
+                label=f"Epoch {ep}/{lap_epochs}",
             )
             dt = time.time() - t0
             history["train"].append({"global_epoch": global_epoch, "lap": lap, **metrics})
-
-            if ep % max(lap_epochs // 3, 1) == 0 or ep == lap_epochs:
-                print(f" ✓ {dt:.1f}s | CE={metrics['ce']:.4f} PPL={metrics['perplexity']:.1f} δ²={metrics['consistency']:.2e} ∇={metrics['grad_norm']:.3f}")
-            else:
-                print(f" ✓ {dt:.1f}s")
+            print(f"  │    Epoch {ep}/{lap_epochs}  {dt:.1f}s  "
+                  f"CE={metrics['ce']:.4f}  PPL={metrics['perplexity']:.1f}  "
+                  f"δ²={metrics['consistency']:.2e}  ∇={metrics['grad_norm']:.3f}")
 
         # ── FINE-TUNE on Science QA ──────────────────────────────
         print(f"  │  FINE-TUNING on SciQ ({ft_epochs} epochs)")
         for ep in range(1, ft_epochs + 1):
             global_epoch += 1
-            print(f"  │    FT {ep}/{ft_epochs}: ", end="", flush=True)
             t0 = time.time()
             metrics = run_lm_epoch(
                 engine, tokenizer, ft_loader, optimizer,
                 rebuild_every=5,
+                label=f"FT {ep}/{ft_epochs}",
             )
             dt = time.time() - t0
             history["ft"].append({"global_epoch": global_epoch, "lap": lap, **metrics})
-            print(f" ✓ {dt:.1f}s | CE={metrics['ce']:.4f} PPL={metrics['perplexity']:.1f}")
+            print(f"  │    FT {ep}/{ft_epochs}  {dt:.1f}s  "
+                  f"CE={metrics['ce']:.4f}  PPL={metrics['perplexity']:.1f}")
 
         # ── TEST on science questions ────────────────────────────
         test_metrics = evaluate_lm(engine, tokenizer, test_loader)
