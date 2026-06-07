@@ -1,37 +1,37 @@
 """
-§6 Cohomodynamic Heat Equation
-==============================
+§6 Cohomodynamic Heat Equation — v2.0
+=======================================
+
+v2.0 Spec §2.2 / Fix F2 — CRITICAL CHANGES:
+  - Belief state Ψ persists across tokens (recurrent, not reset to zero)
+  - Initial state theta_init is a LEARNABLE parameter (CDIEngine owns it)
+  - evolve_euler() takes the current state and evolves it, no zero reset
+  - Eigendecomposition cache ELIMINATED from training forward path
+  - invalidate_cache() still provided for completeness
+
+v2.0 Spec §2.1.3 / Fix F3:
+  - Euler steps use live Laplacian.apply() — differentiable
+  - No spectral caching in the training loop
 
 Definition 6.1.2:
     ∂Ψ/∂t = −Δ_ℬ Ψ + 𝒥
 
-Theorem 6.1.3 (Well-Posedness, Duhamel):
-    Ψ(t) = e^{−tΔ_ℬ} Ψ₀ + ∫₀ᵗ e^{−(t−s)Δ_ℬ} 𝒥 ds
-
-Spectral solution (Theorem 6.2.1):
-    Ψ(t) = Σⱼ [cⱼ e^{−λⱼt} + (𝒥ⱼ/λⱼ)(1 − e^{−λⱼt})] φⱼ
-
-Convergence (Theorem 6.2.2):
+Theorem 6.2.2 (Convergence):
     ‖Ψ(t) − Ψ_∞‖ ≤ C e^{−λ₁t}
-
-Learning time (Corollary 6.2.3):
-    τ_learn = 1/λ₁
 """
 
 from __future__ import annotations
-
 from typing import Optional, Tuple
-
 import torch
-
 from cdi.config import CDIConfig
 
 
 class HeatEquation:
-    """Cohomodynamic heat equation solver.
+    """Cohomodynamic heat equation solver — v2.0 recurrent.
 
-    Provides both Euler time-stepping (O(n) per step) and exact
-    spectral solutions for the belief-state evolution.
+    In v2.0 the caller (CDIEngine) owns the recurrent state Ψ and
+    calls evolve_euler() to advance it by K steps for each token.
+    The state is NEVER reset between tokens within a sequence.
 
     Attributes
     ----------
@@ -42,139 +42,88 @@ class HeatEquation:
     def __init__(self, laplacian, config: CDIConfig) -> None:
         self.laplacian = laplacian
         self.config = config
-        self._eigenvalues: Optional[torch.Tensor] = None
-        self._eigenvectors: Optional[torch.Tensor] = None
-
-    def _ensure_spectral(self) -> None:
-        """Compute eigendecomposition if not cached."""
-        if self._eigenvalues is None:
-            self._eigenvalues, self._eigenvectors = self.laplacian.eigendecompose()
 
     # ------------------------------------------------------------------
-    # Euler integration  (O(n) per step)
+    # Euler integration — v2.0: differentiable, uses live Laplacian
     # ------------------------------------------------------------------
 
     def evolve_euler(
-        self, psi: torch.Tensor, J: torch.Tensor, dt: float, steps: int
+        self,
+        psi: torch.Tensor,
+        J: torch.Tensor,
+        dt: float,
+        steps: int,
     ) -> torch.Tensor:
-        """Explicit Euler: Ψ_{t+1} = Ψ_t − dt·Δ_ℬ Ψ_t + dt·𝒥.
+        """Explicit Euler: Ψ_{k+1} = Ψ_k − dt·Δ_ℬ Ψ_k + dt·𝒥.
+
+        v2.0 changes:
+          - psi is the CURRENT state (not torch.zeros)
+          - Laplacian.apply() uses the live matrix (no detach)
+          - Each step creates a fresh computation node (no in-place)
 
         Parameters
         ----------
-        psi : torch.Tensor   Shape ``(N,)`` — initial state.
-        J   : torch.Tensor   Shape ``(N,)`` — source term.
-        dt  : float           Time step.
-        steps : int           Number of integration steps.
+        psi   : (N,) — current belief state (persisted across tokens)
+        J     : (N,) — observation source term for this token
+        dt    : float
+        steps : int  (= K from spec)
 
-        Returns
-        -------
-        torch.Tensor  Shape ``(N,)`` — state after ``steps`` steps.
-        
-        Notes
-        -----
-        Each step creates a new tensor to avoid accumulating computation graphs
-        across multiple calls to this method.
+        Returns (N,) — evolved belief state.
         """
         current = psi
         for _ in range(steps):
-            # Compute update — creates new graph node
-            laplacian_term = self.laplacian.apply(current)
-            # Create new tensor for next step (not in-place)
-            current = current - dt * laplacian_term + dt * J
+            lap_term = self.laplacian.apply(current)  # live Δ_ℬ, in graph
+            current = current - dt * lap_term + dt * J
         return current
 
     # ------------------------------------------------------------------
-    # Exact spectral solution
+    # Steady state — for monitoring / PCG diagnostics
     # ------------------------------------------------------------------
 
-    def evolve_spectral(
-        self, psi_0: torch.Tensor, J: torch.Tensor, t: float
-    ) -> torch.Tensor:
-        """Exact spectral solution at time t.
+    def steady_state(self, J: torch.Tensor) -> torch.Tensor:
+        """Ψ_∞ = Δ_ℬ⁻¹ 𝒥 on (ker Δ_ℬ)⊥ via eigendecomposition.
 
-        Ψ(t) = Σⱼ [cⱼ e^{−λⱼt} + (𝒥ⱼ/λⱼ)(1 − e^{−λⱼt})] φⱼ
-
-        For harmonic modes (λ ≈ 0): Ψ = c₀ + 𝒥₀·t.
-
-        Parameters
-        ----------
-        psi_0 : torch.Tensor  Shape ``(N,)`` — initial state.
-        J     : torch.Tensor  Shape ``(N,)`` — source.
-        t     : float          Time.
-
-        Returns
-        -------
-        torch.Tensor  Shape ``(N,)``.
+        Used for monitoring convergence, not in training forward pass.
         """
-        self._ensure_spectral()
-        evals = self._eigenvalues
-        evecs = self._eigenvectors
+        evals, evecs = self.laplacian.eigendecompose()
+        J_coeffs = evecs.T @ J
+        result_coeffs = torch.zeros_like(J_coeffs)
+        nonharm = evals.abs() > 1e-10
+        result_coeffs[nonharm] = J_coeffs[nonharm] / evals[nonharm]
+        return evecs @ result_coeffs
 
-        c = evecs.T @ psi_0        # (N,) — initial coefficients
-        J_coeffs = evecs.T @ J     # (N,) — source coefficients
+    # ------------------------------------------------------------------
+    # Spectral solution — diagnostics only
+    # ------------------------------------------------------------------
 
+    def evolve_spectral(self, psi_0: torch.Tensor, J: torch.Tensor, t: float) -> torch.Tensor:
+        """Exact spectral solution at time t. DIAGNOSTICS ONLY."""
+        evals, evecs = self.laplacian.eigendecompose()
+        c = evecs.T @ psi_0
+        J_coeffs = evecs.T @ J
         decay = torch.exp(-evals * t)
         harmonic = evals.abs() < 1e-10
         nonharm = ~harmonic
-
         result_coeffs = torch.zeros_like(c)
-
-        # Harmonic: c_j + J_j·t
         result_coeffs[harmonic] = c[harmonic] + J_coeffs[harmonic] * t
-
-        # Non-harmonic: c_j e^{−λt} + (J_j/λ_j)(1 − e^{−λt})
         if nonharm.any():
             lam = evals[nonharm]
             result_coeffs[nonharm] = (
                 c[nonharm] * decay[nonharm]
                 + (J_coeffs[nonharm] / lam) * (1.0 - decay[nonharm])
             )
-
         return evecs @ result_coeffs
 
     # ------------------------------------------------------------------
-    # Steady state
-    # ------------------------------------------------------------------
-
-    def steady_state(self, J: torch.Tensor) -> torch.Tensor:
-        """Ψ_∞ = Δ_ℬ⁻¹ 𝒥 on (ker Δ_ℬ)⊥.
-
-        Definition 6.3.1: Δ_ℬ Ψ_∞ = 𝒥.
-
-        Parameters
-        ----------
-        J : torch.Tensor  Shape ``(N,)``.
-
-        Returns
-        -------
-        torch.Tensor  Shape ``(N,)``.
-        """
-        self._ensure_spectral()
-        evals = self._eigenvalues
-        evecs = self._eigenvectors
-
-        J_coeffs = evecs.T @ J
-        result_coeffs = torch.zeros_like(J_coeffs)
-
-        nonharm = evals.abs() > 1e-10
-        result_coeffs[nonharm] = J_coeffs[nonharm] / evals[nonharm]
-
-        return evecs @ result_coeffs
-
-    # ------------------------------------------------------------------
-    # Convergence analysis
+    # Convergence diagnostics — use Laplacian.spectral_gap() directly
     # ------------------------------------------------------------------
 
     def convergence_rate(self) -> torch.Tensor:
-        """λ₁ — first positive eigenvalue."""
-        self._ensure_spectral()
-        positive = self._eigenvalues[self._eigenvalues > 1e-10]
-        if len(positive) == 0:
-            return torch.tensor(0.0, dtype=self.config.dtype)
-        return positive.min()
+        """λ₁ from Laplacian diagnostics."""
+        return self.laplacian.spectral_gap()
 
     def learning_time(self) -> torch.Tensor:
-        """τ = 1/λ₁ — characteristic learning time (Corollary 6.2.3)."""
+        """τ = 1/λ₁."""
         lam1 = self.convergence_rate()
         if lam1.abs() < 1e-12:
             return torch.tensor(float("inf"), dtype=self.config.dtype)
@@ -183,12 +132,9 @@ class HeatEquation:
     def convergence_bound(
         self, psi: torch.Tensor, psi_inf: torch.Tensor, t: float
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Verify ‖Ψ(t) − Ψ_∞‖ ≤ C e^{−λ₁t}.
-
-        Returns (actual_error, theoretical_bound).
-        """
+        """Verify ‖Ψ(t) − Ψ_∞‖ ≤ C e^{−λ₁t}."""
         actual = torch.norm(psi - psi_inf)
-        C = torch.norm(psi - psi_inf)  # constant from Theorem 6.2.2
+        C = actual.clone()
         lam1 = self.convergence_rate()
         bound = C * torch.exp(-lam1 * t)
         return actual, bound
@@ -198,6 +144,7 @@ class HeatEquation:
     # ------------------------------------------------------------------
 
     def invalidate_cache(self) -> None:
-        """Call when Laplacian parameters change."""
-        self._eigenvalues = None
-        self._eigenvectors = None
+        """No-op in v2.0 (no cache in heat equation itself).
+        Laplacian spectral cache is managed by BeliefLaplacian.invalidate().
+        """
+        pass
