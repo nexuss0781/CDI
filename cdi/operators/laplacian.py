@@ -108,15 +108,12 @@ class BeliefLaplacian:
         self._eigenvectors = None
 
     def matrix(self) -> torch.Tensor:
-        """Dense Laplacian matrix.  Builds if needed.
+        """Dense Laplacian matrix. Builds if not yet constructed.
         
-        CRITICAL: Always rebuild to avoid stale computation graphs.
-        The matrix depends on learnable parameters (metric, connection, belief)
-        and must be recomputed for each forward pass to maintain a fresh graph.
+        Call invalidate() to force a rebuild after parameter updates.
         """
-        # Always rebuild - don't use cached matrix
-        # This ensures each forward pass gets a fresh computation graph
-        self.build()
+        if self._matrix is None:
+            self.build()
         return self._matrix
 
     # ------------------------------------------------------------------
