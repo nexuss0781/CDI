@@ -115,19 +115,12 @@ class DiracOperator:
         self._matrix = D
 
     def matrix(self) -> torch.Tensor:
-        """Return the dense Dirac matrix. Builds if needed.
-
-        Returns
-        -------
-        torch.Tensor
-            Shape ``(N, N)`` where N = n·s·B.
-            
-        Notes
-        -----
-        Always rebuilds to avoid stale computation graphs between batches.
+        """Return the dense Dirac matrix. Builds if not yet constructed.
+        
+        Call invalidate() to force a rebuild after parameter updates.
         """
-        # Always rebuild for fresh computation graph
-        self.build()
+        if self._matrix is None:
+            self.build()
         return self._matrix
 
     # ------------------------------------------------------------------

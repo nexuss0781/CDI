@@ -131,6 +131,11 @@ def run_lm_epoch(
         grad_norm = clip_grad_norm_(all_params, max_norm=1.0)
         optimizer.step()
 
+        # Invalidate cached matrices so the next forward uses fresh graphs
+        # built from the updated parameters. This is O(1) — just clears pointers.
+        engine.dirac.invalidate()
+        engine.laplacian.invalidate()
+
         total_loss += loss_dict["total"]
         total_ce += loss_dict["ce"]
         total_consistency += loss_dict["consistency"]
@@ -252,8 +257,6 @@ def run_interleaved_training(
     """
     Path(output_dir).mkdir(parents=True, exist_ok=True)
     seq_len = config.n_points
-
-    _limit_ram_gb(10.0)
 
     # ── Header ────────────────────────────────────────────────────────
     print()
