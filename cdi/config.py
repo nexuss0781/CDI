@@ -108,6 +108,10 @@ class CDIConfig:
     # Spectral gap diagnostics period (steps)
     spectral_diag_every: int = 100
 
+    # DCSS-CDI ablation switch. It is consumed by the v3 matrix-free
+    # substrate; false preserves all frozen v2 behavior by default.
+    geometry_ablation: bool = False
+
     # ───────────────────────────────────────────────────────────────
     # Derived / computed properties
     # ───────────────────────────────────────────────────────────────
@@ -129,7 +133,23 @@ class CDIConfig:
 
     @property
     def spinor_dim(self) -> int:
-        return 2 ** (self.manifold_dim // 2)
+        """Dimension of the real spinor module used by the v2 Clifford action.
+
+        CDI uses the negative Euclidean convention ``{γᶦ, γʲ} = -2δⁱʲI``.
+        A real module for that convention is larger than the former complex-
+        style ``2**floor(d/2)`` rule in several dimensions; the explicit
+        low-dimensional table is the minimal real representation used by the
+        supported Stage A configurations.
+        """
+        real_negative_dimensions = {
+            1: 2, 2: 4, 3: 4, 4: 8,
+            5: 8, 6: 8, 7: 8, 8: 16,
+        }
+        if self.manifold_dim in real_negative_dimensions:
+            return real_negative_dimensions[self.manifold_dim]
+        # The repository's validated configurations are dimensions 1--8.
+        # Retain a conservative power-of-two fallback for experimental use.
+        return 2 ** ((self.manifold_dim + 1) // 2)
 
     @property
     def twisted_bundle_dim(self) -> int:
@@ -184,23 +204,26 @@ class CDIConfig:
 
     @classmethod
     def tiny(cls) -> "CDIConfig":
-        """v2.0 Tiny — validation/unit tests.
-        
-        Template A from spec:
-          embed_dim=32, belief_dims=(32,64,64,32), n_points=16, manifold_dim=4
+        """v2.0 Tiny — memory-safe validation/unit-test profile.
+
+        The corrected real Cl(0,4) module has spinor dimension eight. This
+        profile therefore uses a compact valid belief complex and four points,
+        keeping dense reference operators inside the CPU development envelope
+        while preserving every v2 dimensional axiom.
         """
         return cls(
             manifold_dim=4,
-            n_points=16,
-            cover_k=6,
+            n_points=4,
+            cover_k=2,
             motor_depth=1,
             abstraction_height=2,
-            belief_dims=(32, 64, 64, 32),
-            observation_dim=32,
-            output_dim=32,
-            heat_steps=10,
-            heat_dt=0.01,
-            batch_size=8,
+            belief_dims=(4, 16, 16, 4),
+            observation_dim=4,
+            output_dim=4,
+            heat_steps=2,
+            heat_dt=0.001,
+            batch_size=2,
+            dtype_str="float64",
         )
 
     @classmethod

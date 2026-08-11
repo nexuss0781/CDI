@@ -279,8 +279,10 @@ class CDIEngine:
         for t in range(L):
             e_t = sequence[t]  # (embed_dim,)
 
-            # Spec §3.1 Step 2: W_iota @ e_t → B_0 values (fully in graph)
-            b0_vals = self.W_iota @ e_t  # (dim_b0,)
+            # Spec §3.1 Step 2: combine the dedicated LM injection with the
+            # observation-sheaf current. Both parameterized maps now take part
+            # in every recurrent LM token update and are independently gated.
+            b0_vals = self.W_iota @ e_t + self.sheaf.embed(e_t)  # (dim_b0,)
 
             # Build J_t: inject b0_vals into all (point, spinor) B_0 slots
             J_t = self._build_J_t(b0_vals)  # (N,) — gradient flows to W_iota
@@ -292,8 +294,9 @@ class CDIEngine:
             b0_all = psi[self.b0_indices].reshape(n * s, self.dim_b0)
             b0_mean = b0_all.mean(dim=0)  # (dim_b0,)
 
-            # Readout: W_out @ b0_mean → (embed_dim,)
-            h_t = self.W_out @ b0_mean  # differentiable
+            # Readout: combine the dedicated LM projection with the sheaf
+            # projection, keeping both paths visible to the causal LM loss.
+            h_t = self.W_out @ b0_mean + self.sheaf.project_output(b0_mean)
 
             outputs.append(h_t)
 
@@ -457,7 +460,8 @@ class CDIEngine:
     # ==================================================================
 
     def get_parameters(self) -> List[torch.Tensor]:
-        """All learnable parameters — v2.0 includes theta_init, W_iota, W_out."""
+        """All learnable parameters, including active observation-sheaf maps."""
+
         params: List[torch.Tensor] = []
         params.extend(self.manifold.get_parameters())   # points, metric_L
         params.extend(self.sheaf.get_parameters())       # embedding_matrix, output_matrix

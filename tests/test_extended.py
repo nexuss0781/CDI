@@ -213,11 +213,11 @@ class TestObservationSheaf:
 
     def test_restrict_subset(self, sheaf, cfg):
         data = torch.randn(cfg.n_points, cfg.observation_dim, dtype=cfg.dtype)
-        from_idx = torch.arange(6)
-        to_idx = torch.tensor([1, 3, 5])
+        from_idx = torch.arange(cfg.n_points)
+        to_idx = from_idx[1::2]
         sec = sheaf.section(data, from_idx)
         restricted = sheaf.restrict(sec, from_idx, to_idx)
-        assert restricted.shape[0] == 3
+        assert restricted.shape[0] == to_idx.numel()
 
     def test_parameters_learnable(self, sheaf):
         params = sheaf.get_parameters()
@@ -300,8 +300,9 @@ class TestCliffordCurved:
             assert g.shape == (cfg.spinor_dim, cfg.spinor_dim)
 
     def test_gamma_at_point_curved_relations(self, clifford, manifold, cfg):
-        """Curved {γⁱ, γʲ} = -2 g^{ij} I at a specific point."""
-        g = manifold.metric()          # (n, d, d)
+        """Curved {γⁱ, γʲ} = -2 g^{ij} I for the contravariant frame."""
+        g = manifold.inverse_metric()  # (n, d, d)
+
         frame = manifold.orthonormal_frame()
         gammas = clifford.gamma_at_point(frame[0])
         s = cfg.spinor_dim
