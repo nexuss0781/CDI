@@ -1,0 +1,35 @@
+{
+  "stage": "A",
+  "name": "micro",
+  "purpose": "resource-safe reproducibility and baseline harness",
+  "seed": 42,
+  "config": {
+    "manifold_dim": 2,
+    "n_points": 4,
+    "cover_k": 2,
+    "motor_depth": 1,
+    "abstraction_height": 2,
+    "belief_dims": [4, 8, 8, 4],
+    "observation_dim": 4,
+    "output_dim": 4,
+    "heat_steps": 2,
+    "heat_dt": 0.001,
+    "learning_rate": 0.01,
+    "dtype_str": "float32",
+    "device": "cpu",
+    "spectral_diag_every": 1000
+  },
+  "batch_size": 2,
+  "vocab_size": 32,
+  "scale_lengths": [1, 2, 4, 8, 16],
+  "tolerances": {
+    "float32_rtol": 1e-5,
+    "float32_atol": 1e-6,
+    "determinism_max_abs": 1e-6,
+    "checkpoint_max_abs": 1e-5
+  },
+  "gates": {
+    "tiny_overfit_relative_loss_reduction": 0.9,
+    "required_status": "PASS"
+  }
+}

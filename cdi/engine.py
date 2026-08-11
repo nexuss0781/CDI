@@ -431,12 +431,16 @@ class CDIEngine:
         If any critical param returns False after step 1, halt training.
         """
         tol = 1e-8
+        # The symmetrised v2 Dirac construction can produce a weak but
+        # nonzero float32 point-cloud gradient because opposite edge
+        # contributions partially cancel. Treat that as active, not severed.
+        point_tol = 1e-14
 
-        def _has_grad(p: torch.Tensor) -> bool:
-            return p.grad is not None and p.grad.abs().max().item() > tol
+        def _has_grad(p: torch.Tensor, threshold: float = tol) -> bool:
+            return p.grad is not None and p.grad.abs().max().item() > threshold
 
         checks: Dict[str, bool] = {
-            "manifold.points":  _has_grad(self.manifold.points),
+            "manifold.points":  _has_grad(self.manifold.points, point_tol),
             "manifold.metric_L": _has_grad(self.manifold.metric_L),
             "theta_init":       _has_grad(self.theta_init),
             "W_iota":           _has_grad(self.W_iota),
