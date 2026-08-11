@@ -52,9 +52,10 @@ class GreenOperator:
         This ensures the returned source_orth is in the gradient graph
         of the live Laplacian parameters.
 
-        Strategy: source_orth = source - Δ_live @ pinv(Δ_det) @ source
-        which equals (I - Δ_live @ pinv_det) @ source — harmonic projection
-        via the live matrix.
+        Strategy: source_orth = Δ_live @ pinv(Δ_det) @ source. This is the
+        non-harmonic range projection required by CG; the complementary
+        expression I - Δ·pinv is the harmonic projection and must not be used
+        as the right-hand side for the Green solve.
         """
         M_live = self.laplacian.matrix           # LIVE
         M_det = M_live.detach()
@@ -65,11 +66,11 @@ class GreenOperator:
         except Exception:
             return source
 
-        # project: orth = source - Δ_live @ (pinv_det @ source)
-        # pinv_det @ source is detached (just a coefficient computation)
-        coeffs = pinv_M @ source.detach()   # (N,) — detached coefficients
-        source_orth = source - M_live @ coeffs  # LIVE matvec preserves grad
-        return source_orth
+        # Project into range(Δ). The detached inverse is a numerical
+        # coefficient operator, while the source and live left matvec remain
+        # in the graph so differentiation with respect to either is preserved.
+        coeffs = pinv_M @ source
+        return M_live @ coeffs
 
     # ------------------------------------------------------------------
     # PCG Apply — v2.0 fully differentiable forward path

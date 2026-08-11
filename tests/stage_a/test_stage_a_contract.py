@@ -6,10 +6,22 @@ from benchmarks.stage_a import config_for, config_dict, make_batch, seed_everyth
 
 def test_micro_config_is_valid_and_resource_safe():
     cfg = config_for("micro")
-    assert cfg.total_state_dim < 256
+    # The verified real Cl(0,2) module has spinor dimension four. The
+    # corrected micro profile remains CPU-safe while allowing this proper
+    # negative-signature representation.
+    assert cfg.total_state_dim <= 512
     assert cfg.dtype_str == "float32"
     assert cfg.belief_dim(0) >= cfg.observation_dim
     assert cfg.total_belief_dim >= 4 * cfg.observation_dim
+
+
+def test_tiny_profile_is_real_clifford_memory_safe():
+    from cdi.config import CDIConfig
+
+    cfg = CDIConfig.tiny()
+    assert cfg.spinor_dim == 8
+    assert cfg.total_state_dim <= 2048
+    cfg.validate()
 
 
 def test_micro_config_serializes_all_derived_dimensions():

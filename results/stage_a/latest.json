@@ -1,0 +1,298 @@
+{
+  "baseline_limitations": [],
+  "config": {
+    "abstraction_height": 2,
+    "b0_dim": 8,
+    "batch_size": 16,
+    "belief_dims": [
+      4,
+      8,
+      8,
+      4
+    ],
+    "bianchi_weight": 0.01,
+    "consistency_warmup_steps": 100,
+    "consistency_weight": 0.1,
+    "cover_k": 2,
+    "device": "cpu",
+    "dtype": "torch.float32",
+    "dtype_str": "float32",
+    "energy_weight": 0.0,
+    "epochs": 100,
+    "eval_interval": 5,
+    "finetune_interval": 10,
+    "geometry_ablation": false,
+    "heat_dt": 0.001,
+    "heat_steps": 2,
+    "learning_rate": 0.01,
+    "manifold_dim": 2,
+    "motor_depth": 1,
+    "n_degrees": 4,
+    "n_points": 4,
+    "observation_dim": 4,
+    "output_dim": 4,
+    "seed": 42,
+    "spectral_cutoff": 0,
+    "spectral_diag_every": 1000,
+    "spectral_target": 0.01,
+    "spectral_weight": 0.001,
+    "spinor_dim": 4,
+    "total_belief_dim": 24,
+    "total_state_dim": 384
+  },
+  "corrected_contract": {
+    "checkpoint": "Live dense operators are rebuilt after checkpoint parameter restoration before inference.",
+    "clifford": "Verified real Cl(0,d) generators satisfy {gamma_i,gamma_j} = -2 delta_ij I for d=1..8; curved gamma matrices use the contravariant metric.",
+    "lm_sheaf": "Both ObservationSheaf maps participate in every recurrent LM injection/readout and must receive finite nonzero gradients."
+  },
+  "environment": {
+    "cuda_available": false,
+    "cuda_device_count": 0,
+    "git_revision": "8be410c76c3db62c5dad2be4c28e1f1fae6f8edd",
+    "machine": "x86_64",
+    "numpy": "2.5.1",
+    "pid": 1816,
+    "platform": "Linux-6.1.102-x86_64-with-glibc2.39",
+    "processor": "x86_64",
+    "python": "3.12.3 (main, Jun 19 2026, 12:46:00) [GCC 13.3.0]",
+    "torch": "2.13.0+cu130"
+  },
+  "format": "cdi-stage-a-report-v2",
+  "gates": [
+    {
+      "details": {
+        "comparison": {
+          "max_abs": 0.0,
+          "max_rel": 0.0,
+          "mean_abs": 0.0
+        },
+        "fingerprints_equal": true,
+        "losses": [
+          12.670943260192871,
+          12.670943260192871
+        ]
+      },
+      "name": "forward_determinism",
+      "passed": true,
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "loss": 12.670943260192871,
+        "loss_dict": {
+          "bianchi": 0.0021038390696048737,
+          "ce": 3.4656240940093994,
+          "consistency": 9.20529842376709,
+          "lambda_1": 0.12892934679985046,
+          "perplexity": 31.996421813964844,
+          "spectral_pen": 0.0,
+          "total": 12.670943260192871
+        }
+      },
+      "name": "construction_forward_loss",
+      "passed": true,
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "active_lm_parameters": [
+          "sheaf.embedding",
+          "sheaf.output"
+        ],
+        "checks": {
+          "W_iota": true,
+          "W_out": true,
+          "belief.deltas": true,
+          "connection": true,
+          "manifold.metric_L": true,
+          "manifold.points": true,
+          "sheaf.embedding": true,
+          "sheaf.output": true,
+          "theta_init": true
+        },
+        "critical_names": [
+          "manifold.points",
+          "manifold.metric_L",
+          "theta_init",
+          "W_iota",
+          "W_out",
+          "sheaf.embedding",
+          "sheaf.output",
+          "connection",
+          "belief.deltas"
+        ],
+        "finite": true
+      },
+      "name": "gradient_flow",
+      "passed": true,
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "global_step": 1
+      },
+      "name": "optimizer_step_rebuild",
+      "passed": true,
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "format": "cdi-stage-a-v1",
+        "restored_fingerprint": "60a033742c31c961db3446b1d8c8f0e617b53fa8f24213f1d0c19c21e4477014",
+        "saved_fingerprint": "60a033742c31c961db3446b1d8c8f0e617b53fa8f24213f1d0c19c21e4477014"
+      },
+      "name": "checkpoint_parameter_round_trip",
+      "passed": true,
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "max_abs": 0.0,
+        "max_rel": 0.0,
+        "mean_abs": 0.0
+      },
+      "name": "checkpoint_logit_round_trip",
+      "passed": true,
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "final_loss": 0.809814453125,
+        "initial_loss": 11.977951049804688,
+        "losses": [
+          11.977951049804688,
+          9.127243041992188,
+          6.986607551574707,
+          5.458215713500977,
+          4.379770278930664,
+          3.6325182914733887,
+          3.1389379501342773,
+          2.83038330078125,
+          2.650019407272339,
+          2.5590665340423584,
+          2.51692795753479,
+          2.4805686473846436,
+          2.435326099395752,
+          2.3821299076080322,
+          2.3260741233825684,
+          2.2671306133270264,
+          2.2004215717315674,
+          2.1380767822265625,
+          2.0762979984283447,
+          2.0198075771331787,
+          1.9747709035873413,
+          1.9432412385940552,
+          1.8820202350616455,
+          1.8508731126785278,
+          1.8081103563308716,
+          1.7477147579193115,
+          1.716302514076233,
+          1.6584783792495728,
+          1.6084269285202026,
+          1.5797842741012573,
+          1.5297176837921143,
+          1.496622920036316,
+          1.4837511777877808,
+          1.4423550367355347,
+          1.4184004068374634,
+          1.4026967287063599,
+          1.3614749908447266,
+          1.3309879302978516,
+          1.3148541450500488,
+          1.2736623287200928,
+          1.2414885759353638,
+          1.2172539234161377,
+          1.1996656656265259,
+          1.1945953369140625,
+          1.1570658683776855,
+          1.1593893766403198,
+          1.1290369033813477,
+          1.1107921600341797,
+          1.089156150817871,
+          1.0539194345474243,
+          1.035814642906189,
+          1.016967535018921,
+          0.9850884675979614,
+          0.9725971221923828,
+          0.9378721117973328,
+          0.9094303846359253,
+          0.8929552435874939,
+          0.8462650775909424,
+          0.8335037231445312,
+          0.809814453125
+        ],
+        "relative_reduction": 0.9323912370523334,
+        "steps": 60
+      },
+      "name": "tiny_overfit",
+      "passed": true,
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "records": [
+          {
+            "length": 1,
+            "output_finite": true,
+            "rss_mb": 695.9140625,
+            "seconds": 0.00014830299915047362,
+            "tokens_per_second": 6742.951968121451
+          },
+          {
+            "length": 2,
+            "output_finite": true,
+            "rss_mb": 695.9140625,
+            "seconds": 0.00014485700012301095,
+            "tokens_per_second": 13806.719718768318
+          },
+          {
+            "length": 4,
+            "output_finite": true,
+            "rss_mb": 695.9140625,
+            "seconds": 0.00023299000167753547,
+            "tokens_per_second": 17168.118679771113
+          },
+          {
+            "length": 8,
+            "output_finite": true,
+            "rss_mb": 695.9140625,
+            "seconds": 0.0004865320006501861,
+            "tokens_per_second": 16442.90609725373
+          },
+          {
+            "length": 16,
+            "output_finite": true,
+            "rss_mb": 695.9140625,
+            "seconds": 0.0009031990011862945,
+            "tokens_per_second": 17714.81144131583
+          }
+        ]
+      },
+      "name": "scaling_forward_finite",
+      "passed": true,
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "command": "/usr/bin/python -m pytest -q",
+        "output_tail": "........................................................................ [ 37%]\n........................................................................ [ 74%]\n.................................................                        [100%]\n193 passed in 15.11s\n",
+        "passed_count": 193,
+        "returncode": 0
+      },
+      "name": "repository_test_suite",
+      "passed": true,
+      "status": "PASS"
+    }
+  ],
+  "known_v2_defects": [],
+  "objective": "fully validated reproducible CDI v2 baseline",
+  "run_id": "stage_a_micro_42_1786482314",
+  "stage": "A",
+  "status": "PASS",
+  "transition_to_stage_b": {
+    "decision": "baseline_ready_for_stage_b_artifact_review",
+    "required_approval": false,
+    "stage_b_implementation_allowed": false,
+    "status": "VALIDATED"
+  }
+}

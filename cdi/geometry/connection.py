@@ -133,7 +133,10 @@ class BeliefConnection:
         for i, j in self.edges:
             A_ij = self.connection_on_edge(i, j)
             A_full[i*self.B:(i+1)*self.B, j*self.B:(j+1)*self.B] = A_ij
-            A_full[j*self.B:(j+1)*self.B, i*self.B:(i+1)*self.B] = -A_ij
+            # Global skew-adjointness requires A_ji = -A_ij.T. Because the
+            # fiber connection A_ij is itself skew-symmetric, that block is
+            # numerically A_ij rather than the oriented fiber value -A_ij.
+            A_full[j*self.B:(j+1)*self.B, i*self.B:(i+1)*self.B] = -A_ij.T
         return A_full
 
     # ------------------------------------------------------------------

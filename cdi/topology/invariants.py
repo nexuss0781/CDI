@@ -48,8 +48,8 @@ class SystemInvariants:
         total = 0
         for k in self.belief.degrees:
             dim_k = self.belief.cohomology_dim(k)
-            total += ((-1) ** k) * dim_k
-        return total
+            total += ((-1) ** k) * int(dim_k)
+        return int(total)
 
     def intelligence_dimensions(self) -> Dict[int, int]:
         """dim ℍ^k for each degree k."""

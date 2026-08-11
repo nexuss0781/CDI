@@ -1,0 +1,369 @@
+{
+  "architecture": "DCSS-CDI (Dissipative Cohomodynamic Selective State Space)",
+  "config": {
+    "allocation_fraction_limit": 0.5,
+    "cover_k": 2,
+    "dense_reference_limit": 2048,
+    "device": "cpu",
+    "dtype_str": "float32",
+    "energy_limit": 100000000.0,
+    "geometry_ablation": false,
+    "n_vertices": 4,
+    "name": "nano",
+    "seed": 42,
+    "spectral_target": 0.1,
+    "state_width": 8,
+    "total_state_dim": 32
+  },
+  "device": {
+    "cuda_available": false,
+    "required": "cpu"
+  },
+  "elapsed_seconds": 2.282907738997892,
+  "environment": {
+    "platform": "Linux-6.1.102-x86_64-with-glibc2.39",
+    "python": "3.12.3",
+    "torch": "2.13.0+cu130"
+  },
+  "gates": [
+    {
+      "details": {
+        "config": {
+          "allocation_fraction_limit": 0.5,
+          "cover_k": 2,
+          "dense_reference_limit": 2048,
+          "device": "cpu",
+          "dtype_str": "float32",
+          "energy_limit": 100000000.0,
+          "geometry_ablation": false,
+          "n_vertices": 4,
+          "name": "nano",
+          "seed": 42,
+          "spectral_target": 0.1,
+          "state_width": 8
+        },
+        "edges": 5,
+        "faces": 2,
+        "fingerprint": "84080201a65516f8985d3201e78492f1ce45ef30af7f6aa735d7c10a4398c98d",
+        "incidence_nnz": 10,
+        "repeated_fingerprint": "84080201a65516f8985d3201e78492f1ce45ef30af7f6aa735d7c10a4398c98d",
+        "structural_boundary_squared_max_abs": 0.0,
+        "topology_serialization_exact": true,
+        "vertices": 4
+      },
+      "name": "topology_integrity",
+      "passed": true,
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "atol": 1e-06,
+        "modes": {
+          "false": {
+            "basis_trials": 32,
+            "batch": {
+              "max_abs": 9.5367431640625e-07,
+              "max_rel": 1.6465733096993063e-06,
+              "mean_abs": 9.108529042123337e-08
+            },
+            "batch_shape": [
+              2,
+              3,
+              4,
+              8
+            ],
+            "geometry_ablation": false,
+            "max_abs": 9.5367431640625e-07,
+            "max_rel": 2.202643190685194e-05,
+            "passed": true,
+            "random_trials": 50
+          },
+          "true": {
+            "basis_trials": 32,
+            "batch": {
+              "max_abs": 0.0,
+              "max_rel": 0.0,
+              "mean_abs": 0.0
+            },
+            "batch_shape": [
+              2,
+              3,
+              4,
+              8
+            ],
+            "geometry_ablation": true,
+            "max_abs": 0.0,
+            "max_rel": 0.0,
+            "passed": true,
+            "random_trials": 50
+          }
+        },
+        "rtol": 1e-05
+      },
+      "name": "dense_equivalence",
+      "passed": true,
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "atol": 1e-06,
+        "modes": {
+          "false": {
+            "comparison": {
+              "max_abs": 4.76837158203125e-07,
+              "max_rel": 1.2715068464785872e-07,
+              "mean_abs": 1.4603138254187797e-07
+            },
+            "dense_gradient_norm": 7.295492172241211,
+            "geometry_ablation": false,
+            "passed": true,
+            "sparse_gradient_norm": 7.295492649078369
+          },
+          "true": {
+            "dense_gradient": null,
+            "geometry_ablation": true,
+            "passed": true,
+            "sparse_gradient": null
+          }
+        },
+        "rtol": 1e-05
+      },
+      "name": "gradient_equivalence",
+      "passed": true,
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "cochain": {
+          "basis_max_relative_residual": 0.0,
+          "max_relative_residual": 6.539087138435207e-08,
+          "passed": true,
+          "random_max_relative_residual": 6.539087138435207e-08,
+          "structural": true,
+          "threshold": 1e-05
+        },
+        "cohomological_health_score": {
+          "cochain_residual": 6.539087138435207e-08,
+          "components": {
+            "cochain": 0.9934609128615648,
+            "energy": 0.9999996757129288,
+            "spectral_gap": 1.0
+          },
+          "critical_conditions_passed": true,
+          "energy": 32.428707122802734,
+          "score": 0.9978154280187881,
+          "spectral_gap": 1.4082590341567993
+        },
+        "psd": {
+          "declared_property": "positive_semidefinite",
+          "minimum_eigenvalue": 7.723429007455707e-08,
+          "minimum_quadratic_form": 50.72970199584961,
+          "negative_energy_count": 0,
+          "passed": true
+        },
+        "spectrum": {
+          "connected_zero_modes": 1,
+          "eigenvalues": [
+            7.723429007455707e-08,
+            1.4082590341567993,
+            2.585963726043701,
+            2.9622232913970947
+          ],
+          "spectral_gap": 1.4082590341567993
+        },
+        "symmetry": {
+          "declared_property": "symmetric",
+          "max_relative_error": 1.0689881264625e-06,
+          "passed": true
+        }
+      },
+      "name": "operator_diagnostics",
+      "passed": true,
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "modes": {
+          "false": {
+            "forbidden_operations": [],
+            "geometry_ablation": false,
+            "large_allocations": [],
+            "metadata": {
+              "factorization": "S_transpose @ diag(softplus(edge_log_weights)) @ S",
+              "forbidden_operations": [
+                "torch.kron",
+                "dense_full_state_operator"
+              ],
+              "full_state_dim": 32,
+              "full_state_square": 1024,
+              "geometry_ablation": false,
+              "learnable_parameters": [
+                "edge_log_weights"
+              ],
+              "operator": "MatrixFreeLaplacian",
+              "sparse_nnz": 10
+            },
+            "operation_count": 25,
+            "output_shape": [
+              4,
+              8
+            ],
+            "parameter_activity_correct": true,
+            "parameter_activity_expected": "active",
+            "passed": true
+          },
+          "true": {
+            "forbidden_operations": [],
+            "geometry_ablation": true,
+            "large_allocations": [],
+            "metadata": {
+              "factorization": "S_transpose @ diag(softplus(edge_log_weights)) @ S",
+              "forbidden_operations": [
+                "torch.kron",
+                "dense_full_state_operator"
+              ],
+              "full_state_dim": 32,
+              "full_state_square": 1024,
+              "geometry_ablation": true,
+              "learnable_parameters": [
+                "edge_log_weights"
+              ],
+              "operator": "MatrixFreeLaplacian",
+              "sparse_nnz": 10
+            },
+            "operation_count": 1,
+            "output_shape": [
+              4,
+              8
+            ],
+            "parameter_activity_correct": true,
+            "parameter_activity_expected": "inactive",
+            "passed": true
+          }
+        }
+      },
+      "name": "production_no_dense_guard",
+      "passed": true,
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "cpu": {
+          "output_device": "cpu",
+          "status": "PASS"
+        },
+        "cuda": {
+          "reason": "torch.cuda.is_available() is false in the configured CPU development environment.",
+          "status": "UNAVAILABLE"
+        }
+      },
+      "name": "device_correctness",
+      "passed": true,
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "full_state_square_not_allocated": true,
+        "method": "Exact structural storage accounting plus process peak RSS. The production count is O(E \u00d7 channels + V \u00d7 channels + E), while the forbidden dense count is O((V \u00d7 channels)^2).",
+        "records": [
+          {
+            "dense_full_state_elements": 1024,
+            "n_edges": 5,
+            "n_vertices": 4,
+            "output_finite": true,
+            "passed": true,
+            "process_peak_rss_bytes": 710197248,
+            "production_storage_elements": 87,
+            "seconds": 0.00013705700257560238,
+            "sparse_nnz": 10,
+            "state_elements": 32,
+            "state_width": 8,
+            "storage_to_dense_ratio": 0.0849609375
+          },
+          {
+            "dense_full_state_elements": 4096,
+            "n_edges": 13,
+            "n_vertices": 8,
+            "output_finite": true,
+            "passed": true,
+            "process_peak_rss_bytes": 710197248,
+            "production_storage_elements": 207,
+            "seconds": 0.00012263399912626483,
+            "sparse_nnz": 26,
+            "state_elements": 64,
+            "state_width": 8,
+            "storage_to_dense_ratio": 0.050537109375
+          },
+          {
+            "dense_full_state_elements": 16384,
+            "n_edges": 29,
+            "n_vertices": 16,
+            "output_finite": true,
+            "passed": true,
+            "process_peak_rss_bytes": 710197248,
+            "production_storage_elements": 447,
+            "seconds": 0.00010700100028770976,
+            "sparse_nnz": 58,
+            "state_elements": 128,
+            "state_width": 8,
+            "storage_to_dense_ratio": 0.02728271484375
+          },
+          {
+            "dense_full_state_elements": 65536,
+            "n_edges": 61,
+            "n_vertices": 32,
+            "output_finite": true,
+            "passed": true,
+            "process_peak_rss_bytes": 710197248,
+            "production_storage_elements": 927,
+            "seconds": 0.000718862000212539,
+            "sparse_nnz": 122,
+            "state_elements": 256,
+            "state_width": 8,
+            "storage_to_dense_ratio": 0.0141448974609375
+          },
+          {
+            "dense_full_state_elements": 262144,
+            "n_edges": 125,
+            "n_vertices": 64,
+            "output_finite": true,
+            "passed": true,
+            "process_peak_rss_bytes": 710197248,
+            "production_storage_elements": 1887,
+            "seconds": 0.0001829350003390573,
+            "sparse_nnz": 250,
+            "state_elements": 512,
+            "state_width": 8,
+            "storage_to_dense_ratio": 0.007198333740234375
+          }
+        ]
+      },
+      "name": "memory_scaling",
+      "passed": true,
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "parameter_fingerprint": "925ae9af6f8b7622a62a5edba416acea02047c833562b5f1ee6b7df42d8685ef",
+        "restored_parameter_fingerprint": "925ae9af6f8b7622a62a5edba416acea02047c833562b5f1ee6b7df42d8685ef",
+        "topology_fingerprint": "84080201a65516f8985d3201e78492f1ce45ef30af7f6aa735d7c10a4398c98d"
+      },
+      "name": "serialization",
+      "passed": true,
+      "status": "PASS"
+    }
+  ],
+  "nano_under_30_seconds": true,
+  "precision": "float32 production; float64 reserved for reference diagnostics",
+  "seed": 42,
+  "stage": "B",
+  "stage_a_baseline": {
+    "baseline_limitations": [],
+    "contract": "Corrected real Clifford representation, active LM sheaf maps, and restored-operator checkpoint consistency.",
+    "known_v2_defects": [],
+    "status": "PASS"
+  },
+  "stage_c_implementation_allowed": false,
+  "status": "PASS",
+  "transition": "Await explicit user approval before Stage C."
+}

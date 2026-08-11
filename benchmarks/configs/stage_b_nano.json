@@ -1,0 +1,28 @@
+{
+  "stage": "B",
+  "name": "nano",
+  "purpose": "CPU-safe float32 sparse operator verification",
+  "seed": 42,
+  "config": {
+    "n_vertices": 4,
+    "state_width": 8,
+    "cover_k": 2,
+    "dtype_str": "float32",
+    "device": "cpu",
+    "geometry_ablation": false,
+    "dense_reference_limit": 2048,
+    "allocation_fraction_limit": 0.5,
+    "spectral_target": 0.1,
+    "energy_limit": 100000000.0
+  },
+  "tolerances": {
+    "float32_rtol": 1e-5,
+    "float32_atol": 1e-6,
+    "cochain_relative_residual": 1e-5,
+    "gradient_relative_error": 1e-5
+  },
+  "gates": {
+    "full_harness_seconds": 30,
+    "stage_c_implementation_allowed": false
+  }
+}

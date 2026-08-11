@@ -3,6 +3,9 @@
 import torch
 import pytest
 
+from cdi.config import CDIConfig
+from cdi.geometry.clifford import CliffordAlgebra
+
 
 class TestCognitiveManifold:
 
@@ -118,6 +121,23 @@ class TestCliffordAlgebra:
         """Anti-commutation: {γⁱ, γʲ} = −2δⁱʲ I  (flat space)."""
         err = clifford.verify_relations()
         assert err < 1e-10, f"Clifford relation error: {err}"
+
+    @pytest.mark.parametrize("dimension", range(1, 9))
+    def test_supported_real_negative_signature_templates(self, dimension):
+        cfg = CDIConfig(
+            manifold_dim=dimension,
+            n_points=4,
+            cover_k=2,
+            motor_depth=1,
+            abstraction_height=2,
+            belief_dims=(4, 8, 8, 4),
+            observation_dim=4,
+            output_dim=4,
+            dtype_str="float64",
+        )
+        cfg.validate()
+        algebra = CliffordAlgebra(cfg)
+        assert algebra.verify_relations().item() < 1e-10
 
     def test_clifford_action(self, clifford, tiny_config):
         s = tiny_config.spinor_dim

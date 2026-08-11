@@ -75,7 +75,7 @@ class TestEnergyFunctional:
         psi = torch.randn(N, dtype=cfg.dtype) * 0.01
         J = torch.randn(N, dtype=cfg.dtype) * 0.01
         dEdt = built_engine.energy.dissipation_rate(psi, J)
-        assert float(dEdt) <= 1e-10
+        assert float(dEdt.detach()) <= 1e-10
 
 
 class TestV20Integration:
@@ -160,6 +160,7 @@ class TestV20Integration:
         # These are the critical ones that were broken in v1.0
         critical = ["manifold.points", "manifold.metric_L",
                     "theta_init", "W_iota", "W_out",
+                    "sheaf.embedding", "sheaf.output",
                     "belief.deltas", "connection"]
         for name in critical:
             assert checks.get(name, False), (
