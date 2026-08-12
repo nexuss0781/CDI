@@ -16,16 +16,17 @@ def ingest_wikitext_and_sciq(output_dir: str | Path = "data/production") -> Dict
     out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
     print("Downloading WikiText-103 (raw) from Hugging Face...")
-    wikitext = load_dataset("wikitext", "wikitext-103-raw-v1")
+    # Using explicit namespace/name to avoid HfUriError in some environments
+    wikitext = load_dataset("Salesforce/wikitext103", "wikitext-103-raw-v1", trust_remote_code=True)
     print("Downloading SciQ from Hugging Face...")
-    sciq = load_dataset("sciq")
+    sciq = load_dataset("allenai/sciq", trust_remote_code=True)
     
     train_docs: List[GovernedDocument] = []
     for idx, item in enumerate(wikitext["train"]):
         text = item["text"].strip()
         if len(text) > 50:
             doc_id = f"wt103-train-{idx:06d}"
-            train_docs.append(GovernedDocument(doc_id, text, "hf://datasets/wikitext/wikitext-103-raw-v1", "CC-BY-SA-4.0", "retained_for_pretraining", data_class="rights_cleared_pilot", pii_review="reviewed_no_pii"))
+            train_docs.append(GovernedDocument(doc_id, text, "hf://datasets/Salesforce/wikitext103", "CC-BY-SA-4.0", "retained_for_pretraining", data_class="rights_cleared_pilot", pii_review="reviewed_no_pii"))
             if len(train_docs) >= 5000:
                 break
                 
@@ -34,7 +35,7 @@ def ingest_wikitext_and_sciq(output_dir: str | Path = "data/production") -> Dict
         text = item["text"].strip()
         if len(text) > 50:
             doc_id = f"wt103-val-{idx:06d}"
-            val_docs.append(GovernedDocument(doc_id, text, "hf://datasets/wikitext/wikitext-103-raw-v1", "CC-BY-SA-4.0", "retained_for_validation", data_class="rights_cleared_pilot", pii_review="reviewed_no_pii"))
+            val_docs.append(GovernedDocument(doc_id, text, "hf://datasets/Salesforce/wikitext103", "CC-BY-SA-4.0", "retained_for_validation", data_class="rights_cleared_pilot", pii_review="reviewed_no_pii"))
             if len(val_docs) >= 500:
                 break
 
@@ -44,7 +45,7 @@ def ingest_wikitext_and_sciq(output_dir: str | Path = "data/production") -> Dict
         a = item["correct_answer"].strip()
         text = f"Q: {q} A: {a}"
         doc_id = f"sciq-train-{idx:06d}"
-        finetune_docs.append(GovernedDocument(doc_id, text, "hf://datasets/sciq", "MIT", "retained_for_finetuning", data_class="rights_cleared_pilot", pii_review="reviewed_no_pii"))
+        finetune_docs.append(GovernedDocument(doc_id, text, "hf://datasets/allenai/sciq", "MIT", "retained_for_finetuning", data_class="rights_cleared_pilot", pii_review="reviewed_no_pii"))
         if len(finetune_docs) >= 2000:
             break
 
