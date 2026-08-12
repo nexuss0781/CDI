@@ -1,9 +1,10 @@
-"""Zero-dependency CDI tokenizer compatibility module.
+"""Public CDI tokenizer API backed by EthioBBPE.
 
-Stage D replaces the former external download dependency with the versioned,
-pure-Python Unicode character tokenizer implemented in :mod:`cdi.v3.tokenizer`.
-The legacy ``CDITokenizer`` name remains available for existing CDI v2 callers.
+`CDITokenizer` retains the historical embedding and tied-logit interface for
+legacy CDI v2 code.  New v3 code should use `EthioBBPETokenizer` directly.
+`CharacterTokenizer` remains an import alias only for source compatibility and
+must not be used as a semantic description of the active tokenizer.
 """
-from cdi.v3.tokenizer import CDITokenizer, CharacterTokenizer, EncodedText, TokenizerConfig
+from cdi.v3.tokenizer import CDITokenizer, CharacterTokenizer, EncodedText, EthioBBPETokenizer, TokenizerConfig
 
-__all__ = ["CDITokenizer", "CharacterTokenizer", "EncodedText", "TokenizerConfig"]
+__all__ = ["CDITokenizer", "EthioBBPETokenizer", "CharacterTokenizer", "EncodedText", "TokenizerConfig"]

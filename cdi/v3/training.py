@@ -14,7 +14,7 @@ from torch import nn
 
 from .language_model import DCSSLanguageModel, LegacyCDIV2Adapter, TinyTransformerBaseline
 from .ssm import StageCConfig
-from .tokenizer import CharacterTokenizer, EncodedText, TokenizerConfig
+from .tokenizer import EncodedText, EthioBBPETokenizer, TokenizerConfig
 
 
 @dataclass(frozen=True)
@@ -102,9 +102,9 @@ class LocalSyntheticCorpus:
             documents.append(CorpusDocument(str(row["id"]), str(row["text"])))
         return cls(documents)
 
-    def tokenizer(self, config: StageDConfig) -> CharacterTokenizer:
+    def tokenizer(self, config: StageDConfig) -> EthioBBPETokenizer:
         tokenizer_config = TokenizerConfig(max_chunk_length=config.chunk_length, embedding_dim=4)
-        return CharacterTokenizer.from_texts((document.text for document in self.documents), tokenizer_config)
+        return EthioBBPETokenizer.from_pretrained(tokenizer_config)
 
     def split(self, seed: int) -> Dict[str, Tuple[CorpusDocument, ...]]:
         indices = list(range(len(self.documents)))
@@ -120,7 +120,7 @@ class LocalSyntheticCorpus:
             raise RuntimeError("Deterministic corpus split produced an empty test partition.")
         return partitions
 
-    def manifest(self, tokenizer: CharacterTokenizer, config: StageDConfig) -> Dict[str, Any]:
+    def manifest(self, tokenizer: EthioBBPETokenizer, config: StageDConfig) -> Dict[str, Any]:
         splits = self.split(config.seed)
         split_payload = {}
         for name, documents in splits.items():
@@ -148,7 +148,7 @@ class LocalSyntheticCorpus:
         return manifest
 
 
-def pack_documents(documents: Sequence[CorpusDocument], tokenizer: CharacterTokenizer, chunk_length: int) -> Tuple[List[PackedExample], int]:
+def pack_documents(documents: Sequence[CorpusDocument], tokenizer: EthioBBPETokenizer, chunk_length: int) -> Tuple[List[PackedExample], int]:
     """Chunk each document independently; no sequence crosses a document boundary."""
     examples: List[PackedExample] = []
     truncation_count = 0
@@ -164,7 +164,7 @@ def pack_documents(documents: Sequence[CorpusDocument], tokenizer: CharacterToke
     return examples, truncation_count
 
 
-def collate_examples(examples: Sequence[PackedExample], tokenizer: CharacterTokenizer, chunk_length: int) -> Dict[str, torch.Tensor]:
+def collate_examples(examples: Sequence[PackedExample], tokenizer: EthioBBPETokenizer, chunk_length: int) -> Dict[str, torch.Tensor]:
     if not examples:
         raise ValueError("Cannot collate an empty example list.")
     encoded = [EncodedText(example.ids, False, "") for example in examples]
@@ -172,7 +172,7 @@ def collate_examples(examples: Sequence[PackedExample], tokenizer: CharacterToke
     return {"input_ids": ids, "attention_mask": mask, "document_ids": [example.document_id for example in examples]}
 
 
-def deterministic_batches(examples: Sequence[PackedExample], tokenizer: CharacterTokenizer, config: StageDConfig) -> List[Dict[str, torch.Tensor]]:
+def deterministic_batches(examples: Sequence[PackedExample], tokenizer: EthioBBPETokenizer, config: StageDConfig) -> List[Dict[str, torch.Tensor]]:
     batches = []
     for start in range(0, len(examples), config.batch_size):
         group = list(examples[start: start + config.batch_size])
@@ -189,7 +189,7 @@ def seed_everything(seed: int) -> None:
     torch.use_deterministic_algorithms(True, warn_only=False)
 
 
-def build_model(name: str, tokenizer: CharacterTokenizer, config: StageDConfig) -> nn.Module:
+def build_model(name: str, tokenizer: EthioBBPETokenizer, config: StageDConfig) -> nn.Module:
     if name == "dcss_cdi":
         stage_c = StageCConfig.nano(seed=config.seed)
         return DCSSLanguageModel(tokenizer, stage_c)
@@ -266,7 +266,7 @@ def _restore_random_state(payload: Mapping[str, Any]) -> None:
     torch.set_rng_state(payload["torch"])
 
 
-def checkpoint_payload(model: nn.Module, optimizer: torch.optim.Optimizer, tokenizer: CharacterTokenizer, data_manifest: Mapping[str, Any], config: StageDConfig, step: int, cursor: int) -> Dict[str, Any]:
+def checkpoint_payload(model: nn.Module, optimizer: torch.optim.Optimizer, tokenizer: EthioBBPETokenizer, data_manifest: Mapping[str, Any], config: StageDConfig, step: int, cursor: int) -> Dict[str, Any]:
     topology_fingerprint = None
     if isinstance(model, DCSSLanguageModel):
         topology_fingerprint = model.ssm.cell.topology.fingerprint()
@@ -286,7 +286,7 @@ def checkpoint_payload(model: nn.Module, optimizer: torch.optim.Optimizer, token
     }
 
 
-def restore_checkpoint(payload: Mapping[str, Any], model: nn.Module, optimizer: torch.optim.Optimizer, tokenizer: CharacterTokenizer, *, allow_tokenizer_conversion: bool = False) -> Tuple[int, int]:
+def restore_checkpoint(payload: Mapping[str, Any], model: nn.Module, optimizer: torch.optim.Optimizer, tokenizer: EthioBBPETokenizer, *, allow_tokenizer_conversion: bool = False) -> Tuple[int, int]:
     if payload.get("format") != "dcss-cdi-stage-d-checkpoint-v1":
         raise ValueError("Unsupported Stage D checkpoint format.")
     if payload.get("tokenizer_fingerprint") != tokenizer.fingerprint and not allow_tokenizer_conversion:

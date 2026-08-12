@@ -4,7 +4,7 @@ import cdi.tokenizer as legacy_tokenizer_module
 import torch
 
 from cdi.v3 import (
-    CharacterTokenizer,
+    EthioBBPETokenizer,
     DCSSLanguageModel,
     LocalSyntheticCorpus,
     StageDConfig,
@@ -27,11 +27,11 @@ def resources(seed: int = 42):
     return config, corpus, tokenizer, splits, batches
 
 
-def test_tokenizer_has_no_external_ethiobbpe_dependency():
-    assert "ethiobbpe" not in inspect.getsource(legacy_tokenizer_module).lower()
+def test_tokenizer_declares_ethiobbpe_dependency():
+    assert "ethiobbpe" in inspect.getsource(legacy_tokenizer_module).lower()
 
 
-def test_zero_dependency_tokenizer_round_trip_unicode_and_artifact(tmp_path):
+def test_ethiobbpe_tokenizer_round_trip_unicode_and_artifact(tmp_path):
     _, corpus, tokenizer, _, _ = resources()
     text = "a  b\t\ne\u0301"
     encoded = tokenizer.encode(text)
@@ -39,10 +39,11 @@ def test_zero_dependency_tokenizer_round_trip_unicode_and_artifact(tmp_path):
     empty = tokenizer.encode("")
     assert empty.ids == (tokenizer.bos_id, tokenizer.eos_id)
     unknown = tokenizer.encode("☃")
-    assert unknown.ids[1] == tokenizer.unk_id
+    assert all(0 <= token_id < tokenizer.vocab_size for token_id in unknown.ids)
+    assert tokenizer.decode(unknown.ids) == tokenizer.normalize("☃")
     path = tmp_path / "tokenizer.json"
     tokenizer.save(path)
-    restored = CharacterTokenizer.load(path)
+    restored = EthioBBPETokenizer.load(path)
     assert restored.fingerprint == tokenizer.fingerprint
     assert restored.decode(restored.encode(text).ids) == tokenizer.normalize(text)
     assert corpus.manifest(tokenizer, StageDConfig.nano())["tokenizer_fingerprint"] == tokenizer.fingerprint

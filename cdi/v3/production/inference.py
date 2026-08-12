@@ -18,7 +18,7 @@ import torch.nn.functional as F
 from cdi.v3.language_model import DCSSLanguageModel
 from cdi.v3.production.checkpoints import load_verified
 from cdi.v3.ssm import CohomodynamicState, StageCConfig
-from cdi.v3.tokenizer import CharacterTokenizer, TokenizerConfig
+from cdi.v3.tokenizer import EthioBBPETokenizer, TokenizerConfig
 from cdi.v3.training import parameter_fingerprint
 
 
@@ -68,17 +68,11 @@ class InferenceMetadata:
     dtype: str
 
 
-def _tokenizer_from_artifact(artifact: Mapping[str, Any]) -> CharacterTokenizer:
-    """Restore and independently validate the tokenizer artifact stored in a checkpoint."""
+def _tokenizer_from_artifact(artifact: Mapping[str, Any]) -> EthioBBPETokenizer:
+    """Restore the exact EthioBBPE tokenizer snapshot stored in a checkpoint."""
     if artifact.get("format") != TokenizerConfig().format:
         raise ValueError("Checkpoint contains an unsupported tokenizer artifact format.")
-    if "config" not in artifact or "vocabulary" not in artifact or "fingerprint" not in artifact:
-        raise ValueError("Checkpoint tokenizer artifact is incomplete.")
-    if artifact.get("fingerprint") != CharacterTokenizer._fingerprint_payload(artifact):
-        raise ValueError("Checkpoint tokenizer artifact fingerprint does not match its contents.")
-    config_data = dict(artifact["config"])
-    config_data["special_tokens"] = tuple(config_data["special_tokens"])
-    tokenizer = CharacterTokenizer(list(artifact["vocabulary"]), TokenizerConfig(**config_data))
+    tokenizer = EthioBBPETokenizer.from_artifact(artifact)
     tokenizer.assert_fingerprint(str(artifact["fingerprint"]))
     return tokenizer
 

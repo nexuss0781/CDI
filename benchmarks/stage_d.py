@@ -53,15 +53,16 @@ def _resources(seed: int = 42):
 
 def tokenizer_gate(seed: int = 42, output_dir: Path | None = None) -> Dict[str, Any]:
     config, _, tokenizer, _, _, _, _, _ = _resources(seed)
-    fixtures = ["", "a  b\t\ne\u0301", "☃", "long " * 8]
+    fixtures = ["", "a  b\t\ne\u0301", "☃", "ሰላም ዓለም", "long " * 8]
     rows = []
     passed = True
     for text in fixtures:
         try:
             encoded = tokenizer.encode(text, max_length=None)
             decoded = tokenizer.decode(encoded.ids)
-            expected = tokenizer.normalize(text).replace("☃", "�")
-            row_passed = decoded == expected
+            expected = tokenizer.normalize(text)
+            ids_in_range = all(0 <= token_id < tokenizer.vocab_size for token_id in encoded.ids)
+            row_passed = decoded == expected and ids_in_range
             rows.append({"input": text, "length": len(encoded.ids), "decoded": decoded, "passed": row_passed})
             passed = passed and row_passed
         except Exception as exc:
