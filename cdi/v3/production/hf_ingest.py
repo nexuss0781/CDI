@@ -95,11 +95,11 @@ def ingest_wikitext_and_sciq(output_dir: str | Path = "data/production") -> Dict
         return docs
 
     print("Ingesting WikiText-103 documents...")
-    train_docs = get_unique_docs(wikitext["train"], "wt-train", 5000, "hf://Salesforce/wikitext", "CC-BY-SA-4.0", "retained_for_pretraining")
-    val_docs = get_unique_docs(wikitext["validation"], "wt-val", 500, "hf://Salesforce/wikitext", "CC-BY-SA-4.0", "retained_for_validation")
+    train_docs = get_unique_docs(wikitext["train"], "wt-train", 50000, "hf://Salesforce/wikitext", "CC-BY-SA-4.0", "retained_for_pretraining")
+    val_docs = get_unique_docs(wikitext["validation"], "wt-val", 5000, "hf://Salesforce/wikitext", "CC-BY-SA-4.0", "retained_for_validation")
 
     print("Ingesting SciQ documents...")
-    finetune_docs = get_unique_docs(sciq["train"], "sciq-train", 2000, "hf://allenai/sciq", "MIT", "retained_for_finetuning")
+    finetune_docs = get_unique_docs(sciq["train"], "sciq-train", 10000, "hf://allenai/sciq", "MIT", "retained_for_finetuning")
 
     all_docs = train_docs + val_docs + finetune_docs
     policy = P2DataPolicy()
