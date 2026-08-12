@@ -5,72 +5,81 @@ from hashlib import sha256
 import json
 from pathlib import Path
 from typing import Any, Dict, List, Sequence
+import sys
 
 from datasets import load_dataset
+import requests
 
 from .data import DataManifest, GovernedDocument, P2DataPolicy
 
 
 def ingest_wikitext_and_sciq(output_dir: str | Path = "data/production") -> Dict[str, Path]:
-    """Download WikiText-103 and SciQ from Hugging Face with robust fallbacks."""
+    """Download WikiText-103 and SciQ from Hugging Face with canonical paths."""
     out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
     
-    print("Attempting to load datasets from Hugging Face...")
-    
-    # Strategy 1: Canonical Hub paths
+    print("Verifying Hugging Face Hub connectivity...")
     try:
-        print("Trying WikiText-103 (Salesforce/wikitext103)...")
-        wikitext = load_dataset("Salesforce/wikitext103", "wikitext-103-raw-v1")
-        print("Trying SciQ (allenai/sciq)...")
-        sciq = load_dataset("allenai/sciq")
+        r = requests.get("https://huggingface.co", timeout=10)
+        print(f"Hub status: {r.status_code}")
     except Exception as e:
-        print(f"Primary HF Hub access failed: {e}")
-        # Strategy 2: Legacy short names
-        try:
-            print("Retrying with legacy short names (wikitext, sciq)...")
-            wikitext = load_dataset("wikitext", "wikitext-103-raw-v1")
-            sciq = load_dataset("sciq")
-        except Exception as e2:
-            print(f"Legacy HF Hub access failed: {e2}")
-            # Strategy 3: Local synthetic fallback to prevent total failure
-            print("CRITICAL: HF Hub inaccessible. Generating local governed synthetic pilot documents...")
-            wikitext = {
-                "train": [{"text": f"Synthetic pretraining document {i} for DCSS-CDI. This is unique content for doc {i}."} for i in range(100)],
-                "validation": [{"text": f"Synthetic validation document {i}. This is unique content for val {i}."} for i in range(20)]
-            }
-            sciq = {
-                "train": [{"question": f"What is CDI unit {i}?", "correct_answer": f"Cohomodynamic Intelligence unit {i}"} for i in range(50)]
-            }
+        print(f"WARNING: Cannot reach huggingface.co: {e}")
 
+    print("Attempting to load real datasets from Hugging Face...")
+    
+    # Strategy: Try canonical names first, then specific versions
+    wikitext = None
+    sciq = None
+    errors = []
+
+    # 1. Try WikiText-103
+    for name, config in [("wikitext", "wikitext-103-raw-v1"), ("wikitext", "wikitext-103-v1")]:
+        try:
+            print(f"Trying load_dataset('{name}', '{config}')...")
+            wikitext = load_dataset(name, config)
+            if wikitext: break
+        except Exception as e:
+            errors.append(f"Wikitext ({name}/{config}) failed: {e}")
+
+    # 2. Try SciQ
+    try:
+        print("Trying load_dataset('sciq')...")
+        sciq = load_dataset("sciq")
+    except Exception as e:
+        errors.append(f"SciQ failed: {e}")
+
+    if not wikitext or not sciq:
+        print("\n".join(errors))
+        print("CRITICAL: Real datasets could not be loaded. To prevent silent failure, the pipeline will now exit.")
+        print("Please check your internet connection or Hugging Face Hub status.")
+        sys.exit(1)
+
+    print("Ingesting WikiText-103 documents...")
     train_docs: List[GovernedDocument] = []
-    # Handle both real datasets and synthetic fallback dictionaries
-    wt_train = wikitext["train"]
-    for idx, item in enumerate(wt_train):
+    for idx, item in enumerate(wikitext["train"]):
         text = item["text"].strip()
-        if len(text) > 20:
+        if len(text) > 50:
             doc_id = f"wt-train-{idx:06d}"
             train_docs.append(GovernedDocument(doc_id, text, "hf://wikitext", "CC-BY-SA-4.0", "retained_for_pretraining", data_class="rights_cleared_pilot", pii_review="reviewed_no_pii"))
-            if len(train_docs) >= 1000: break
+            if len(train_docs) >= 5000: break
                 
     val_docs: List[GovernedDocument] = []
-    wt_val = wikitext["validation"]
-    for idx, item in enumerate(wt_val):
+    for idx, item in enumerate(wikitext["validation"]):
         text = item["text"].strip()
-        if len(text) > 20:
+        if len(text) > 50:
             doc_id = f"wt-val-{idx:06d}"
             val_docs.append(GovernedDocument(doc_id, text, "hf://wikitext", "CC-BY-SA-4.0", "retained_for_validation", data_class="rights_cleared_pilot", pii_review="reviewed_no_pii"))
-            if len(val_docs) >= 200: break
+            if len(val_docs) >= 500: break
 
+    print("Ingesting SciQ documents...")
     finetune_docs: List[GovernedDocument] = []
-    sciq_train = sciq["train"]
-    for idx, item in enumerate(sciq_train):
+    for idx, item in enumerate(sciq["train"]):
         q = item["question"].strip()
         a = item["correct_answer"].strip()
         text = f"Q: {q} A: {a}"
         doc_id = f"sciq-train-{idx:06d}"
         finetune_docs.append(GovernedDocument(doc_id, text, "hf://sciq", "MIT", "retained_for_finetuning", data_class="rights_cleared_pilot", pii_review="reviewed_no_pii"))
-        if len(finetune_docs) >= 500: break
+        if len(finetune_docs) >= 2000: break
 
     all_docs = train_docs + val_docs + finetune_docs
     policy = P2DataPolicy()
