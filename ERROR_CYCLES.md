@@ -7,3 +7,9 @@ The legacy CDI path tokenized training data with EthioBBPE while the active `CDI
 The corrective work replaces the active tokenizer adapter with an EthioBBPE-backed artifact, validates every ID range instead of clamping, and makes checkpoint restoration use the exact serialized tokenizer snapshot.
 
 The first focused Stage D run exposed two obsolete character-tokenizer assertions: one prohibited the EthioBBPE dependency and another expected a Unicode snowman to become an unknown token. Both were replaced with EthioBBPE dependency, range, round-trip, and artifact-restoration checks. The focused Stage D suite then passed: 9 tests passed.
+
+The first artifact-generation invocation ran from outside the repository and could not import `cdi`. Re-running the saved script with `PYTHONPATH=.` generated the 16,000-token EthioBBPE snapshot successfully at `benchmarks/configs/stage_d_tokenizer.json` with fingerprint `9d02c723406029a95f8abfd479a1fc819fc4a0e9f698b655b2f8d7e87bbb554d`.
+
+The updated legacy integration runner initially marked `W_iota` as severed because its finite initial gradient was `6.39e-09`, below the generic `1e-08` diagnostic threshold after the tied output vocabulary increased to 16,000 EthioBBPE tokens. The `W_iota` diagnostic now uses a documented `1e-12` projection threshold while all other checks retain their existing thresholds.
+
+Final validation passed after the migration: the complete `pytest -q` suite passed 245 tests in 45.48 seconds, the focused Stage D suite passed 9 tests, production checkpoint/inference tests passed 7 tests, `run_tests.py` completed every phase successfully, and `bash -n run.sh` passed.

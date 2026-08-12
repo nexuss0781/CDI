@@ -4,19 +4,19 @@
 
 Stage D connects the verified Stage C recurrence to a token-level causal language-model path. The implementation is intentionally **CPU-first, float32, and small-scale**. It validates reproducibility, causality, masking, checkpointing, and matched-system plumbing; it does not claim language-model quality or replace the later Stage E study.
 
-## Zero-dependency tokenizer
+## EthioBBPE tokenizer
 
-The EthioBBPE dependency is replaced with a versioned pure-Python `CharacterTokenizer`. It applies Unicode NFC normalization and an explicit whitespace policy, builds a deterministic character vocabulary from a documented corpus, and reserves the following fixed special IDs.
+Stage D uses the published `EthioBBPE` Byte-Level BPE tokenizer from `Nexuss0781/Ethio-BBPE`. CDI snapshots the exact `tokenizer.json` into a versioned local artifact when training starts, then restores that snapshot from the checkpoint at inference. No checkpoint depends on a mutable Hugging Face revision or an implicit local cache.
 
-| ID | Token | Purpose |
+| ID | Token | CDI purpose |
 |---:|---|---|
 | 0 | `<pad>` | Padding; excluded from loss. |
-| 1 | `<unk>` | Unknown Unicode character fallback. |
-| 2 | `<bos>` | Document-start boundary. |
-| 3 | `<eos>` | Document-end boundary. |
-| 4 | `<doc>` | Explicit inter-document boundary when packing is enabled. |
+| 1 | `<unk>` | Backend unknown-token identifier. |
+| 2 | `<s>` | CDI document-start boundary. |
+| 3 | `</s>` | CDI document-end boundary. |
+| 4 | `<mask>` | Reserved CDI document-boundary identifier. |
 
-The tokenizer artifact contains its normalization policy, whitespace behavior, special IDs, maximum chunk length, vocabulary, and SHA-256 fingerprint. Checkpoint load rejects a mismatched tokenizer fingerprint by default. No external package, model download, byte-pair merges, or network service is used.
+The tokenizer artifact contains its model identifier, tokenizer JSON snapshot, special IDs, maximum chunk length, vocabulary fingerprint, and SHA-256 fingerprint. Checkpoint load rejects a mismatched tokenizer fingerprint by default. Every embedding and loss target is range-checked against that artifact; token IDs are never silently clamped or converted between tokenizers.
 
 ## Data protocol
 
