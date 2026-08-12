@@ -53,7 +53,9 @@ class PilotConfig:
     chunks_per_document: int = 8
     chunk_length: int = 16
     batch_size: int = 2
+    # Zero evaluates every held-out batch; a positive value fixes a bounded subset.
     eval_batches: int = 12
+    shuffle_training_batches: bool = False
     learning_rate: float = 0.01
     relative_loss_tolerance: float = 0.10
     output_dir: str = "results/ethiobbpe_synaxarium_pilot"
@@ -63,8 +65,8 @@ class PilotConfig:
             raise ValueError("The proof pilot requires at least three unique seeds.")
         if self.steps <= 0 or self.document_limit < 12 or self.chunks_per_document <= 0:
             raise ValueError("Pilot steps, document_limit, and chunks_per_document must be positive; document_limit must be at least 12.")
-        if self.chunk_length < 2 or self.batch_size <= 0 or self.eval_batches <= 0:
-            raise ValueError("Pilot chunk_length, batch_size, and eval_batches must be positive.")
+        if self.chunk_length < 2 or self.batch_size <= 0 or self.eval_batches < 0:
+            raise ValueError("Pilot chunk_length and batch_size must be positive; eval_batches must be zero or positive.")
         if not 0.0 < self.relative_loss_tolerance < 1.0:
             raise ValueError("relative_loss_tolerance must lie in (0, 1).")
 
@@ -198,7 +200,7 @@ def evaluate_model(model: torch.nn.Module, batches: Sequence[Mapping[str, torch.
     correct = 0
     tokens = 0
     with torch.no_grad():
-        for batch in batches[:maximum_batches]:
+        for batch in batches[: len(batches) if maximum_batches == 0 else min(maximum_batches, len(batches))]:
             report = model.causal_loss(batch["input_ids"], batch["attention_mask"])
             token_count = int(report.token_count)
             loss_total += float(report.loss.detach().cpu()) * token_count
@@ -230,7 +232,13 @@ def run_one(name: str, seed: int, tokenizer: EthioBBPETokenizer, train_batches: 
     train_config.validate()
     initial_validation = evaluate_model(model, validation_batches, config.eval_batches)
     started = time.perf_counter()
-    losses, _, _ = train_steps(model, train_batches, train_config, steps=config.steps)
+    losses, _, _ = train_steps(
+        model,
+        train_batches,
+        train_config,
+        steps=config.steps,
+        shuffle_each_epoch=config.shuffle_training_batches,
+    )
     elapsed_seconds = time.perf_counter() - started
     final_validation = evaluate_model(model, validation_batches, config.eval_batches)
     held_out_test = evaluate_model(model, test_batches, config.eval_batches)
@@ -246,6 +254,8 @@ def run_one(name: str, seed: int, tokenizer: EthioBBPETokenizer, train_batches: 
         "test": held_out_test,
         "elapsed_seconds": elapsed_seconds,
         "tokens_processed": config.steps * config.batch_size * (config.chunk_length - 1),
+        "training_batch_order": "deterministic_per_epoch_shuffle" if config.shuffle_training_batches else "fixed_cyclic_order",
+        "evaluation_scope": "all_held_out_batches" if config.eval_batches == 0 else f"first_{config.eval_batches}_held_out_batches",
     }
 
 
@@ -331,6 +341,8 @@ The pilot used document-isolated Amharic readings from [`{DATASET_ID}`]({DATASET
 | Seeds | `{report['config']['seeds']}` |
 | Training steps per model/seed | `{report['config']['steps']}` |
 | Causal token positions per model/seed | `{report['records'][0]['tokens_processed']}` |
+| Training batch order | `{report['records'][0]['training_batch_order']}` |
+| Held-out evaluation scope | `{report['records'][0]['evaluation_scope']}` |
 | Data manifest | `{report['data_manifest_fingerprint']}` |
 | Code revision | `{report['code_revision']}` |
 
@@ -406,7 +418,8 @@ def main() -> int:
     parser.add_argument("--chunks-per-document", type=int, default=8)
     parser.add_argument("--chunk-length", type=int, default=16)
     parser.add_argument("--batch-size", type=int, default=2)
-    parser.add_argument("--eval-batches", type=int, default=12)
+    parser.add_argument("--eval-batches", type=int, default=12, help="Zero evaluates every held-out batch; a positive value evaluates a bounded prefix.")
+    parser.add_argument("--shuffle-training-batches", action="store_true", help="Use a deterministic per-epoch shuffled batch order.")
     parser.add_argument("--learning-rate", type=float, default=0.01)
     parser.add_argument("--relative-loss-tolerance", type=float, default=0.10)
     parser.add_argument("--output-dir", default="results/ethiobbpe_synaxarium_pilot")
@@ -419,6 +432,7 @@ def main() -> int:
         chunk_length=args.chunk_length,
         batch_size=args.batch_size,
         eval_batches=args.eval_batches,
+        shuffle_training_batches=args.shuffle_training_batches,
         learning_rate=args.learning_rate,
         relative_loss_tolerance=args.relative_loss_tolerance,
         output_dir=args.output_dir,
