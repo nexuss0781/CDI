@@ -1,0 +1,37 @@
+{
+  "config": {
+    "batch_size": 4,
+    "chunk_length": 8,
+    "device": "cpu",
+    "dtype_str": "float32",
+    "gradient_accumulation": 1,
+    "gradient_clip_norm": 1.0,
+    "learning_rate": 0.05,
+    "name": "nano",
+    "overfit_steps": 100,
+    "resume_interrupt_at": 25,
+    "resume_steps": 50,
+    "seed": 42,
+    "warmup_steps": 0,
+    "weight_decay": 0.0
+  },
+  "data_manifest_fingerprint": "edbba5d41e615e38f34394e556bc35517604b490ad224d6445716a040607ae9a",
+  "data_ordering_policy": "deterministic_document_chunks_no_cross_document_packing",
+  "format": "dcss-cdi-stage-d-transition-manifest-v1",
+  "manifest_fingerprint": "0992acdd3ab8b6a0d8e50a0e92cbb47a81ba79de4d9a4fc4773d97abf6894156",
+  "model_widths": {
+    "chunk_length": 8,
+    "embedding_dim": 4
+  },
+  "optimizer": {
+    "gradient_clip_norm": 1.0,
+    "learning_rate": 0.05,
+    "name": "AdamW",
+    "weight_decay": 0.0
+  },
+  "precision": "float32_cpu",
+  "stage_e_implementation_allowed": false,
+  "stopping_rule": "fixed_steps",
+  "tokenizer_fingerprint": "daebf458e55e56a433cf8f621c7d3f773de2c3af0a63456939b56e004061eaf4",
+  "training_token_budget": 2800
+}

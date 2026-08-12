@@ -10,6 +10,9 @@ from .incidence import SparseIncidence
 from .laplacian import MatrixFreeLaplacian
 from .reference import DenseReferenceOperators
 from .topology import SparseTopology
+from .tokenizer import CDITokenizer, CharacterTokenizer, EncodedText, TokenizerConfig
+from .language_model import DCSSLanguageModel, LegacyCDIV2Adapter, LossReport, TinyTransformerBaseline
+from .training import LocalSyntheticCorpus, StageDConfig, build_model, checkpoint_payload, evaluate, optimizer_for, restore_checkpoint, train_steps
 from .ssm import (
     BAND_NAMES,
     CayleyIntegrator,
@@ -44,4 +47,20 @@ __all__ = [
     "StageCConfig",
     "StableGenerator",
     "StateCodec",
+    "CDITokenizer",
+    "CharacterTokenizer",
+    "EncodedText",
+    "TokenizerConfig",
+    "DCSSLanguageModel",
+    "LegacyCDIV2Adapter",
+    "LossReport",
+    "TinyTransformerBaseline",
+    "LocalSyntheticCorpus",
+    "StageDConfig",
+    "build_model",
+    "checkpoint_payload",
+    "evaluate",
+    "optimizer_for",
+    "restore_checkpoint",
+    "train_steps",
 ]

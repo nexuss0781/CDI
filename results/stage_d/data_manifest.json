@@ -1,0 +1,103 @@
+{
+  "all_document_hashes": {
+    "synthetic-00": "157263f98aef8ed46f22e7e125b4a76bc27d7d9f28f5df4d379b1af60917ba7b",
+    "synthetic-01": "59e276f26c6934a8ca614b47d3c898df37cc4c38ab0c32d21f8f05106952d703",
+    "synthetic-02": "a917d2e9c028a69f620f879b34123a1eb67fd13ebc763ab107f99bc2cf599b7c",
+    "synthetic-03": "c30fc5a527921cb5c7ac04c74e2fabc2aad2b21a0a4a818e91f9700a5c632264",
+    "synthetic-04": "9c7c3dce984f27df30e1edbfcda42ec1127d6a4927b704a1674f177a4f923ad4",
+    "synthetic-05": "bb2eac9aef7fc09c6801ce30cd5eaa2f80b246141f0debb06e7987af9bbbdc21",
+    "synthetic-06": "1fbe609915a78f47753c190dedf3e5e1d9c4f23b8110fa432951b25ab3f4674b",
+    "synthetic-07": "7d7e516fd9774c3cd14446d8302c990e3288110b3a01d602f89679caedd8601a",
+    "synthetic-08": "ef94aa321fbc8d14a3c34097063ad087620396f8689b02357d2ac05295e45df5",
+    "synthetic-09": "2647beec93f6e63905e0a5baa21798198afc29bbf5376869081f733d8a146e20",
+    "synthetic-10": "3a3ce54e98c92ed857080c8c11b4c1e1ecb6c42ab51c399281d65513189446c6",
+    "synthetic-11": "47943250c714b8d6bbf11c1489afa5dcbe084a6bcd921ed24f3e1852df671941",
+    "synthetic-12": "880e4a51287bb5fce7b91a70ee2990c0dc541b2f4394df2f3a6cd80548fae0c3",
+    "synthetic-13": "8917b2228f439c16de95e77bcf075472b854c8451c5ae3f5d3f39b40323f6f11"
+  },
+  "config": {
+    "batch_size": 4,
+    "chunk_length": 8,
+    "device": "cpu",
+    "dtype_str": "float32",
+    "gradient_accumulation": 1,
+    "gradient_clip_norm": 1.0,
+    "learning_rate": 0.05,
+    "name": "nano",
+    "overfit_steps": 100,
+    "resume_interrupt_at": 25,
+    "resume_steps": 50,
+    "seed": 42,
+    "warmup_steps": 0,
+    "weight_decay": 0.0
+  },
+  "corpus_content_hash": "07e4a5b4fa352fc69b86fc4397e383dda44dddd2c601ce3e2f7cc5ddbe904eb6",
+  "fingerprint": "edbba5d41e615e38f34394e556bc35517604b490ad224d6445716a040607ae9a",
+  "format": "dcss-cdi-stage-d-data-manifest-v1",
+  "preprocessing": {
+    "boundary_policy": "bos_eos_per_document_no_cross_document_packing",
+    "normalization": "NFC",
+    "whitespace_policy": "preserve"
+  },
+  "revision": "stage_d_synthetic_pattern_corpus_v1",
+  "source": "data/stage_d/synthetic_corpus.jsonl",
+  "source_url_or_local_source": "data/stage_d/synthetic_corpus.jsonl",
+  "splits": {
+    "test": {
+      "character_count": 49,
+      "document_count": 3,
+      "document_hashes": {
+        "synthetic-00": "157263f98aef8ed46f22e7e125b4a76bc27d7d9f28f5df4d379b1af60917ba7b",
+        "synthetic-01": "59e276f26c6934a8ca614b47d3c898df37cc4c38ab0c32d21f8f05106952d703",
+        "synthetic-10": "3a3ce54e98c92ed857080c8c11b4c1e1ecb6c42ab51c399281d65513189446c6"
+      },
+      "document_ids": [
+        "synthetic-00",
+        "synthetic-01",
+        "synthetic-10"
+      ],
+      "token_count": 55
+    },
+    "train": {
+      "character_count": 148,
+      "document_count": 9,
+      "document_hashes": {
+        "synthetic-02": "a917d2e9c028a69f620f879b34123a1eb67fd13ebc763ab107f99bc2cf599b7c",
+        "synthetic-05": "bb2eac9aef7fc09c6801ce30cd5eaa2f80b246141f0debb06e7987af9bbbdc21",
+        "synthetic-06": "1fbe609915a78f47753c190dedf3e5e1d9c4f23b8110fa432951b25ab3f4674b",
+        "synthetic-07": "7d7e516fd9774c3cd14446d8302c990e3288110b3a01d602f89679caedd8601a",
+        "synthetic-08": "ef94aa321fbc8d14a3c34097063ad087620396f8689b02357d2ac05295e45df5",
+        "synthetic-09": "2647beec93f6e63905e0a5baa21798198afc29bbf5376869081f733d8a146e20",
+        "synthetic-11": "47943250c714b8d6bbf11c1489afa5dcbe084a6bcd921ed24f3e1852df671941",
+        "synthetic-12": "880e4a51287bb5fce7b91a70ee2990c0dc541b2f4394df2f3a6cd80548fae0c3",
+        "synthetic-13": "8917b2228f439c16de95e77bcf075472b854c8451c5ae3f5d3f39b40323f6f11"
+      },
+      "document_ids": [
+        "synthetic-08",
+        "synthetic-12",
+        "synthetic-07",
+        "synthetic-06",
+        "synthetic-13",
+        "synthetic-11",
+        "synthetic-05",
+        "synthetic-02",
+        "synthetic-09"
+      ],
+      "token_count": 166
+    },
+    "validation": {
+      "character_count": 30,
+      "document_count": 2,
+      "document_hashes": {
+        "synthetic-03": "c30fc5a527921cb5c7ac04c74e2fabc2aad2b21a0a4a818e91f9700a5c632264",
+        "synthetic-04": "9c7c3dce984f27df30e1edbfcda42ec1127d6a4927b704a1674f177a4f923ad4"
+      },
+      "document_ids": [
+        "synthetic-03",
+        "synthetic-04"
+      ],
+      "token_count": 34
+    }
+  },
+  "tokenizer_fingerprint": "daebf458e55e56a433cf8f621c7d3f773de2c3af0a63456939b56e004061eaf4"
+}
