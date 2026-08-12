@@ -445,6 +445,9 @@ class CohomodynamicCell(nn.Module):
         self.readout = nn.Linear(len(BAND_NAMES) * config.band_width, config.output_width, bias=True, dtype=config.dtype, device=config.device)
         nn.init.xavier_uniform_(self.readout.weight, gain=0.5)
         nn.init.zeros_(self.readout.bias)
+        # Stage E ablation hooks are inert in the frozen full model.
+        self.disable_harmonic = False
+        self.register_parameter("unconstrained_cochain", None)
         self._last_parameters: Dict[str, GeneratorParameters] = {}
 
     def initial_state(self, batch_shape: Sequence[int] = (), mode: Literal["zero", "learned"] = "zero") -> CohomodynamicState:
@@ -475,10 +478,18 @@ class CohomodynamicCell(nn.Module):
         updated: Dict[str, torch.Tensor] = {}
         parameters: Dict[str, GeneratorParameters] = {}
         for name in BAND_NAMES:
+            if self.disable_harmonic and name == "harmonic":
+                updated[name] = torch.zeros_like(state.by_name(name))
+                continue
             band_state, params = self.bands[name].step(x, state.by_name(name), dissipation_scale=dissipation_scale)
             correction = self.geometry.apply(band_state)
             alpha = (self.config.geometry_step_cap * params.geometry_gate).unsqueeze(-1).unsqueeze(-1)
-            updated[name] = band_state - alpha * correction
+            value = band_state - alpha * correction
+            if self.unconstrained_cochain is not None:
+                # Named Stage E C-ablation only: unconstrained vertex mixing.
+                # It is absent from every full-production execution path.
+                value = value + torch.einsum("ij,...jw->...iw", self.unconstrained_cochain, band_state)
+            updated[name] = value
             parameters[name] = params
         new_state = CohomodynamicState(updated["fast"], updated["middle"], updated["harmonic"])
         features = torch.cat([new_state.by_name(name).mean(dim=-2) for name in BAND_NAMES], dim=-1)

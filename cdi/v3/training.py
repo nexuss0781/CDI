@@ -231,8 +231,9 @@ def train_steps(model: nn.Module, batches: Sequence[Mapping[str, Any]], config: 
             for name, parameter in model.named_parameters()
             if parameter.requires_grad and not name.endswith("learned_initial_state")
         ]
-        if any(gradient is None or not bool(torch.isfinite(gradient).all().item()) for _, gradient in gradients):
-            raise FloatingPointError("A Stage D active trainable parameter has a missing or non-finite gradient.")
+        invalid_gradients = [name for name, gradient in gradients if gradient is None or not bool(torch.isfinite(gradient).all().item())]
+        if invalid_gradients:
+            raise FloatingPointError(f"Active trainable parameters have missing or non-finite gradients: {invalid_gradients}")
         torch.nn.utils.clip_grad_norm_(model.parameters(), config.gradient_clip_norm)
         optimizer.step()
         losses.append(float(report.loss.detach().cpu()))

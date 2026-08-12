@@ -1,0 +1,71 @@
+{
+  "corpus_classification": "repository_local_synthetic_only",
+  "format": "dcss-cdi-stage-e-study-manifest-v1",
+  "manifest_fingerprint": "2906327fbe3f21161b487e10b1341437f316a0622f758f27fb27914c45a45460",
+  "matrix": {
+    "C": {
+      "allocation_claim_scope": "named_dense_vertex_exception",
+      "description": "Unconstrained cochain diagnostic",
+      "identifier": "C",
+      "model_key": "dcss_cdi",
+      "named_difference": "Learned unconstrained vertex mixing added"
+    },
+    "E": {
+      "allocation_claim_scope": "full_sparse",
+      "description": "Explicit Euler recurrence",
+      "identifier": "E",
+      "model_key": "dcss_cdi",
+      "named_difference": "Exact pairwise exponential replaced by Euler"
+    },
+    "F": {
+      "allocation_claim_scope": "full_sparse",
+      "description": "Full DCSS-CDI",
+      "identifier": "F",
+      "model_key": "dcss_cdi",
+      "named_difference": "Frozen Stage D selective geometric exact three-band engine"
+    },
+    "G": {
+      "allocation_claim_scope": "full_sparse",
+      "description": "Geometry-free selective recurrence",
+      "identifier": "G",
+      "model_key": "dcss_cdi",
+      "named_difference": "Matrix-free geometric field disabled"
+    },
+    "H": {
+      "allocation_claim_scope": "full_sparse",
+      "description": "No harmonic memory",
+      "identifier": "H",
+      "model_key": "dcss_cdi",
+      "named_difference": "Harmonic/slow band disabled and frozen"
+    },
+    "T": {
+      "allocation_claim_scope": "not_applicable",
+      "description": "Small causal Transformer baseline",
+      "identifier": "T",
+      "model_key": "transformer",
+      "named_difference": "Conventional attention baseline"
+    },
+    "U": {
+      "allocation_claim_scope": "full_sparse",
+      "description": "Ungated sparse CDI recurrence",
+      "identifier": "U",
+      "model_key": "dcss_cdi",
+      "named_difference": "Fixed controls replace content-selective gates"
+    },
+    "V2": {
+      "allocation_claim_scope": "not_applicable",
+      "description": "Compact legacy-v2 style adapter",
+      "identifier": "V2",
+      "model_key": "v2",
+      "named_difference": "Historical-style recurrent adapter"
+    }
+  },
+  "preregistration": "Stages/STAGE_E_PREREGISTRATION.md",
+  "seeds": [
+    1,
+    2,
+    3
+  ],
+  "stage_f_implementation_allowed": false,
+  "steps": 100
+}

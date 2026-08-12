@@ -69,3 +69,9 @@ The default Stage D corpus is a small repository-local deterministic synthetic c
 Stage D uses float32 on CPU, with no AMP path claimed in the default environment. The precision gate verifies finite float32 computation and records CUDA/bfloat16 as unavailable when applicable. This does not alter the precision-safety threshold.
 
 The Stage D matched v2, v3, and Transformer comparison is restricted to the same tokenizer, local synthetic corpus, token budget, optimizer family, and evaluation code. It validates fair comparison plumbing only; it does not claim that the systems have been evaluated on a real language-model benchmark.
+
+## Stage E controlled-ablation customization
+
+Stage E uses the frozen Stage D local synthetic corpus, tokenizer, CPU float32 precision, and deterministic 100-step token budget for all matrix members. This supports controlled engineering and synthetic-sequence diagnostics only. The study does not label these results as real-corpus quality, transfer, WikiText, SciQ, or natural-language claims.
+
+The nano scaling range is frozen at lengths 8–256 and the streaming range at 512 tokens. The Stage E report will calculate empirical exponents over that measured range but will retain the specification's 4k–8k memory and legacy-speed targets as `NOT_MEASURED`; it will not extrapolate or mark them passed. The no-harmonic, no-geometry, ungated, Euler, and unconstrained-cochain variants are isolated named ablations. The unconstrained-cochain diagnostic is explicitly exempt from the full-production no-dense claim; allocation auditing applies to the full DCSS path.
