@@ -1,0 +1,17 @@
+{
+  "name": "nano",
+  "seeds": [1, 2, 3],
+  "optimizer_steps": 100,
+  "tokenizer_artifact": "benchmarks/configs/stage_d_tokenizer.json",
+  "corpus": "data/stage_d/synthetic_corpus.jsonl",
+  "corpus_classification": "repository_local_synthetic_only",
+  "precision": "float32_cpu",
+  "optimizer": "AdamW",
+  "chunk_length": 8,
+  "batch_size": 4,
+  "matrix": ["T", "V2", "U", "G", "H", "E", "C", "F"],
+  "scaling_lengths": [8, 16, 32, 64, 128, 256],
+  "stream_length": 512,
+  "not_measured": ["real_corpus_quality", "transfer_corpus", "4k_transformer_memory_ratio", "legacy_v2_speed_ratio"],
+  "stage_f_implementation_allowed": false
+}
