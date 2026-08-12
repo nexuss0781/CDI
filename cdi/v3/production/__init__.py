@@ -3,8 +3,12 @@ from .checkpoints import CHECKPOINT_FORMAT, build_envelope, file_sha256, load_ve
 from .config import ProductionRunConfig, ReleaseBoundary
 from .data import DataManifest, GovernedDocument, P1DataPolicy, P2DataPolicy
 from .evaluation import EvaluationCard, EvaluationEvidence, assert_core_optionality, evaluate_causal_offline, matched_baseline_summary
+from typing import TYPE_CHECKING
+
 from .lineage import ArtifactLineage, EnvironmentLineage, assert_compatible, fingerprint
-from .inference import DCSSInferenceEngine, interactive_chat
+
+if TYPE_CHECKING:
+    from .inference import DCSSInferenceEngine, GenerationConfig, InferenceMetadata, interactive_chat
 
 __all__ = [
     "CHECKPOINT_FORMAT",
@@ -29,5 +33,19 @@ __all__ = [
     "save_atomic",
     "validate_envelope",
     "DCSSInferenceEngine",
+    "GenerationConfig",
+    "InferenceMetadata",
     "interactive_chat",
 ]
+
+
+_INFERENCE_EXPORTS = frozenset({"DCSSInferenceEngine", "GenerationConfig", "InferenceMetadata", "interactive_chat"})
+
+
+def __getattr__(name: str):
+    """Load the optional inference interface only when a caller requests it."""
+    if name in _INFERENCE_EXPORTS:
+        from . import inference
+
+        return getattr(inference, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
