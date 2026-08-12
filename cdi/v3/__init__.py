@@ -16,7 +16,12 @@ from .ablations import ExplicitEulerIntegrator, UngatedSelectiveGate, apply_stag
 from .stage_e import MATRIX, MatrixDefinition, build_matrix_model, matrix_manifest
 from .capabilities import AuditTrail, CapabilityOrchestrator, EpisodicMemory, Executor, MemoryRecord, Plan, PlanAction, Planner, Retriever, ToolDefinition, ToolRegistry, Verifier
 from .training import LocalSyntheticCorpus, StageDConfig, build_model, checkpoint_payload, evaluate, optimizer_for, parameter_fingerprint, restore_checkpoint, train_steps
-from .production import ArtifactLineage, DataManifest, EnvironmentLineage, EvaluationCard, EvaluationEvidence, GovernedDocument, P1DataPolicy, P2DataPolicy, ProductionRunConfig, ReleaseBoundary, assert_core_optionality, build_envelope, evaluate_causal_offline, load_verified, save_atomic, DCSSInferenceEngine, interactive_chat
+from typing import TYPE_CHECKING
+
+from .production import ArtifactLineage, DataManifest, EnvironmentLineage, EvaluationCard, EvaluationEvidence, GovernedDocument, P1DataPolicy, P2DataPolicy, ProductionRunConfig, ReleaseBoundary, assert_core_optionality, build_envelope, evaluate_causal_offline, load_verified, save_atomic
+
+if TYPE_CHECKING:
+    from .production.inference import DCSSInferenceEngine, GenerationConfig, InferenceMetadata, interactive_chat
 from .ssm import (
     BAND_NAMES,
     CayleyIntegrator,
@@ -103,5 +108,19 @@ __all__ = [
     "load_verified",
     "save_atomic",
     "DCSSInferenceEngine",
+    "GenerationConfig",
+    "InferenceMetadata",
     "interactive_chat",
 ]
+
+
+_INFERENCE_EXPORTS = frozenset({"DCSSInferenceEngine", "GenerationConfig", "InferenceMetadata", "interactive_chat"})
+
+
+def __getattr__(name: str):
+    """Resolve inference exports lazily to keep module execution side-effect free."""
+    if name in _INFERENCE_EXPORTS:
+        from .production import inference
+
+        return getattr(inference, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
