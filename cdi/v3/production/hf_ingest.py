@@ -1,11 +1,11 @@
-"""Production Hugging Face dataset ingestion with HF_TOKEN support and canonical Hub paths."""
+"""Production Hugging Face dataset ingestion with content deduplication and HF_TOKEN support."""
 from __future__ import annotations
 
 import os
 from hashlib import sha256
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Sequence
+from typing import Any, Dict, List, Sequence, Set
 import sys
 
 from datasets import load_dataset
@@ -16,7 +16,7 @@ from .data import DataManifest, GovernedDocument, P2DataPolicy
 
 
 def ingest_wikitext_and_sciq(output_dir: str | Path = "data/production") -> Dict[str, Path]:
-    """Download WikiText-103 and SciQ from Hugging Face using canonical IDs and tokens."""
+    """Download WikiText-103 and SciQ from Hugging Face with content deduplication."""
     out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
     
@@ -41,8 +41,7 @@ def ingest_wikitext_and_sciq(output_dir: str | Path = "data/production") -> Dict
     sciq = None
     errors = []
 
-    # 1. Load WikiText-103 using full canonical ID
-    # This is the most reliable path on the current Hub
+    # 1. Load WikiText-103
     try:
         print("Loading Salesforce/wikitext (wikitext-103-raw-v1)...")
         wikitext = load_dataset("Salesforce/wikitext", "wikitext-103-raw-v1", token=token, trust_remote_code=True)
@@ -54,7 +53,7 @@ def ingest_wikitext_and_sciq(output_dir: str | Path = "data/production") -> Dict
         except Exception as e2:
             errors.append(f"Legacy wikitext load failed: {e2}")
 
-    # 2. Load SciQ using full canonical ID
+    # 2. Load SciQ
     try:
         print("Loading allenai/sciq...")
         sciq = load_dataset("allenai/sciq", token=token, trust_remote_code=True)
@@ -72,32 +71,35 @@ def ingest_wikitext_and_sciq(output_dir: str | Path = "data/production") -> Dict
         print("Please verify your HF_TOKEN and internet connection.")
         sys.exit(1)
 
-    print("Ingesting WikiText-103 documents...")
-    train_docs: List[GovernedDocument] = []
-    for idx, item in enumerate(wikitext["train"]):
-        text = item["text"].strip()
-        if len(text) > 50:
-            doc_id = f"wt-train-{idx:06d}"
-            train_docs.append(GovernedDocument(doc_id, text, "hf://Salesforce/wikitext", "CC-BY-SA-4.0", "retained_for_pretraining", data_class="rights_cleared_pilot", pii_review="reviewed_no_pii"))
-            if len(train_docs) >= 5000: break
+    # Use a set to track content hashes for deduplication across the entire ingestion
+    seen_hashes: Set[str] = set()
+
+    def get_unique_docs(dataset_split, prefix: str, limit: int, data_source: str, license_info: str, usage: str) -> List[GovernedDocument]:
+        docs = []
+        for idx, item in enumerate(dataset_split):
+            if "text" in item:
+                text = item["text"].strip()
+            elif "question" in item and "correct_answer" in item:
+                text = f"Q: {item['question'].strip()} A: {item['correct_answer'].strip()}"
+            else:
+                continue
                 
-    val_docs: List[GovernedDocument] = []
-    for idx, item in enumerate(wikitext["validation"]):
-        text = item["text"].strip()
-        if len(text) > 50:
-            doc_id = f"wt-val-{idx:06d}"
-            val_docs.append(GovernedDocument(doc_id, text, "hf://Salesforce/wikitext", "CC-BY-SA-4.0", "retained_for_validation", data_class="rights_cleared_pilot", pii_review="reviewed_no_pii"))
-            if len(val_docs) >= 500: break
+            if len(text) > 50:
+                content_hash = sha256(text.encode("utf-8")).hexdigest()
+                if content_hash not in seen_hashes:
+                    seen_hashes.add(content_hash)
+                    doc_id = f"{prefix}-{idx:06d}"
+                    docs.append(GovernedDocument(doc_id, text, data_source, license_info, usage, data_class="rights_cleared_pilot", pii_review="reviewed_no_pii"))
+                    if len(docs) >= limit:
+                        break
+        return docs
+
+    print("Ingesting WikiText-103 documents...")
+    train_docs = get_unique_docs(wikitext["train"], "wt-train", 5000, "hf://Salesforce/wikitext", "CC-BY-SA-4.0", "retained_for_pretraining")
+    val_docs = get_unique_docs(wikitext["validation"], "wt-val", 500, "hf://Salesforce/wikitext", "CC-BY-SA-4.0", "retained_for_validation")
 
     print("Ingesting SciQ documents...")
-    finetune_docs: List[GovernedDocument] = []
-    for idx, item in enumerate(sciq["train"]):
-        q = item["question"].strip()
-        a = item["correct_answer"].strip()
-        text = f"Q: {q} A: {a}"
-        doc_id = f"sciq-train-{idx:06d}"
-        finetune_docs.append(GovernedDocument(doc_id, text, "hf://allenai/sciq", "MIT", "retained_for_finetuning", data_class="rights_cleared_pilot", pii_review="reviewed_no_pii"))
-        if len(finetune_docs) >= 2000: break
+    finetune_docs = get_unique_docs(sciq["train"], "sciq-train", 2000, "hf://allenai/sciq", "MIT", "retained_for_finetuning")
 
     all_docs = train_docs + val_docs + finetune_docs
     policy = P2DataPolicy()
