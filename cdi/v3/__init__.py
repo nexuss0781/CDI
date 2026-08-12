@@ -10,6 +10,19 @@ from .incidence import SparseIncidence
 from .laplacian import MatrixFreeLaplacian
 from .reference import DenseReferenceOperators
 from .topology import SparseTopology
+from .ssm import (
+    BAND_NAMES,
+    CayleyIntegrator,
+    CohomodynamicCell,
+    CohomodynamicState,
+    DynamicsDiagnostics,
+    MemoryBand,
+    SelectiveCohomodynamicSSM,
+    SelectiveGate,
+    StageCConfig,
+    StableGenerator,
+    StateCodec,
+)
 
 __all__ = [
     "DCSSConfig",
@@ -20,4 +33,15 @@ __all__ = [
     "SparseIncidence",
     "SparseTopology",
     "load_config",
+    "BAND_NAMES",
+    "CayleyIntegrator",
+    "CohomodynamicCell",
+    "CohomodynamicState",
+    "DynamicsDiagnostics",
+    "MemoryBand",
+    "SelectiveCohomodynamicSSM",
+    "SelectiveGate",
+    "StageCConfig",
+    "StableGenerator",
+    "StateCodec",
 ]

@@ -1,0 +1,466 @@
+{
+  "config": {
+    "band_ranges": [
+      [
+        0.25,
+        1.0
+      ],
+      [
+        2.0,
+        8.0
+      ],
+      [
+        16.0,
+        64.0
+      ]
+    ],
+    "band_width": 4,
+    "device": "cpu",
+    "dt": 0.1,
+    "dtype_str": "float32",
+    "geometry_ablation": false,
+    "geometry_step_cap": 0.02,
+    "input_bound": 1.0,
+    "input_width": 4,
+    "max_log_timescale_offset": 0.35,
+    "n_vertices": 4,
+    "name": "nano",
+    "output_width": 4,
+    "rotation_limit": 1.0,
+    "seed": 42,
+    "state_norm_bound": 10000.0,
+    "tau_max": 64.0,
+    "tau_min": 0.05
+  },
+  "format": "dcss-cdi-stage-c-transition-manifest-v1",
+  "gate_bounds": {
+    "geometry_gate": [
+      0.0,
+      1.0
+    ],
+    "input_gate": [
+      0.0,
+      1.0
+    ],
+    "log_timescale_offset": [
+      -0.35,
+      0.35
+    ],
+    "transport_gate": [
+      0.0,
+      1.0
+    ]
+  },
+  "generator_parameterization": "exact diagonal dissipation plus pairwise skew rotation",
+  "integrator": "exact block exponential",
+  "manifest_fingerprint": "50a8eab6e91a5f0f037179e3eb38beaab29f40860c25bdf48ab8852c2894ad28",
+  "parameter_inventory": {
+    "entries": [
+      {
+        "count": 48,
+        "name": "learned_initial_state",
+        "requires_grad": true,
+        "shape": [
+          3,
+          4,
+          4
+        ]
+      },
+      {
+        "count": 5,
+        "name": "geometry.edge_log_weights",
+        "requires_grad": true,
+        "shape": [
+          5
+        ]
+      },
+      {
+        "count": 16,
+        "name": "bands.fast.gate.forcing_projection.weight",
+        "requires_grad": true,
+        "shape": [
+          4,
+          4
+        ]
+      },
+      {
+        "count": 4,
+        "name": "bands.fast.gate.forcing_projection.bias",
+        "requires_grad": true,
+        "shape": [
+          4
+        ]
+      },
+      {
+        "count": 8,
+        "name": "bands.fast.gate.input_gate_projection.weight",
+        "requires_grad": true,
+        "shape": [
+          2,
+          4
+        ]
+      },
+      {
+        "count": 2,
+        "name": "bands.fast.gate.input_gate_projection.bias",
+        "requires_grad": true,
+        "shape": [
+          2
+        ]
+      },
+      {
+        "count": 8,
+        "name": "bands.fast.gate.transport_projection.weight",
+        "requires_grad": true,
+        "shape": [
+          2,
+          4
+        ]
+      },
+      {
+        "count": 2,
+        "name": "bands.fast.gate.transport_projection.bias",
+        "requires_grad": true,
+        "shape": [
+          2
+        ]
+      },
+      {
+        "count": 16,
+        "name": "bands.fast.gate.timescale_projection.weight",
+        "requires_grad": true,
+        "shape": [
+          4,
+          4
+        ]
+      },
+      {
+        "count": 4,
+        "name": "bands.fast.gate.timescale_projection.bias",
+        "requires_grad": true,
+        "shape": [
+          4
+        ]
+      },
+      {
+        "count": 4,
+        "name": "bands.fast.gate.geometry_projection.weight",
+        "requires_grad": true,
+        "shape": [
+          1,
+          4
+        ]
+      },
+      {
+        "count": 1,
+        "name": "bands.fast.gate.geometry_projection.bias",
+        "requires_grad": true,
+        "shape": [
+          1
+        ]
+      },
+      {
+        "count": 4,
+        "name": "bands.fast.generator.log_tau_base",
+        "requires_grad": true,
+        "shape": [
+          4
+        ]
+      },
+      {
+        "count": 2,
+        "name": "bands.fast.generator.rotation_bias",
+        "requires_grad": true,
+        "shape": [
+          2
+        ]
+      },
+      {
+        "count": 16,
+        "name": "bands.fast.generator.input_injection",
+        "requires_grad": true,
+        "shape": [
+          4,
+          4
+        ]
+      },
+      {
+        "count": 16,
+        "name": "bands.middle.gate.forcing_projection.weight",
+        "requires_grad": true,
+        "shape": [
+          4,
+          4
+        ]
+      },
+      {
+        "count": 4,
+        "name": "bands.middle.gate.forcing_projection.bias",
+        "requires_grad": true,
+        "shape": [
+          4
+        ]
+      },
+      {
+        "count": 8,
+        "name": "bands.middle.gate.input_gate_projection.weight",
+        "requires_grad": true,
+        "shape": [
+          2,
+          4
+        ]
+      },
+      {
+        "count": 2,
+        "name": "bands.middle.gate.input_gate_projection.bias",
+        "requires_grad": true,
+        "shape": [
+          2
+        ]
+      },
+      {
+        "count": 8,
+        "name": "bands.middle.gate.transport_projection.weight",
+        "requires_grad": true,
+        "shape": [
+          2,
+          4
+        ]
+      },
+      {
+        "count": 2,
+        "name": "bands.middle.gate.transport_projection.bias",
+        "requires_grad": true,
+        "shape": [
+          2
+        ]
+      },
+      {
+        "count": 16,
+        "name": "bands.middle.gate.timescale_projection.weight",
+        "requires_grad": true,
+        "shape": [
+          4,
+          4
+        ]
+      },
+      {
+        "count": 4,
+        "name": "bands.middle.gate.timescale_projection.bias",
+        "requires_grad": true,
+        "shape": [
+          4
+        ]
+      },
+      {
+        "count": 4,
+        "name": "bands.middle.gate.geometry_projection.weight",
+        "requires_grad": true,
+        "shape": [
+          1,
+          4
+        ]
+      },
+      {
+        "count": 1,
+        "name": "bands.middle.gate.geometry_projection.bias",
+        "requires_grad": true,
+        "shape": [
+          1
+        ]
+      },
+      {
+        "count": 4,
+        "name": "bands.middle.generator.log_tau_base",
+        "requires_grad": true,
+        "shape": [
+          4
+        ]
+      },
+      {
+        "count": 2,
+        "name": "bands.middle.generator.rotation_bias",
+        "requires_grad": true,
+        "shape": [
+          2
+        ]
+      },
+      {
+        "count": 16,
+        "name": "bands.middle.generator.input_injection",
+        "requires_grad": true,
+        "shape": [
+          4,
+          4
+        ]
+      },
+      {
+        "count": 16,
+        "name": "bands.harmonic.gate.forcing_projection.weight",
+        "requires_grad": true,
+        "shape": [
+          4,
+          4
+        ]
+      },
+      {
+        "count": 4,
+        "name": "bands.harmonic.gate.forcing_projection.bias",
+        "requires_grad": true,
+        "shape": [
+          4
+        ]
+      },
+      {
+        "count": 8,
+        "name": "bands.harmonic.gate.input_gate_projection.weight",
+        "requires_grad": true,
+        "shape": [
+          2,
+          4
+        ]
+      },
+      {
+        "count": 2,
+        "name": "bands.harmonic.gate.input_gate_projection.bias",
+        "requires_grad": true,
+        "shape": [
+          2
+        ]
+      },
+      {
+        "count": 8,
+        "name": "bands.harmonic.gate.transport_projection.weight",
+        "requires_grad": true,
+        "shape": [
+          2,
+          4
+        ]
+      },
+      {
+        "count": 2,
+        "name": "bands.harmonic.gate.transport_projection.bias",
+        "requires_grad": true,
+        "shape": [
+          2
+        ]
+      },
+      {
+        "count": 16,
+        "name": "bands.harmonic.gate.timescale_projection.weight",
+        "requires_grad": true,
+        "shape": [
+          4,
+          4
+        ]
+      },
+      {
+        "count": 4,
+        "name": "bands.harmonic.gate.timescale_projection.bias",
+        "requires_grad": true,
+        "shape": [
+          4
+        ]
+      },
+      {
+        "count": 4,
+        "name": "bands.harmonic.gate.geometry_projection.weight",
+        "requires_grad": true,
+        "shape": [
+          1,
+          4
+        ]
+      },
+      {
+        "count": 1,
+        "name": "bands.harmonic.gate.geometry_projection.bias",
+        "requires_grad": true,
+        "shape": [
+          1
+        ]
+      },
+      {
+        "count": 4,
+        "name": "bands.harmonic.generator.log_tau_base",
+        "requires_grad": true,
+        "shape": [
+          4
+        ]
+      },
+      {
+        "count": 2,
+        "name": "bands.harmonic.generator.rotation_bias",
+        "requires_grad": true,
+        "shape": [
+          2
+        ]
+      },
+      {
+        "count": 16,
+        "name": "bands.harmonic.generator.input_injection",
+        "requires_grad": true,
+        "shape": [
+          4,
+          4
+        ]
+      },
+      {
+        "count": 48,
+        "name": "readout.weight",
+        "requires_grad": true,
+        "shape": [
+          4,
+          12
+        ]
+      },
+      {
+        "count": 4,
+        "name": "readout.bias",
+        "requires_grad": true,
+        "shape": [
+          4
+        ]
+      }
+    ],
+    "geometry": {
+      "factorization": "S_transpose @ diag(softplus(edge_log_weights)) @ S",
+      "forbidden_operations": [
+        "torch.kron",
+        "dense_full_state_operator"
+      ],
+      "full_state_dim": 16,
+      "full_state_square": 256,
+      "geometry_ablation": false,
+      "learnable_parameters": [
+        "edge_log_weights"
+      ],
+      "operator": "MatrixFreeLaplacian",
+      "sparse_nnz": 10
+    },
+    "state_layout": "CohomodynamicState(fast, middle, harmonic), each (..., vertices, width)",
+    "total_parameters": 366
+  },
+  "stage_d_implementation_allowed": false,
+  "state_elements": 48,
+  "state_layout": "CohomodynamicState(fast, middle, harmonic), each (..., n_vertices, band_width)",
+  "timescale_ranges": {
+    "fast": [
+      0.25,
+      1.0
+    ],
+    "harmonic": [
+      16.0,
+      64.0
+    ],
+    "middle": [
+      2.0,
+      8.0
+    ]
+  },
+  "tolerances": {
+    "causality": 1e-06,
+    "serialization": 1e-06,
+    "step_chunk": 1e-05
+  },
+  "topology_fingerprint": "84080201a65516f8985d3201e78492f1ce45ef30af7f6aa735d7c10a4398c98d"
+}

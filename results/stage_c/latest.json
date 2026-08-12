@@ -1,0 +1,2134 @@
+{
+  "config": {
+    "band_ranges": [
+      [
+        0.25,
+        1.0
+      ],
+      [
+        2.0,
+        8.0
+      ],
+      [
+        16.0,
+        64.0
+      ]
+    ],
+    "band_width": 4,
+    "device": "cpu",
+    "dt": 0.1,
+    "dtype_str": "float32",
+    "geometry_ablation": false,
+    "geometry_step_cap": 0.02,
+    "input_bound": 1.0,
+    "input_width": 4,
+    "max_log_timescale_offset": 0.35,
+    "n_vertices": 4,
+    "name": "nano",
+    "output_width": 4,
+    "rotation_limit": 1.0,
+    "seed": 42,
+    "state_norm_bound": 10000.0,
+    "tau_max": 64.0,
+    "tau_min": 0.05
+  },
+  "elapsed_seconds": 16.847856519001652,
+  "environment": {
+    "cuda_available": false,
+    "platform": "Linux-6.1.102-x86_64-with-glibc2.39",
+    "python": "3.12.3",
+    "torch": "2.13.0+cu130"
+  },
+  "format": "dcss-cdi-stage-c-report-v1",
+  "gates": [
+    {
+      "details": {
+        "modes": {
+          "false": {
+            "diagnostics": {
+              "available": true,
+              "gate_stats": {
+                "fast": {
+                  "forcing_abs_max": 0.30683863162994385,
+                  "geometry_gate_max": 0.5929879546165466,
+                  "geometry_gate_min": 0.3974544405937195
+                },
+                "harmonic": {
+                  "forcing_abs_max": 0.4505528211593628,
+                  "geometry_gate_max": 0.6032759547233582,
+                  "geometry_gate_min": 0.36095497012138367
+                },
+                "middle": {
+                  "forcing_abs_max": 0.42419037222862244,
+                  "geometry_gate_max": 0.6528233289718628,
+                  "geometry_gate_min": 0.4368266761302948
+                }
+              },
+              "spectral_estimates": {
+                "fast": {
+                  "dissipation_max": 2.744086265563965,
+                  "dissipation_min": 0.7588374614715576,
+                  "omega_abs_max": 0.6847101449966431,
+                  "tau_max": 1.0,
+                  "tau_min": 0.25
+                },
+                "harmonic": {
+                  "dissipation_max": 0.03829167038202286,
+                  "dissipation_min": 0.00651149544864893,
+                  "omega_abs_max": 0.3572554588317871,
+                  "tau_max": 64.0,
+                  "tau_min": 16.0
+                },
+                "middle": {
+                  "dissipation_max": 0.2701229453086853,
+                  "dissipation_min": 0.06607387214899063,
+                  "omega_abs_max": 0.5529035329818726,
+                  "tau_max": 7.534860610961914,
+                  "tau_min": 2.1267151832580566
+                }
+              }
+            },
+            "geometry_ablation": false,
+            "output_shape": [
+              2,
+              4
+            ],
+            "passed": true,
+            "state_shapes": [
+              [
+                2,
+                4,
+                4
+              ],
+              [
+                2,
+                4,
+                4
+              ],
+              [
+                2,
+                4,
+                4
+              ]
+            ]
+          },
+          "true": {
+            "diagnostics": {
+              "available": true,
+              "gate_stats": {
+                "fast": {
+                  "forcing_abs_max": 0.30683863162994385,
+                  "geometry_gate_max": 0.5929879546165466,
+                  "geometry_gate_min": 0.3974544405937195
+                },
+                "harmonic": {
+                  "forcing_abs_max": 0.4505528211593628,
+                  "geometry_gate_max": 0.6032759547233582,
+                  "geometry_gate_min": 0.36095497012138367
+                },
+                "middle": {
+                  "forcing_abs_max": 0.42419037222862244,
+                  "geometry_gate_max": 0.6528233289718628,
+                  "geometry_gate_min": 0.4368266761302948
+                }
+              },
+              "spectral_estimates": {
+                "fast": {
+                  "dissipation_max": 2.744086265563965,
+                  "dissipation_min": 0.7588374614715576,
+                  "omega_abs_max": 0.6847101449966431,
+                  "tau_max": 1.0,
+                  "tau_min": 0.25
+                },
+                "harmonic": {
+                  "dissipation_max": 0.03829167038202286,
+                  "dissipation_min": 0.00651149544864893,
+                  "omega_abs_max": 0.3572554588317871,
+                  "tau_max": 64.0,
+                  "tau_min": 16.0
+                },
+                "middle": {
+                  "dissipation_max": 0.2701229453086853,
+                  "dissipation_min": 0.06607387214899063,
+                  "omega_abs_max": 0.5529035329818726,
+                  "tau_max": 7.534860610961914,
+                  "tau_min": 2.1267151832580566
+                }
+              }
+            },
+            "geometry_ablation": true,
+            "output_shape": [
+              2,
+              4
+            ],
+            "passed": true,
+            "state_shapes": [
+              [
+                2,
+                4,
+                4
+              ],
+              [
+                2,
+                4,
+                4
+              ],
+              [
+                2,
+                4,
+                4
+              ]
+            ]
+          }
+        }
+      },
+      "name": "cell_shape_type_device",
+      "passed": true,
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "perturbed_index": 17,
+        "pre_causal_max_abs": 0.0,
+        "tolerance": 1e-06
+      },
+      "name": "causal_correctness",
+      "passed": true,
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "records": [
+          {
+            "batch": 1,
+            "final_state": {
+              "bands": {
+                "fast": {
+                  "max_abs": 0.0,
+                  "max_rel": 0.0,
+                  "mean_abs": 0.0
+                },
+                "harmonic": {
+                  "max_abs": 0.0,
+                  "max_rel": 0.0,
+                  "mean_abs": 0.0
+                },
+                "middle": {
+                  "max_abs": 0.0,
+                  "max_rel": 0.0,
+                  "mean_abs": 0.0
+                }
+              },
+              "max_abs": 0.0
+            },
+            "intermediate_state_max_abs": 0.0,
+            "length": 1,
+            "output": {
+              "max_abs": 0.0,
+              "max_rel": 0.0,
+              "mean_abs": 0.0
+            },
+            "passed": true
+          },
+          {
+            "batch": 2,
+            "final_state": {
+              "bands": {
+                "fast": {
+                  "max_abs": 0.0,
+                  "max_rel": 0.0,
+                  "mean_abs": 0.0
+                },
+                "harmonic": {
+                  "max_abs": 0.0,
+                  "max_rel": 0.0,
+                  "mean_abs": 0.0
+                },
+                "middle": {
+                  "max_abs": 0.0,
+                  "max_rel": 0.0,
+                  "mean_abs": 0.0
+                }
+              },
+              "max_abs": 0.0
+            },
+            "intermediate_state_max_abs": 0.0,
+            "length": 1,
+            "output": {
+              "max_abs": 0.0,
+              "max_rel": 0.0,
+              "mean_abs": 0.0
+            },
+            "passed": true
+          },
+          {
+            "batch": 1,
+            "final_state": {
+              "bands": {
+                "fast": {
+                  "max_abs": 0.0,
+                  "max_rel": 0.0,
+                  "mean_abs": 0.0
+                },
+                "harmonic": {
+                  "max_abs": 0.0,
+                  "max_rel": 0.0,
+                  "mean_abs": 0.0
+                },
+                "middle": {
+                  "max_abs": 0.0,
+                  "max_rel": 0.0,
+                  "mean_abs": 0.0
+                }
+              },
+              "max_abs": 0.0
+            },
+            "intermediate_state_max_abs": 0.0,
+            "length": 2,
+            "output": {
+              "max_abs": 0.0,
+              "max_rel": 0.0,
+              "mean_abs": 0.0
+            },
+            "passed": true
+          },
+          {
+            "batch": 2,
+            "final_state": {
+              "bands": {
+                "fast": {
+                  "max_abs": 0.0,
+                  "max_rel": 0.0,
+                  "mean_abs": 0.0
+                },
+                "harmonic": {
+                  "max_abs": 0.0,
+                  "max_rel": 0.0,
+                  "mean_abs": 0.0
+                },
+                "middle": {
+                  "max_abs": 0.0,
+                  "max_rel": 0.0,
+                  "mean_abs": 0.0
+                }
+              },
+              "max_abs": 0.0
+            },
+            "intermediate_state_max_abs": 0.0,
+            "length": 2,
+            "output": {
+              "max_abs": 0.0,
+              "max_rel": 0.0,
+              "mean_abs": 0.0
+            },
+            "passed": true
+          },
+          {
+            "batch": 1,
+            "final_state": {
+              "bands": {
+                "fast": {
+                  "max_abs": 0.0,
+                  "max_rel": 0.0,
+                  "mean_abs": 0.0
+                },
+                "harmonic": {
+                  "max_abs": 0.0,
+                  "max_rel": 0.0,
+                  "mean_abs": 0.0
+                },
+                "middle": {
+                  "max_abs": 0.0,
+                  "max_rel": 0.0,
+                  "mean_abs": 0.0
+                }
+              },
+              "max_abs": 0.0
+            },
+            "intermediate_state_max_abs": 0.0,
+            "length": 7,
+            "output": {
+              "max_abs": 0.0,
+              "max_rel": 0.0,
+              "mean_abs": 0.0
+            },
+            "passed": true
+          },
+          {
+            "batch": 2,
+            "final_state": {
+              "bands": {
+                "fast": {
+                  "max_abs": 0.0,
+                  "max_rel": 0.0,
+                  "mean_abs": 0.0
+                },
+                "harmonic": {
+                  "max_abs": 0.0,
+                  "max_rel": 0.0,
+                  "mean_abs": 0.0
+                },
+                "middle": {
+                  "max_abs": 0.0,
+                  "max_rel": 0.0,
+                  "mean_abs": 0.0
+                }
+              },
+              "max_abs": 0.0
+            },
+            "intermediate_state_max_abs": 0.0,
+            "length": 7,
+            "output": {
+              "max_abs": 0.0,
+              "max_rel": 0.0,
+              "mean_abs": 0.0
+            },
+            "passed": true
+          },
+          {
+            "batch": 1,
+            "final_state": {
+              "bands": {
+                "fast": {
+                  "max_abs": 0.0,
+                  "max_rel": 0.0,
+                  "mean_abs": 0.0
+                },
+                "harmonic": {
+                  "max_abs": 0.0,
+                  "max_rel": 0.0,
+                  "mean_abs": 0.0
+                },
+                "middle": {
+                  "max_abs": 0.0,
+                  "max_rel": 0.0,
+                  "mean_abs": 0.0
+                }
+              },
+              "max_abs": 0.0
+            },
+            "intermediate_state_max_abs": 0.0,
+            "length": 32,
+            "output": {
+              "max_abs": 0.0,
+              "max_rel": 0.0,
+              "mean_abs": 0.0
+            },
+            "passed": true
+          },
+          {
+            "batch": 2,
+            "final_state": {
+              "bands": {
+                "fast": {
+                  "max_abs": 0.0,
+                  "max_rel": 0.0,
+                  "mean_abs": 0.0
+                },
+                "harmonic": {
+                  "max_abs": 0.0,
+                  "max_rel": 0.0,
+                  "mean_abs": 0.0
+                },
+                "middle": {
+                  "max_abs": 0.0,
+                  "max_rel": 0.0,
+                  "mean_abs": 0.0
+                }
+              },
+              "max_abs": 0.0
+            },
+            "intermediate_state_max_abs": 0.0,
+            "length": 32,
+            "output": {
+              "max_abs": 0.0,
+              "max_rel": 0.0,
+              "mean_abs": 0.0
+            },
+            "passed": true
+          },
+          {
+            "batch": 1,
+            "final_state": {
+              "bands": {
+                "fast": {
+                  "max_abs": 0.0,
+                  "max_rel": 0.0,
+                  "mean_abs": 0.0
+                },
+                "harmonic": {
+                  "max_abs": 0.0,
+                  "max_rel": 0.0,
+                  "mean_abs": 0.0
+                },
+                "middle": {
+                  "max_abs": 0.0,
+                  "max_rel": 0.0,
+                  "mean_abs": 0.0
+                }
+              },
+              "max_abs": 0.0
+            },
+            "intermediate_state_max_abs": 0.0,
+            "length": 128,
+            "output": {
+              "max_abs": 0.0,
+              "max_rel": 0.0,
+              "mean_abs": 0.0
+            },
+            "passed": true
+          },
+          {
+            "batch": 2,
+            "final_state": {
+              "bands": {
+                "fast": {
+                  "max_abs": 0.0,
+                  "max_rel": 0.0,
+                  "mean_abs": 0.0
+                },
+                "harmonic": {
+                  "max_abs": 0.0,
+                  "max_rel": 0.0,
+                  "mean_abs": 0.0
+                },
+                "middle": {
+                  "max_abs": 0.0,
+                  "max_rel": 0.0,
+                  "mean_abs": 0.0
+                }
+              },
+              "max_abs": 0.0
+            },
+            "intermediate_state_max_abs": 0.0,
+            "length": 128,
+            "output": {
+              "max_abs": 0.0,
+              "max_rel": 0.0,
+              "mean_abs": 0.0
+            },
+            "passed": true
+          }
+        ],
+        "tolerance": 1e-05
+      },
+      "name": "step_chunk_equivalence",
+      "passed": true,
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "records": [
+          {
+            "input_gradient": {
+              "max_abs": 0.0,
+              "max_rel": 0.0,
+              "mean_abs": 0.0
+            },
+            "length": 1,
+            "max_abs": 0.0,
+            "parameter_gradients": {
+              "cell.bands.fast.gate.forcing_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.fast.gate.forcing_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.fast.gate.geometry_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.fast.gate.geometry_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.fast.gate.input_gate_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.fast.gate.input_gate_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.fast.gate.timescale_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.fast.gate.timescale_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.fast.gate.transport_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.fast.gate.transport_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.fast.generator.input_injection": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.fast.generator.log_tau_base": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.fast.generator.rotation_bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.harmonic.gate.forcing_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.harmonic.gate.forcing_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.harmonic.gate.geometry_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.harmonic.gate.geometry_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.harmonic.gate.input_gate_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.harmonic.gate.input_gate_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.harmonic.gate.timescale_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.harmonic.gate.timescale_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.harmonic.gate.transport_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.harmonic.gate.transport_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.harmonic.generator.input_injection": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.harmonic.generator.log_tau_base": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.harmonic.generator.rotation_bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.middle.gate.forcing_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.middle.gate.forcing_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.middle.gate.geometry_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.middle.gate.geometry_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.middle.gate.input_gate_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.middle.gate.input_gate_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.middle.gate.timescale_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.middle.gate.timescale_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.middle.gate.transport_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.middle.gate.transport_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.middle.generator.input_injection": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.middle.generator.log_tau_base": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.middle.generator.rotation_bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.geometry.edge_log_weights": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.learned_initial_state": {
+                "zero_state_inactive": true
+              },
+              "cell.readout.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.readout.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              }
+            },
+            "passed": true
+          },
+          {
+            "input_gradient": {
+              "max_abs": 0.0,
+              "max_rel": 0.0,
+              "mean_abs": 0.0
+            },
+            "length": 8,
+            "max_abs": 0.0,
+            "parameter_gradients": {
+              "cell.bands.fast.gate.forcing_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.fast.gate.forcing_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.fast.gate.geometry_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.fast.gate.geometry_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.fast.gate.input_gate_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.fast.gate.input_gate_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.fast.gate.timescale_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.fast.gate.timescale_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.fast.gate.transport_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.fast.gate.transport_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.fast.generator.input_injection": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.fast.generator.log_tau_base": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.fast.generator.rotation_bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.harmonic.gate.forcing_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.harmonic.gate.forcing_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.harmonic.gate.geometry_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.harmonic.gate.geometry_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.harmonic.gate.input_gate_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.harmonic.gate.input_gate_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.harmonic.gate.timescale_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.harmonic.gate.timescale_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.harmonic.gate.transport_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.harmonic.gate.transport_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.harmonic.generator.input_injection": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.harmonic.generator.log_tau_base": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.harmonic.generator.rotation_bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.middle.gate.forcing_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.middle.gate.forcing_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.middle.gate.geometry_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.middle.gate.geometry_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.middle.gate.input_gate_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.middle.gate.input_gate_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.middle.gate.timescale_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.middle.gate.timescale_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.middle.gate.transport_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.middle.gate.transport_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.middle.generator.input_injection": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.middle.generator.log_tau_base": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.middle.generator.rotation_bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.geometry.edge_log_weights": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.learned_initial_state": {
+                "zero_state_inactive": true
+              },
+              "cell.readout.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.readout.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              }
+            },
+            "passed": true
+          },
+          {
+            "input_gradient": {
+              "max_abs": 0.0,
+              "max_rel": 0.0,
+              "mean_abs": 0.0
+            },
+            "length": 64,
+            "max_abs": 0.0,
+            "parameter_gradients": {
+              "cell.bands.fast.gate.forcing_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.fast.gate.forcing_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.fast.gate.geometry_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.fast.gate.geometry_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.fast.gate.input_gate_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.fast.gate.input_gate_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.fast.gate.timescale_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.fast.gate.timescale_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.fast.gate.transport_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.fast.gate.transport_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.fast.generator.input_injection": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.fast.generator.log_tau_base": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.fast.generator.rotation_bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.harmonic.gate.forcing_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.harmonic.gate.forcing_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.harmonic.gate.geometry_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.harmonic.gate.geometry_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.harmonic.gate.input_gate_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.harmonic.gate.input_gate_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.harmonic.gate.timescale_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.harmonic.gate.timescale_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.harmonic.gate.transport_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.harmonic.gate.transport_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.harmonic.generator.input_injection": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.harmonic.generator.log_tau_base": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.harmonic.generator.rotation_bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.middle.gate.forcing_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.middle.gate.forcing_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.middle.gate.geometry_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.middle.gate.geometry_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.middle.gate.input_gate_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.middle.gate.input_gate_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.middle.gate.timescale_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.middle.gate.timescale_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.middle.gate.transport_projection.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.middle.gate.transport_projection.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.middle.generator.input_injection": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.middle.generator.log_tau_base": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.bands.middle.generator.rotation_bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.geometry.edge_log_weights": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.learned_initial_state": {
+                "zero_state_inactive": true
+              },
+              "cell.readout.bias": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              },
+              "cell.readout.weight": {
+                "max_abs": 0.0,
+                "max_rel": 0.0,
+                "mean_abs": 0.0
+              }
+            },
+            "passed": true
+          }
+        ],
+        "tolerance": 1e-05
+      },
+      "name": "gradient_equivalence",
+      "passed": true,
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "fingerprint": "004820ab147be25693d4bde1a93634fef5eee1626a9299a955f4764cbe6ffae6",
+        "output": {
+          "max_abs": 0.0,
+          "max_rel": 0.0,
+          "mean_abs": 0.0
+        },
+        "state": {
+          "bands": {
+            "fast": {
+              "max_abs": 0.0,
+              "max_rel": 0.0,
+              "mean_abs": 0.0
+            },
+            "harmonic": {
+              "max_abs": 0.0,
+              "max_rel": 0.0,
+              "mean_abs": 0.0
+            },
+            "middle": {
+              "max_abs": 0.0,
+              "max_rel": 0.0,
+              "mean_abs": 0.0
+            }
+          },
+          "max_abs": 0.0
+        },
+        "tolerance": 1e-06
+      },
+      "name": "state_serialization",
+      "passed": true,
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "modes": {
+          "impulse": {
+            "final_energy": 1.2132623031235745e-11,
+            "finite": true,
+            "initial_energy": 60.370849609375,
+            "maximum_norm": 7.263548131604688,
+            "passed": true,
+            "sampled_energies": [
+              60.370849609375,
+              52.75913619995117,
+              1.2132623031235745e-11
+            ],
+            "steps": 10000
+          },
+          "random": {
+            "final_energy": 0.28976991469971836,
+            "finite": true,
+            "initial_energy": 60.370849609375,
+            "maximum_norm": 7.189963787853532,
+            "passed": true,
+            "sampled_energies": [
+              60.370849609375,
+              51.69557762145996,
+              0.28976991469971836
+            ],
+            "steps": 10000
+          },
+          "zero": {
+            "final_energy": 1.2075039752812433e-11,
+            "finite": true,
+            "initial_energy": 60.370849609375,
+            "maximum_norm": 7.251517077821965,
+            "passed": true,
+            "sampled_energies": [
+              60.370849609375,
+              52.58449935913086,
+              1.2075039752812433e-11
+            ],
+            "steps": 10000
+          }
+        },
+        "norm_bound": 10000.0
+      },
+      "name": "stability_envelope",
+      "passed": true,
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "conservative_relative_energy_drift": 0.0,
+        "dissipative_energy_after": 13.73343965107017,
+        "dissipative_energy_before": 83.27116012573242
+      },
+      "name": "conservative_and_dissipative_dynamics",
+      "passed": true,
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "configured_steps": 1000,
+        "delay": 16,
+        "delayed_norm": {
+          "fast": 0.010350962169468403,
+          "harmonic": 0.03897598758339882,
+          "middle": 0.027561690658330917
+        },
+        "impulse_norm": {
+          "fast": 0.05106257647275925,
+          "harmonic": 0.04022888094186783,
+          "middle": 0.03605134040117264
+        },
+        "probe": "delayed_copy_retention_with_zero_distractors",
+        "retention": {
+          "fast": 0.20271131784723811,
+          "harmonic": 0.968855873463657,
+          "middle": 0.76451223038116
+        },
+        "task": "delayed_copy",
+        "timescale_ranges": {
+          "fast": [
+            0.25,
+            1.0
+          ],
+          "harmonic": [
+            16.0,
+            64.0
+          ],
+          "middle": [
+            2.0,
+            8.0
+          ]
+        }
+      },
+      "name": "frequency_cascade_and_synthetic_memory",
+      "passed": true,
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "records": [
+          {
+            "amplitude": -5.0,
+            "bounded": true,
+            "gates": {
+              "fast": {
+                "forcing_abs_max": 0.9142888784408569,
+                "geometry_gate_max": 0.9921256899833679,
+                "geometry_gate_min": 0.9921256899833679
+              },
+              "harmonic": {
+                "forcing_abs_max": 0.7974593043327332,
+                "geometry_gate_max": 0.8305119872093201,
+                "geometry_gate_min": 0.8305119872093201
+              },
+              "middle": {
+                "forcing_abs_max": 0.42701539397239685,
+                "geometry_gate_max": 0.5010666847229004,
+                "geometry_gate_min": 0.5010666847229004
+              }
+            },
+            "spectral": {
+              "fast": {
+                "dissipation_max": 1.4596248865127563,
+                "dissipation_min": 1.0786789655685425,
+                "omega_abs_max": 0.7901171445846558,
+                "tau_max": 0.8939548134803772,
+                "tau_min": 0.3547511100769043
+              },
+              "harmonic": {
+                "dissipation_max": 0.055050332099199295,
+                "dissipation_min": 0.0026851953007280827,
+                "omega_abs_max": 0.8056418895721436,
+                "tau_max": 56.3241081237793,
+                "tau_min": 16.0
+              },
+              "middle": {
+                "dissipation_max": 0.09978044033050537,
+                "dissipation_min": 0.06689801812171936,
+                "omega_abs_max": 0.8413795232772827,
+                "tau_max": 8.0,
+                "tau_min": 2.0
+              }
+            }
+          },
+          {
+            "amplitude": -1.0,
+            "bounded": true,
+            "gates": {
+              "fast": {
+                "forcing_abs_max": 0.5477691888809204,
+                "geometry_gate_max": 0.7245703935623169,
+                "geometry_gate_min": 0.7245703935623169
+              },
+              "harmonic": {
+                "forcing_abs_max": 0.21439874172210693,
+                "geometry_gate_max": 0.5788006782531738,
+                "geometry_gate_min": 0.5788006782531738
+              },
+              "middle": {
+                "forcing_abs_max": 0.27683785557746887,
+                "geometry_gate_max": 0.5002133846282959,
+                "geometry_gate_min": 0.5002133846282959
+              }
+            },
+            "spectral": {
+              "fast": {
+                "dissipation_max": 1.6738829612731934,
+                "dissipation_min": 0.783569872379303,
+                "omega_abs_max": 0.21112513542175293,
+                "tau_max": 0.8828359246253967,
+                "tau_min": 0.32472530007362366
+              },
+              "harmonic": {
+                "dissipation_max": 0.0393063984811306,
+                "dissipation_min": 0.00967420544475317,
+                "omega_abs_max": 0.21927738189697266,
+                "tau_max": 54.993343353271484,
+                "tau_min": 16.0
+              },
+              "middle": {
+                "dissipation_max": 0.2319810688495636,
+                "dissipation_min": 0.08404675126075745,
+                "omega_abs_max": 0.2403782606124878,
+                "tau_max": 8.0,
+                "tau_min": 2.0
+              }
+            }
+          },
+          {
+            "amplitude": 0.0,
+            "bounded": true,
+            "gates": {
+              "fast": {
+                "forcing_abs_max": 0.0,
+                "geometry_gate_max": 0.5,
+                "geometry_gate_min": 0.5
+              },
+              "harmonic": {
+                "forcing_abs_max": 0.0,
+                "geometry_gate_max": 0.5,
+                "geometry_gate_min": 0.5
+              },
+              "middle": {
+                "forcing_abs_max": 0.0,
+                "geometry_gate_max": 0.5,
+                "geometry_gate_min": 0.5
+              }
+            },
+            "spectral": {
+              "fast": {
+                "dissipation_max": 2.200000047683716,
+                "dissipation_min": 0.8730705976486206,
+                "omega_abs_max": 0.0,
+                "tau_max": 1.0,
+                "tau_min": 0.25
+              },
+              "harmonic": {
+                "dissipation_max": 0.03437500074505806,
+                "dissipation_min": 0.013641728088259697,
+                "omega_abs_max": 0.0,
+                "tau_max": 64.0,
+                "tau_min": 16.0
+              },
+              "middle": {
+                "dissipation_max": 0.2750000059604645,
+                "dissipation_min": 0.10913382470607758,
+                "omega_abs_max": 0.0,
+                "tau_max": 8.0,
+                "tau_min": 2.0
+              }
+            }
+          },
+          {
+            "amplitude": 1.0,
+            "bounded": true,
+            "gates": {
+              "fast": {
+                "forcing_abs_max": 0.3411825895309448,
+                "geometry_gate_max": 0.2754296362400055,
+                "geometry_gate_min": 0.2754296362400055
+              },
+              "harmonic": {
+                "forcing_abs_max": 0.303904265165329,
+                "geometry_gate_max": 0.42119935154914856,
+                "geometry_gate_min": 0.42119935154914856
+              },
+              "middle": {
+                "forcing_abs_max": 0.29329079389572144,
+                "geometry_gate_max": 0.4997866451740265,
+                "geometry_gate_min": 0.4997866451740265
+              }
+            },
+            "spectral": {
+              "fast": {
+                "dissipation_max": 2.2257914543151855,
+                "dissipation_min": 0.9293748140335083,
+                "omega_abs_max": 0.21112513542175293,
+                "tau_max": 1.0,
+                "tau_min": 0.25
+              },
+              "harmonic": {
+                "dissipation_max": 0.025833839550614357,
+                "dissipation_min": 0.018501879647374153,
+                "omega_abs_max": 0.21927744150161743,
+                "tau_max": 64.0,
+                "tau_min": 18.235681533813477
+              },
+              "middle": {
+                "dissipation_max": 0.2673724591732025,
+                "dissipation_min": 0.14161157608032227,
+                "omega_abs_max": 0.2403782606124878,
+                "tau_max": 6.446380615234375,
+                "tau_min": 2.3788459300994873
+              }
+            }
+          },
+          {
+            "amplitude": 5.0,
+            "bounded": true,
+            "gates": {
+              "fast": {
+                "forcing_abs_max": 0.5311478972434998,
+                "geometry_gate_max": 0.007874385453760624,
+                "geometry_gate_min": 0.007874385453760624
+              },
+              "harmonic": {
+                "forcing_abs_max": 0.8914188742637634,
+                "geometry_gate_max": 0.16948801279067993,
+                "geometry_gate_min": 0.16948801279067993
+              },
+              "middle": {
+                "forcing_abs_max": 0.7885439395904541,
+                "geometry_gate_max": 0.498933345079422,
+                "geometry_gate_min": 0.498933345079422
+              }
+            },
+            "spectral": {
+              "fast": {
+                "dissipation_max": 2.3287858963012695,
+                "dissipation_min": 0.30570322275161743,
+                "omega_abs_max": 0.7901171445846558,
+                "tau_max": 1.0,
+                "tau_min": 0.25
+              },
+              "harmonic": {
+                "dissipation_max": 0.032874830067157745,
+                "dissipation_min": 0.009785447269678116,
+                "omega_abs_max": 0.8056418895721436,
+                "tau_max": 64.0,
+                "tau_min": 18.34782600402832
+              },
+              "middle": {
+                "dissipation_max": 0.3182303011417389,
+                "dissipation_min": 0.17501200735569,
+                "omega_abs_max": 0.8413795232772827,
+                "tau_max": 5.640449047088623,
+                "tau_min": 2.8295204639434814
+              }
+            }
+          }
+        ],
+        "tau_bounds": [
+          0.05,
+          64.0
+        ]
+      },
+      "name": "bounded_gate_behavior",
+      "passed": true,
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "modes": {
+          "false": {
+            "forbidden_operations": [],
+            "geometry_ablation": false,
+            "geometry_parameter_activity": "active",
+            "geometry_parameter_activity_correct": true,
+            "large_allocations": [],
+            "metadata": {
+              "engine": "SelectiveCohomodynamicSSM",
+              "forbidden_operations": [
+                "torch.kron",
+                "dense_per_token_state_matrix"
+              ],
+              "geometry": {
+                "factorization": "S_transpose @ diag(softplus(edge_log_weights)) @ S",
+                "forbidden_operations": [
+                  "torch.kron",
+                  "dense_full_state_operator"
+                ],
+                "full_state_dim": 16,
+                "full_state_square": 256,
+                "geometry_ablation": false,
+                "learnable_parameters": [
+                  "edge_log_weights"
+                ],
+                "operator": "MatrixFreeLaplacian",
+                "sparse_nnz": 10
+              },
+              "geometry_order": "post-recurrence, pre-readout",
+              "integrator": "exact diagonal-plus-pairwise-skew block exponential",
+              "state_elements": 48
+            },
+            "operation_count": 2388,
+            "passed": true
+          },
+          "true": {
+            "forbidden_operations": [],
+            "geometry_ablation": true,
+            "geometry_parameter_activity": "inactive",
+            "geometry_parameter_activity_correct": true,
+            "large_allocations": [],
+            "metadata": {
+              "engine": "SelectiveCohomodynamicSSM",
+              "forbidden_operations": [
+                "torch.kron",
+                "dense_per_token_state_matrix"
+              ],
+              "geometry": {
+                "factorization": "S_transpose @ diag(softplus(edge_log_weights)) @ S",
+                "forbidden_operations": [
+                  "torch.kron",
+                  "dense_full_state_operator"
+                ],
+                "full_state_dim": 16,
+                "full_state_square": 256,
+                "geometry_ablation": true,
+                "learnable_parameters": [
+                  "edge_log_weights"
+                ],
+                "operator": "MatrixFreeLaplacian",
+                "sparse_nnz": 10
+              },
+              "geometry_order": "post-recurrence, pre-readout",
+              "integrator": "exact diagonal-plus-pairwise-skew block exponential",
+              "state_elements": 48
+            },
+            "operation_count": 1812,
+            "passed": true
+          }
+        }
+      },
+      "name": "production_no_dense_guard",
+      "passed": true,
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "cpu": {
+          "status": "PASS"
+        },
+        "cuda": {
+          "reason": "torch.cuda.is_available() is false in the CPU development environment.",
+          "status": "UNAVAILABLE"
+        }
+      },
+      "name": "device_correctness",
+      "passed": true,
+      "status": "PASS"
+    }
+  ],
+  "nano_under_30_seconds": true,
+  "seed": 42,
+  "stage": "C",
+  "stage_d_implementation_allowed": false,
+  "status": "PASS",
+  "transition": "Await explicit user approval before Stage D.",
+  "transition_manifest": {
+    "config": {
+      "band_ranges": [
+        [
+          0.25,
+          1.0
+        ],
+        [
+          2.0,
+          8.0
+        ],
+        [
+          16.0,
+          64.0
+        ]
+      ],
+      "band_width": 4,
+      "device": "cpu",
+      "dt": 0.1,
+      "dtype_str": "float32",
+      "geometry_ablation": false,
+      "geometry_step_cap": 0.02,
+      "input_bound": 1.0,
+      "input_width": 4,
+      "max_log_timescale_offset": 0.35,
+      "n_vertices": 4,
+      "name": "nano",
+      "output_width": 4,
+      "rotation_limit": 1.0,
+      "seed": 42,
+      "state_norm_bound": 10000.0,
+      "tau_max": 64.0,
+      "tau_min": 0.05
+    },
+    "format": "dcss-cdi-stage-c-transition-manifest-v1",
+    "gate_bounds": {
+      "geometry_gate": [
+        0.0,
+        1.0
+      ],
+      "input_gate": [
+        0.0,
+        1.0
+      ],
+      "log_timescale_offset": [
+        -0.35,
+        0.35
+      ],
+      "transport_gate": [
+        0.0,
+        1.0
+      ]
+    },
+    "generator_parameterization": "exact diagonal dissipation plus pairwise skew rotation",
+    "integrator": "exact block exponential",
+    "manifest_fingerprint": "50a8eab6e91a5f0f037179e3eb38beaab29f40860c25bdf48ab8852c2894ad28",
+    "parameter_inventory": {
+      "entries": [
+        {
+          "count": 48,
+          "name": "learned_initial_state",
+          "requires_grad": true,
+          "shape": [
+            3,
+            4,
+            4
+          ]
+        },
+        {
+          "count": 5,
+          "name": "geometry.edge_log_weights",
+          "requires_grad": true,
+          "shape": [
+            5
+          ]
+        },
+        {
+          "count": 16,
+          "name": "bands.fast.gate.forcing_projection.weight",
+          "requires_grad": true,
+          "shape": [
+            4,
+            4
+          ]
+        },
+        {
+          "count": 4,
+          "name": "bands.fast.gate.forcing_projection.bias",
+          "requires_grad": true,
+          "shape": [
+            4
+          ]
+        },
+        {
+          "count": 8,
+          "name": "bands.fast.gate.input_gate_projection.weight",
+          "requires_grad": true,
+          "shape": [
+            2,
+            4
+          ]
+        },
+        {
+          "count": 2,
+          "name": "bands.fast.gate.input_gate_projection.bias",
+          "requires_grad": true,
+          "shape": [
+            2
+          ]
+        },
+        {
+          "count": 8,
+          "name": "bands.fast.gate.transport_projection.weight",
+          "requires_grad": true,
+          "shape": [
+            2,
+            4
+          ]
+        },
+        {
+          "count": 2,
+          "name": "bands.fast.gate.transport_projection.bias",
+          "requires_grad": true,
+          "shape": [
+            2
+          ]
+        },
+        {
+          "count": 16,
+          "name": "bands.fast.gate.timescale_projection.weight",
+          "requires_grad": true,
+          "shape": [
+            4,
+            4
+          ]
+        },
+        {
+          "count": 4,
+          "name": "bands.fast.gate.timescale_projection.bias",
+          "requires_grad": true,
+          "shape": [
+            4
+          ]
+        },
+        {
+          "count": 4,
+          "name": "bands.fast.gate.geometry_projection.weight",
+          "requires_grad": true,
+          "shape": [
+            1,
+            4
+          ]
+        },
+        {
+          "count": 1,
+          "name": "bands.fast.gate.geometry_projection.bias",
+          "requires_grad": true,
+          "shape": [
+            1
+          ]
+        },
+        {
+          "count": 4,
+          "name": "bands.fast.generator.log_tau_base",
+          "requires_grad": true,
+          "shape": [
+            4
+          ]
+        },
+        {
+          "count": 2,
+          "name": "bands.fast.generator.rotation_bias",
+          "requires_grad": true,
+          "shape": [
+            2
+          ]
+        },
+        {
+          "count": 16,
+          "name": "bands.fast.generator.input_injection",
+          "requires_grad": true,
+          "shape": [
+            4,
+            4
+          ]
+        },
+        {
+          "count": 16,
+          "name": "bands.middle.gate.forcing_projection.weight",
+          "requires_grad": true,
+          "shape": [
+            4,
+            4
+          ]
+        },
+        {
+          "count": 4,
+          "name": "bands.middle.gate.forcing_projection.bias",
+          "requires_grad": true,
+          "shape": [
+            4
+          ]
+        },
+        {
+          "count": 8,
+          "name": "bands.middle.gate.input_gate_projection.weight",
+          "requires_grad": true,
+          "shape": [
+            2,
+            4
+          ]
+        },
+        {
+          "count": 2,
+          "name": "bands.middle.gate.input_gate_projection.bias",
+          "requires_grad": true,
+          "shape": [
+            2
+          ]
+        },
+        {
+          "count": 8,
+          "name": "bands.middle.gate.transport_projection.weight",
+          "requires_grad": true,
+          "shape": [
+            2,
+            4
+          ]
+        },
+        {
+          "count": 2,
+          "name": "bands.middle.gate.transport_projection.bias",
+          "requires_grad": true,
+          "shape": [
+            2
+          ]
+        },
+        {
+          "count": 16,
+          "name": "bands.middle.gate.timescale_projection.weight",
+          "requires_grad": true,
+          "shape": [
+            4,
+            4
+          ]
+        },
+        {
+          "count": 4,
+          "name": "bands.middle.gate.timescale_projection.bias",
+          "requires_grad": true,
+          "shape": [
+            4
+          ]
+        },
+        {
+          "count": 4,
+          "name": "bands.middle.gate.geometry_projection.weight",
+          "requires_grad": true,
+          "shape": [
+            1,
+            4
+          ]
+        },
+        {
+          "count": 1,
+          "name": "bands.middle.gate.geometry_projection.bias",
+          "requires_grad": true,
+          "shape": [
+            1
+          ]
+        },
+        {
+          "count": 4,
+          "name": "bands.middle.generator.log_tau_base",
+          "requires_grad": true,
+          "shape": [
+            4
+          ]
+        },
+        {
+          "count": 2,
+          "name": "bands.middle.generator.rotation_bias",
+          "requires_grad": true,
+          "shape": [
+            2
+          ]
+        },
+        {
+          "count": 16,
+          "name": "bands.middle.generator.input_injection",
+          "requires_grad": true,
+          "shape": [
+            4,
+            4
+          ]
+        },
+        {
+          "count": 16,
+          "name": "bands.harmonic.gate.forcing_projection.weight",
+          "requires_grad": true,
+          "shape": [
+            4,
+            4
+          ]
+        },
+        {
+          "count": 4,
+          "name": "bands.harmonic.gate.forcing_projection.bias",
+          "requires_grad": true,
+          "shape": [
+            4
+          ]
+        },
+        {
+          "count": 8,
+          "name": "bands.harmonic.gate.input_gate_projection.weight",
+          "requires_grad": true,
+          "shape": [
+            2,
+            4
+          ]
+        },
+        {
+          "count": 2,
+          "name": "bands.harmonic.gate.input_gate_projection.bias",
+          "requires_grad": true,
+          "shape": [
+            2
+          ]
+        },
+        {
+          "count": 8,
+          "name": "bands.harmonic.gate.transport_projection.weight",
+          "requires_grad": true,
+          "shape": [
+            2,
+            4
+          ]
+        },
+        {
+          "count": 2,
+          "name": "bands.harmonic.gate.transport_projection.bias",
+          "requires_grad": true,
+          "shape": [
+            2
+          ]
+        },
+        {
+          "count": 16,
+          "name": "bands.harmonic.gate.timescale_projection.weight",
+          "requires_grad": true,
+          "shape": [
+            4,
+            4
+          ]
+        },
+        {
+          "count": 4,
+          "name": "bands.harmonic.gate.timescale_projection.bias",
+          "requires_grad": true,
+          "shape": [
+            4
+          ]
+        },
+        {
+          "count": 4,
+          "name": "bands.harmonic.gate.geometry_projection.weight",
+          "requires_grad": true,
+          "shape": [
+            1,
+            4
+          ]
+        },
+        {
+          "count": 1,
+          "name": "bands.harmonic.gate.geometry_projection.bias",
+          "requires_grad": true,
+          "shape": [
+            1
+          ]
+        },
+        {
+          "count": 4,
+          "name": "bands.harmonic.generator.log_tau_base",
+          "requires_grad": true,
+          "shape": [
+            4
+          ]
+        },
+        {
+          "count": 2,
+          "name": "bands.harmonic.generator.rotation_bias",
+          "requires_grad": true,
+          "shape": [
+            2
+          ]
+        },
+        {
+          "count": 16,
+          "name": "bands.harmonic.generator.input_injection",
+          "requires_grad": true,
+          "shape": [
+            4,
+            4
+          ]
+        },
+        {
+          "count": 48,
+          "name": "readout.weight",
+          "requires_grad": true,
+          "shape": [
+            4,
+            12
+          ]
+        },
+        {
+          "count": 4,
+          "name": "readout.bias",
+          "requires_grad": true,
+          "shape": [
+            4
+          ]
+        }
+      ],
+      "geometry": {
+        "factorization": "S_transpose @ diag(softplus(edge_log_weights)) @ S",
+        "forbidden_operations": [
+          "torch.kron",
+          "dense_full_state_operator"
+        ],
+        "full_state_dim": 16,
+        "full_state_square": 256,
+        "geometry_ablation": false,
+        "learnable_parameters": [
+          "edge_log_weights"
+        ],
+        "operator": "MatrixFreeLaplacian",
+        "sparse_nnz": 10
+      },
+      "state_layout": "CohomodynamicState(fast, middle, harmonic), each (..., vertices, width)",
+      "total_parameters": 366
+    },
+    "stage_d_implementation_allowed": false,
+    "state_elements": 48,
+    "state_layout": "CohomodynamicState(fast, middle, harmonic), each (..., n_vertices, band_width)",
+    "timescale_ranges": {
+      "fast": [
+        0.25,
+        1.0
+      ],
+      "harmonic": [
+        16.0,
+        64.0
+      ],
+      "middle": [
+        2.0,
+        8.0
+      ]
+    },
+    "tolerances": {
+      "causality": 1e-06,
+      "serialization": 1e-06,
+      "step_chunk": 1e-05
+    },
+    "topology_fingerprint": "84080201a65516f8985d3201e78492f1ce45ef30af7f6aa735d7c10a4398c98d"
+  }
+}
