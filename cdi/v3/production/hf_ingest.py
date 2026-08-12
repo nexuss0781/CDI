@@ -1,6 +1,7 @@
-"""Production Hugging Face dataset ingestion and governed manifest builder for DCSS-CDI."""
+"""Production Hugging Face dataset ingestion with HF_TOKEN support and canonical Hub paths."""
 from __future__ import annotations
 
+import os
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -9,15 +10,24 @@ import sys
 
 from datasets import load_dataset
 import requests
+from huggingface_hub import login
 
 from .data import DataManifest, GovernedDocument, P2DataPolicy
 
 
 def ingest_wikitext_and_sciq(output_dir: str | Path = "data/production") -> Dict[str, Path]:
-    """Download WikiText-103 and SciQ from Hugging Face with canonical paths."""
+    """Download WikiText-103 and SciQ from Hugging Face using canonical IDs and tokens."""
     out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
     
+    token = os.environ.get("HF_TOKEN")
+    if token:
+        print("[INFO] Authenticating with Hugging Face Hub using HF_TOKEN...")
+        try:
+            login(token=token)
+        except Exception as e:
+            print(f"[WARNING] HF Login failed: {e}")
+
     print("Verifying Hugging Face Hub connectivity...")
     try:
         r = requests.get("https://huggingface.co", timeout=10)
@@ -25,33 +35,41 @@ def ingest_wikitext_and_sciq(output_dir: str | Path = "data/production") -> Dict
     except Exception as e:
         print(f"WARNING: Cannot reach huggingface.co: {e}")
 
-    print("Attempting to load real datasets from Hugging Face...")
+    print("Attempting to load real datasets from Hugging Face Hub...")
     
-    # Strategy: Try canonical names first, then specific versions
     wikitext = None
     sciq = None
     errors = []
 
-    # 1. Try WikiText-103
-    for name, config in [("wikitext", "wikitext-103-raw-v1"), ("wikitext", "wikitext-103-v1")]:
-        try:
-            print(f"Trying load_dataset('{name}', '{config}')...")
-            wikitext = load_dataset(name, config)
-            if wikitext: break
-        except Exception as e:
-            errors.append(f"Wikitext ({name}/{config}) failed: {e}")
-
-    # 2. Try SciQ
+    # 1. Load WikiText-103 using full canonical ID
+    # This is the most reliable path on the current Hub
     try:
-        print("Trying load_dataset('sciq')...")
-        sciq = load_dataset("sciq")
+        print("Loading Salesforce/wikitext (wikitext-103-raw-v1)...")
+        wikitext = load_dataset("Salesforce/wikitext", "wikitext-103-raw-v1", token=token, trust_remote_code=True)
     except Exception as e:
-        errors.append(f"SciQ failed: {e}")
+        errors.append(f"Primary wikitext load failed: {e}")
+        try:
+            print("Retrying wikitext with legacy ID...")
+            wikitext = load_dataset("wikitext", "wikitext-103-raw-v1", token=token)
+        except Exception as e2:
+            errors.append(f"Legacy wikitext load failed: {e2}")
+
+    # 2. Load SciQ using full canonical ID
+    try:
+        print("Loading allenai/sciq...")
+        sciq = load_dataset("allenai/sciq", token=token, trust_remote_code=True)
+    except Exception as e:
+        errors.append(f"Primary sciq load failed: {e}")
+        try:
+            print("Retrying sciq with legacy ID...")
+            sciq = load_dataset("sciq", token=token)
+        except Exception as e2:
+            errors.append(f"Legacy sciq load failed: {e2}")
 
     if not wikitext or not sciq:
         print("\n".join(errors))
-        print("CRITICAL: Real datasets could not be loaded. To prevent silent failure, the pipeline will now exit.")
-        print("Please check your internet connection or Hugging Face Hub status.")
+        print("CRITICAL: Could not load real datasets from Hugging Face.")
+        print("Please verify your HF_TOKEN and internet connection.")
         sys.exit(1)
 
     print("Ingesting WikiText-103 documents...")
@@ -60,7 +78,7 @@ def ingest_wikitext_and_sciq(output_dir: str | Path = "data/production") -> Dict
         text = item["text"].strip()
         if len(text) > 50:
             doc_id = f"wt-train-{idx:06d}"
-            train_docs.append(GovernedDocument(doc_id, text, "hf://wikitext", "CC-BY-SA-4.0", "retained_for_pretraining", data_class="rights_cleared_pilot", pii_review="reviewed_no_pii"))
+            train_docs.append(GovernedDocument(doc_id, text, "hf://Salesforce/wikitext", "CC-BY-SA-4.0", "retained_for_pretraining", data_class="rights_cleared_pilot", pii_review="reviewed_no_pii"))
             if len(train_docs) >= 5000: break
                 
     val_docs: List[GovernedDocument] = []
@@ -68,7 +86,7 @@ def ingest_wikitext_and_sciq(output_dir: str | Path = "data/production") -> Dict
         text = item["text"].strip()
         if len(text) > 50:
             doc_id = f"wt-val-{idx:06d}"
-            val_docs.append(GovernedDocument(doc_id, text, "hf://wikitext", "CC-BY-SA-4.0", "retained_for_validation", data_class="rights_cleared_pilot", pii_review="reviewed_no_pii"))
+            val_docs.append(GovernedDocument(doc_id, text, "hf://Salesforce/wikitext", "CC-BY-SA-4.0", "retained_for_validation", data_class="rights_cleared_pilot", pii_review="reviewed_no_pii"))
             if len(val_docs) >= 500: break
 
     print("Ingesting SciQ documents...")
@@ -78,7 +96,7 @@ def ingest_wikitext_and_sciq(output_dir: str | Path = "data/production") -> Dict
         a = item["correct_answer"].strip()
         text = f"Q: {q} A: {a}"
         doc_id = f"sciq-train-{idx:06d}"
-        finetune_docs.append(GovernedDocument(doc_id, text, "hf://sciq", "MIT", "retained_for_finetuning", data_class="rights_cleared_pilot", pii_review="reviewed_no_pii"))
+        finetune_docs.append(GovernedDocument(doc_id, text, "hf://allenai/sciq", "MIT", "retained_for_finetuning", data_class="rights_cleared_pilot", pii_review="reviewed_no_pii"))
         if len(finetune_docs) >= 2000: break
 
     all_docs = train_docs + val_docs + finetune_docs
