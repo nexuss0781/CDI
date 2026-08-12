@@ -14,6 +14,7 @@ from .tokenizer import CDITokenizer, CharacterTokenizer, EncodedText, TokenizerC
 from .language_model import DCSSLanguageModel, LegacyCDIV2Adapter, LossReport, TinyTransformerBaseline
 from .ablations import ExplicitEulerIntegrator, UngatedSelectiveGate, apply_stage_e_ablation
 from .stage_e import MATRIX, MatrixDefinition, build_matrix_model, matrix_manifest
+from .capabilities import AuditTrail, CapabilityOrchestrator, EpisodicMemory, Executor, MemoryRecord, Plan, PlanAction, Planner, Retriever, ToolDefinition, ToolRegistry, Verifier
 from .training import LocalSyntheticCorpus, StageDConfig, build_model, checkpoint_payload, evaluate, optimizer_for, restore_checkpoint, train_steps
 from .ssm import (
     BAND_NAMES,
@@ -64,6 +65,18 @@ __all__ = [
     "MatrixDefinition",
     "build_matrix_model",
     "matrix_manifest",
+    "AuditTrail",
+    "CapabilityOrchestrator",
+    "EpisodicMemory",
+    "Executor",
+    "MemoryRecord",
+    "Plan",
+    "PlanAction",
+    "Planner",
+    "Retriever",
+    "ToolDefinition",
+    "ToolRegistry",
+    "Verifier",
     "LocalSyntheticCorpus",
     "StageDConfig",
     "build_model",
