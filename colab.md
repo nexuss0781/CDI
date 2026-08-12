@@ -96,7 +96,30 @@ This stage verifies that the existing result is not specific to one machine. It 
 
 Use the complete deduplicated Synaxarium corpus only after Stage 1 passes. This tests whether CDI retains its quality signal when it sees substantially more document variation. It is still an **in-domain Amharic pilot**, not evidence of English general language modeling.
 
-The harness should be extended before this run to use every unique document and report total tokenizer tokens. The run should begin at a modest scale ladder: 3,000 steps, then 10,000 steps, each with three seeds. The Transformer and GRU receive the same data order, total causal token positions, tokenizer, context length, precision, and optimizer family.
+The Stage 2 harness now uses all **321 unique** documents available after removing 45 exact duplicate-content records from the 366-row source. It supports deterministic per-epoch batch shuffling and complete held-out evaluation, so it no longer repeatedly trains on the first small set of batches or evaluates a short held-out prefix. The Transformer and GRU receive the same shuffled data order, total causal token positions, tokenizer, context length, precision, and optimizer family for each seed.
+
+### Stage 2A — CPU-safe full-corpus diagnostic
+
+Run this exact command first. It is a bounded three-seed, full-corpus diagnostic at 1,000 steps; it is **not** the final scaling claim. It will take longer than Stage 1 because it evaluates every validation and test batch.
+
+```bash
+%cd /content/CDI
+!git pull --ff-only origin feat/ethiobbpe-tokenizer
+!PYTHONPATH=. python benchmarks/ethiobbpe_synaxarium_pilot.py \\
+  --steps 1000 \\
+  --document-limit 321 \\
+  --chunks-per-document 32 \\
+  --chunk-length 16 \\
+  --batch-size 2 \\
+  --eval-batches 0 \\
+  --shuffle-training-batches \\
+  --learning-rate 0.01 \\
+  --relative-loss-tolerance 0.05 \\
+  --output-dir results/colab_stage2a_full_corpus
+!cat results/colab_stage2a_full_corpus/REPORT.md
+```
+
+Do not begin Stage 2B (3,000 steps) until Stage 2A is reviewed. Send the full `REPORT.md` and `latest.json`; the required result fields now include `deterministic_per_epoch_shuffle` and `all_held_out_batches`.
 
 | Stage 2 measurement | Required report |
 |---|---|
