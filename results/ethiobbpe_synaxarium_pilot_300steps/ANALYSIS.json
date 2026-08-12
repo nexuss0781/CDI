@@ -1,0 +1,80 @@
+{
+  "code_revision": "2a27165c007aa6df8620215b8680eddf8fd7f990",
+  "comparison": {
+    "best_baseline": "transformer",
+    "best_baseline_upper_bound_from_seed_std": 7.079341035704711,
+    "dcss_lower_bound_from_seed_std": 7.140404266307955,
+    "dcss_relative_validation_loss_gap": 0.016918609960728137,
+    "interpretation": "DCSS learned under every seed and fell inside the predeclared 10% validation-loss tolerance, but it did not win the pilot: both baselines had lower mean validation loss and much higher throughput."
+  },
+  "format": "dcss-cdi-ethiobbpe-synaxarium-pilot-analysis-v1",
+  "models": {
+    "dcss_cdi": {
+      "mean_elapsed_seconds": 31.464075638665236,
+      "seeds": [
+        11,
+        29,
+        47
+      ],
+      "test_loss_mean": 6.785944163799286,
+      "test_loss_sample_std": 0.027882014983377165,
+      "test_losses": [
+        6.788514455159505,
+        6.81245203812917,
+        6.756865998109181
+      ],
+      "validation_loss_mean": 7.169993850919935,
+      "validation_loss_sample_std": 0.02958958461197939,
+      "validation_losses": [
+        7.178156733512878,
+        7.194645126660665,
+        7.137179692586263
+      ]
+    },
+    "gru_baseline": {
+      "mean_elapsed_seconds": 3.7472828123354702,
+      "seeds": [
+        11,
+        29,
+        47
+      ],
+      "test_loss_mean": 6.875196642345853,
+      "test_loss_sample_std": 0.10275718453601776,
+      "test_losses": [
+        6.9935076634089155,
+        6.823845982551575,
+        6.808236281077067
+      ],
+      "validation_loss_mean": 7.192303922441271,
+      "validation_loss_sample_std": 0.05601470656792503,
+      "validation_losses": [
+        7.256970365842183,
+        7.158814986546834,
+        7.161126414934794
+      ]
+    },
+    "transformer": {
+      "mean_elapsed_seconds": 2.0394242826660047,
+      "seeds": [
+        11,
+        29,
+        47
+      ],
+      "test_loss_mean": 6.668926729096307,
+      "test_loss_sample_std": 0.030430510228484583,
+      "test_losses": [
+        6.639028827349345,
+        6.667888104915619,
+        6.699863255023956
+      ],
+      "validation_loss_mean": 7.050705711046855,
+      "validation_loss_sample_std": 0.02863532465785543,
+      "validation_losses": [
+        7.033417006333669,
+        7.0349408984184265,
+        7.083759228388469
+      ]
+    }
+  },
+  "report_fingerprint": "0335b351651ef06f65a9ed6e8a6265aa53bf7cf0f65faf796338937ddf4f369a"
+}

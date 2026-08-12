@@ -17,7 +17,7 @@ else
 fi
 
 echo "[1/4] Installing/Updating dependencies..."
-pip install --upgrade datasets huggingface_hub pytest
+python3 -m pip install --upgrade -r requirements.txt
 # Ensure torch is installed with CUDA support if not present
 python3 -c "import torch; print(f'Torch version: {torch.__version__}, CUDA: {torch.cuda.is_available()}')" || pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 

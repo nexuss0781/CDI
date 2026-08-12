@@ -9,7 +9,7 @@ from torch import nn
 from .ablations import apply_stage_e_ablation
 from .language_model import DCSSLanguageModel
 from .ssm import StageCConfig
-from .tokenizer import CharacterTokenizer
+from .tokenizer import EthioBBPETokenizer
 from .training import StageDConfig, build_model
 
 
@@ -37,7 +37,7 @@ MATRIX: Dict[str, MatrixDefinition] = {
 }
 
 
-def build_matrix_model(identifier: MatrixID | str, tokenizer: CharacterTokenizer, training_config: StageDConfig) -> nn.Module:
+def build_matrix_model(identifier: MatrixID | str, tokenizer: EthioBBPETokenizer, training_config: StageDConfig) -> nn.Module:
     """Build a single Stage E matrix member from frozen Stage D hyperparameters."""
     identifier = str(identifier)
     if identifier not in MATRIX:
@@ -60,7 +60,7 @@ def build_matrix_model(identifier: MatrixID | str, tokenizer: CharacterTokenizer
     return model
 
 
-def matrix_manifest(identifier: MatrixID | str, tokenizer: CharacterTokenizer, training_config: StageDConfig) -> Dict[str, Any]:
+def matrix_manifest(identifier: MatrixID | str, tokenizer: EthioBBPETokenizer, training_config: StageDConfig) -> Dict[str, Any]:
     definition = MATRIX[str(identifier)]
     return {
         "format": "dcss-cdi-stage-e-model-manifest-v1",

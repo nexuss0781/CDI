@@ -438,6 +438,10 @@ class CDIEngine:
         # nonzero float32 point-cloud gradient because opposite edge
         # contributions partially cancel. Treat that as active, not severed.
         point_tol = 1e-14
+        # With the 16,000-token EthioBBPE tied output, the observation
+        # injection can receive a small but finite gradient at initialization.
+        # Its magnitude is a real signal, not a disconnected graph.
+        projection_tol = 1e-12
 
         def _has_grad(p: torch.Tensor, threshold: float = tol) -> bool:
             return p.grad is not None and p.grad.abs().max().item() > threshold
@@ -446,7 +450,7 @@ class CDIEngine:
             "manifold.points":  _has_grad(self.manifold.points, point_tol),
             "manifold.metric_L": _has_grad(self.manifold.metric_L),
             "theta_init":       _has_grad(self.theta_init),
-            "W_iota":           _has_grad(self.W_iota),
+            "W_iota":           _has_grad(self.W_iota, projection_tol),
             "W_out":            _has_grad(self.W_out),
             "sheaf.embedding":  _has_grad(self.sheaf.embedding_matrix),
             "sheaf.output":     _has_grad(self.sheaf.output_matrix),
