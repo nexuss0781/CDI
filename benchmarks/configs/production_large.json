@@ -1,0 +1,23 @@
+{
+  "format": "dcss-cdi-production-large-config-v1",
+  "phase": "Production",
+  "run_name": "gpu-large-corpus-training",
+  "seed": 42,
+  "device": "cuda",
+  "dtype": "float32",
+  "training_mode": "rights_cleared_large_corpus",
+  "max_steps": 200,
+  "checkpoint_interval": 50,
+  "data_policy": {
+    "allowed_data_classes": ["synthetic", "rights_cleared_pilot"],
+    "real_corpus_training_authorized": true,
+    "rights_cleared_pilot_admitted": true
+  },
+  "release_boundary": {
+    "status": "production_pilot",
+    "fine_tuning_authorized": true,
+    "deployment_authorized": false,
+    "external_side_effects_enabled": false,
+    "capability_tools_enabled": false
+  }
+}
