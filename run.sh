@@ -5,6 +5,9 @@ echo "=================================================="
 echo "DCSS-CDI Production GPU Training & Evaluation Runner"
 echo "=================================================="
 
+# Ensure the root directory is in the Python path
+export PYTHONPATH=$PYTHONPATH:.
+
 # Check for HF_TOKEN
 if [ -n "$HF_TOKEN" ]; then
     echo "[INFO] HF_TOKEN detected in environment."
@@ -23,8 +26,8 @@ find cdi/v3 -name "*.py" -exec python3 -m py_compile {} +
 pytest -q
 
 echo "[3/4] Launching GPU training & fine-tuning pipeline..."
-# Explicitly pass the production config
-python3 cdi/v3/production/train_production.py --config benchmarks/configs/production_large.json
+# Run as a module to ensure correct package resolution
+python3 -m cdi.v3.production.train_production --config benchmarks/configs/production_large.json
 
 echo "[4/4] Finalizing results..."
 if [ -f "results/production/production_report.json" ]; then
