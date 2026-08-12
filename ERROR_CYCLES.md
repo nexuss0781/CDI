@@ -17,3 +17,7 @@ Final validation passed after the migration: the complete `pytest -q` suite pass
 ## Real Synaxarium pilot duplicate-content rejection
 
 The first full 60-document pilot build failed before training because the governed data manifest correctly detected duplicate Synaxarium text (`synaxarium-ሕዳር-19` matched `synaxarium-ሕዳር-14`). The pilot loader now computes a SHA-256 content hash before selection, retains only the first stable unique document, and then constructs the 70/15/15 document-level splits. This preserves the manifest’s no-duplicate and no-leakage contract rather than weakening it.
+
+## Pilot-artifact archive filename correction
+
+The first artifact-archiving command used the same misspelled destination filename as the source, so the shell correctly refused the no-op move. The archived verdict is being renamed to `ETHIOBBPE_SYNXARIUM_PILOT_VERDICT.md` before the evidence commit.
