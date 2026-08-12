@@ -16,7 +16,7 @@ from .ablations import ExplicitEulerIntegrator, UngatedSelectiveGate, apply_stag
 from .stage_e import MATRIX, MatrixDefinition, build_matrix_model, matrix_manifest
 from .capabilities import AuditTrail, CapabilityOrchestrator, EpisodicMemory, Executor, MemoryRecord, Plan, PlanAction, Planner, Retriever, ToolDefinition, ToolRegistry, Verifier
 from .training import LocalSyntheticCorpus, StageDConfig, build_model, checkpoint_payload, evaluate, optimizer_for, parameter_fingerprint, restore_checkpoint, train_steps
-from .production import ArtifactLineage, DataManifest, EnvironmentLineage, EvaluationCard, EvaluationEvidence, GovernedDocument, P1DataPolicy, P2DataPolicy, ProductionRunConfig, ReleaseBoundary, assert_core_optionality, build_envelope, evaluate_causal_offline, load_verified, save_atomic
+from .production import ArtifactLineage, DataManifest, EnvironmentLineage, EvaluationCard, EvaluationEvidence, GovernedDocument, P1DataPolicy, P2DataPolicy, ProductionRunConfig, ReleaseBoundary, assert_core_optionality, build_envelope, evaluate_causal_offline, load_verified, save_atomic, DCSSInferenceEngine, interactive_chat
 from .ssm import (
     BAND_NAMES,
     CayleyIntegrator,
@@ -102,4 +102,6 @@ __all__ = [
     "evaluate_causal_offline",
     "load_verified",
     "save_atomic",
+    "DCSSInferenceEngine",
+    "interactive_chat",
 ]
