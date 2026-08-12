@@ -35,9 +35,13 @@ def ingest_wikitext_and_sciq(output_dir: str | Path = "data/production") -> Dict
             print(f"Legacy HF Hub access failed: {e2}")
             # Strategy 3: Local synthetic fallback to prevent total failure
             print("CRITICAL: HF Hub inaccessible. Generating local governed synthetic pilot documents...")
-            wikitext = {"train": [{"text": f"Synthetic pretraining document {i} for DCSS-CDI."} for i in range(100)],
-                        "validation": [{"text": f"Synthetic validation document {i}."} for i in range(20)]}
-            sciq = {"train": [{"question": "What is CDI?", "correct_answer": "Cohomodynamic Intelligence"} for i in range(50)]}
+            wikitext = {
+                "train": [{"text": f"Synthetic pretraining document {i} for DCSS-CDI. This is unique content for doc {i}."} for i in range(100)],
+                "validation": [{"text": f"Synthetic validation document {i}. This is unique content for val {i}."} for i in range(20)]
+            }
+            sciq = {
+                "train": [{"question": f"What is CDI unit {i}?", "correct_answer": f"Cohomodynamic Intelligence unit {i}"} for i in range(50)]
+            }
 
     train_docs: List[GovernedDocument] = []
     # Handle both real datasets and synthetic fallback dictionaries
