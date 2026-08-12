@@ -344,7 +344,7 @@ def _main() -> None:
         top_p=args.top_p,
         seed=args.seed,
     )
-    print(engine.generate(args.prompt, config))
+    print(engine.complete(args.prompt, config))
 
 
 if __name__ == "__main__":

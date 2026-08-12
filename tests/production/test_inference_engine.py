@@ -73,6 +73,14 @@ def test_verified_checkpoint_loads_and_greedy_generation_is_deterministic(tmp_pa
     assert engine.metadata.device == "cpu"
 
 
+def test_complete_excludes_the_supplied_prompt(tmp_path: Path) -> None:
+    engine = DCSSInferenceEngine(_checkpoint(tmp_path), device="cpu")
+    prompt = "alpha"
+    config = GenerationConfig(max_new_tokens=4, mode="greedy")
+    full_sequence = engine.generate(prompt, config)
+    assert engine.complete(prompt, config) == full_sequence[len(engine.tokenizer.normalize(prompt)):]
+
+
 def test_shape_derived_restoration_supports_valid_nondefault_nano_checkpoint(tmp_path: Path) -> None:
     engine = DCSSInferenceEngine(_checkpoint(tmp_path, embedding_dim=16, n_vertices=3, band_width=2), device="cpu")
     assert engine.stage_c_config.input_width == 16
