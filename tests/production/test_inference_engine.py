@@ -9,7 +9,7 @@ import torch
 
 from cdi.v3 import (
     ArtifactLineage,
-    CharacterTokenizer,
+    EthioBBPETokenizer,
     DCSSInferenceEngine,
     DCSSLanguageModel,
     GenerationConfig,
@@ -28,9 +28,8 @@ from cdi.v3 import (
 
 def _checkpoint(tmp_path: Path, *, embedding_dim: int = 4, n_vertices: int = 4, band_width: int = 4) -> Path:
     texts = ("alpha beta gamma", "delta epsilon zeta", "cohomodynamic language model")
-    tokenizer = CharacterTokenizer.from_texts(
-        texts,
-        TokenizerConfig(max_chunk_length=8, embedding_dim=embedding_dim),
+    tokenizer = EthioBBPETokenizer.from_pretrained(
+        TokenizerConfig(max_chunk_length=8, embedding_dim=embedding_dim)
     )
     stage_d = StageDConfig.nano(seed=17)
     stage_c = replace(

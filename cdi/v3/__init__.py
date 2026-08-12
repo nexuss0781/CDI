@@ -10,7 +10,7 @@ from .incidence import SparseIncidence
 from .laplacian import MatrixFreeLaplacian
 from .reference import DenseReferenceOperators
 from .topology import SparseTopology
-from .tokenizer import CDITokenizer, CharacterTokenizer, EncodedText, TokenizerConfig
+from .tokenizer import CDITokenizer, CharacterTokenizer, EncodedText, EthioBBPETokenizer, TokenizerConfig
 from .language_model import DCSSLanguageModel, LegacyCDIV2Adapter, LossReport, TinyTransformerBaseline
 from .ablations import ExplicitEulerIntegrator, UngatedSelectiveGate, apply_stage_e_ablation
 from .stage_e import MATRIX, MatrixDefinition, build_matrix_model, matrix_manifest
@@ -57,6 +57,7 @@ __all__ = [
     "StableGenerator",
     "StateCodec",
     "CDITokenizer",
+    "EthioBBPETokenizer",
     "CharacterTokenizer",
     "EncodedText",
     "TokenizerConfig",

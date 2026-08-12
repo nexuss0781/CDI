@@ -185,6 +185,9 @@ def phase_fixes() -> Tuple[bool, List]:
     D_before = engine.dirac.matrix.data.clone()
     L_before = engine.laplacian.matrix.data.clone()
     opt2 = torch.optim.Adam(engine.get_parameters() + [emb], lr=1e-2)
+    # The previous gradient check consumed the graph captured by the live
+    # operator matrices; rebuild before constructing this independent step.
+    engine.rebuild_operators()
     out3 = engine.forward_sequence_batch(batch)
     loss2, _ = engine.compute_lm_loss(out3, target, emb)
     opt2.zero_grad(); loss2.backward(); opt2.step()
@@ -229,22 +232,23 @@ def phase_integration() -> Tuple[bool, List]:
         print(f"  {C.R}✗{C.E}  Import failed: {e}")
         return False, [(None, str(e))]
 
-    # Check for HuggingFace tokenizer (gpt2) — required by CDITokenizer
+    # Verify the exact published EthioBBPE tokenizer required by CDI.
     try:
-        from transformers import AutoTokenizer
-        AutoTokenizer.from_pretrained("gpt2")
-        print(f"  {C.G}✓{C.E}  transformers / gpt2 tokenizer available")
+        from ethiobbpe import EthioBBPETokenizer
+        ethio = EthioBBPETokenizer.from_pretrained()
+        assert ethio.get_vocab_size() > 0
+        print(f"  {C.G}✓{C.E}  EthioBBPE tokenizer available (vocab={ethio.get_vocab_size():,})")
     except Exception as e:
-        print(f"  {C.Y}⚠{C.E}  gpt2 tokenizer unavailable — skipping integration ({e})")
-        return True, []   # soft skip, not a hard failure
+        print(f"  {C.R}✗{C.E}  EthioBBPE tokenizer unavailable ({e})")
+        return False, [("ethiobbpe", str(e))]
 
     passed = failed = 0
     cfg = CDIConfig.tiny()
     engine = CDIEngine(cfg)
     engine.build()
 
-    tokenizer = CDITokenizer("gpt2", embed_dim=cfg.observation_dim,
-                             max_len=cfg.n_points)
+    tokenizer = CDITokenizer(embed_dim=cfg.observation_dim, max_len=cfg.n_points,
+                             dtype=cfg.dtype)
     all_params = engine.get_parameters() + tokenizer.get_parameters()
     optimizer = torch.optim.Adam(all_params, lr=1e-3)
 
@@ -281,10 +285,7 @@ def phase_integration() -> Tuple[bool, List]:
         if output is None or ids is None: raise RuntimeError("skipped")
         tgt = ids.unsqueeze(0)
         loss, ld = engine.compute_lm_loss(
-            output, tgt, tokenizer.hf_tokenizer and
-            tokenizer.embedding_layer.weight
-            if hasattr(tokenizer, "embedding_layer")
-            else tokenizer.get_parameters()[0],
+            output, tgt,             tokenizer.embedding,
         )
         assert torch.isfinite(loss)
         print(f"  {C.G}✓{C.E}  compute_lm_loss  CE={ld['ce']:.4f}  "

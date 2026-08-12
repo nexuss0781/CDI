@@ -10,7 +10,7 @@ import torch
 
 from cdi.v3 import (
     ArtifactLineage,
-    CharacterTokenizer,
+    EthioBBPETokenizer,
     DCSSLanguageModel,
     EvaluationCard,
     EvaluationEvidence,
@@ -77,7 +77,7 @@ def run_production_pipeline(
         for line in f:
             texts.append(json.loads(line)["text"])
     
-    tokenizer = CharacterTokenizer.from_texts(texts, tokenizer_config)
+    tokenizer = EthioBBPETokenizer.from_pretrained(tokenizer_config)
     
     # Scale Stage C config for production
     stage_c = StageCConfig.nano(seed=run_config.seed)

@@ -9,7 +9,7 @@ from torch import nn
 import torch.nn.functional as F
 
 from .ssm import CohomodynamicState, SelectiveCohomodynamicSSM, StageCConfig
-from .tokenizer import CharacterTokenizer
+from .tokenizer import EthioBBPETokenizer
 
 
 @dataclass(frozen=True)
@@ -29,7 +29,7 @@ class DCSSLanguageModel(nn.Module):
     position ``t`` are trained against token ``t+1``.
     """
 
-    def __init__(self, tokenizer: CharacterTokenizer, config: StageCConfig | None = None) -> None:
+    def __init__(self, tokenizer: EthioBBPETokenizer, config: StageCConfig | None = None) -> None:
         super().__init__()
         self.tokenizer = tokenizer
         self.config = config or StageCConfig.nano()
@@ -165,7 +165,7 @@ class LegacyCDIV2Adapter(nn.Module):
     family, and evaluation code with the DCSS model.
     """
 
-    def __init__(self, tokenizer: CharacterTokenizer, width: int = 4, dtype: torch.dtype = torch.float32) -> None:
+    def __init__(self, tokenizer: EthioBBPETokenizer, width: int = 4, dtype: torch.dtype = torch.float32) -> None:
         super().__init__()
         self.tokenizer = tokenizer
         self.embedding = nn.Embedding(tokenizer.vocab_size, width, padding_idx=tokenizer.pad_id, dtype=dtype)
@@ -207,7 +207,7 @@ class LegacyCDIV2Adapter(nn.Module):
 class TinyTransformerBaseline(nn.Module):
     """Small causal Transformer baseline used only for the matched synthetic protocol."""
 
-    def __init__(self, tokenizer: CharacterTokenizer, width: int = 4, dtype: torch.dtype = torch.float32) -> None:
+    def __init__(self, tokenizer: EthioBBPETokenizer, width: int = 4, dtype: torch.dtype = torch.float32) -> None:
         super().__init__()
         self.tokenizer = tokenizer
         self.embedding = nn.Embedding(tokenizer.vocab_size, width, padding_idx=tokenizer.pad_id, dtype=dtype)

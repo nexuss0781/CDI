@@ -1,0 +1,964 @@
+{
+  "code_revision": "2a27165c007aa6df8620215b8680eddf8fd7f990",
+  "config": {
+    "batch_size": 2,
+    "chunk_length": 16,
+    "chunks_per_document": 8,
+    "document_limit": 60,
+    "eval_batches": 12,
+    "learning_rate": 0.01,
+    "output_dir": "results/ethiobbpe_synaxarium_pilot",
+    "relative_loss_tolerance": 0.1,
+    "seeds": [
+      11,
+      29,
+      47
+    ],
+    "steps": 30
+  },
+  "data_manifest": {
+    "documents": {
+      "synaxarium-ሐምሌ-12": {
+        "character_count": 3145,
+        "content_hash": "9545f6f60199502f2ff103b1e4ed5e70ae12b4accfc6ca1124ee580009eed481",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ሐምሌ-13": {
+        "character_count": 4203,
+        "content_hash": "564c3f803d528e3046b75e631c8803916de178da20a6c7fd86031ef945a3f54c",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ሐምሌ-16": {
+        "character_count": 3969,
+        "content_hash": "83ea619a66d3b589cda0bebf094fdbe65347a93d32bb48dad59971718d17869d",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ሐምሌ-21": {
+        "character_count": 7042,
+        "content_hash": "2dbd6399828dcdf46fb97d7ca3625b789e93021055a9c1b1635d530f6cc68997",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ሐምሌ-26": {
+        "character_count": 4668,
+        "content_hash": "e198c342727a3a7ae8291d1ae731de44c77ce2f0b61f7b61770ec8f9a891f1ad",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ሐምሌ-29": {
+        "character_count": 3426,
+        "content_hash": "f6bedcf15d3d9dd3dc7edd68b5af856ecac0059a37547696369abeecf24650da",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ሕዳር-14": {
+        "character_count": 15223,
+        "content_hash": "717e71c47d336ec90a5f071638b84db15ceb156b045b751f9934220c3a9ac89c",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-መስከረም-06": {
+        "character_count": 3574,
+        "content_hash": "3ed1cf9c46342025cffdc88610a2cc8d6ed3c0800287709f7dc5e15e5a32438b",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-መስከረም-07": {
+        "character_count": 12840,
+        "content_hash": "9d3a14e69ab6744d10801ebab7d448d1d2b343535577ff6e45d9510911aa5fbc",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-መስከረም-18": {
+        "character_count": 13875,
+        "content_hash": "889b8812a6ce5de2d935f2cdfc1a2302e2b73249220ad66624521d20e6c8253f",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-መስከረም-23": {
+        "character_count": 2824,
+        "content_hash": "3baf52d14fbc1ae88ac9a98ea11edb8d9469a7c4a2d3eb04af0b87f18354daeb",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-መስከረም-27": {
+        "character_count": 8075,
+        "content_hash": "6e1b18010cab79ee961df2b45eece5438f4598903bcf9d22802108c5684240a9",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-መስከረም-30": {
+        "character_count": 4776,
+        "content_hash": "a738dfa886c5b50452e77fdf2867c6bf9ffc1769adce8c4c2dbadbe7778ba615",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-መጋቢት-12": {
+        "character_count": 4347,
+        "content_hash": "370569bf4c0146ecb4ebf4dbf34791ad9fe1ab7a75aaa018c8f6c21d1da22254",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-መጋቢት-26": {
+        "character_count": 4641,
+        "content_hash": "6b581bd7dc4d59453967ec8d791e6387d8208e4a7c4cc24158451d79eeddbd19",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ሚያዝያ-07": {
+        "character_count": 2776,
+        "content_hash": "89cbc82b3752101d87b21bfbbbe80b6af6fa539e3174adcd1bd4f2d80779ce62",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ሚያዝያ-09": {
+        "character_count": 4712,
+        "content_hash": "23c261ddf03f230f977ac2c0c707638262ad52df8f69a4198e76f6292e6dd4d9",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ሚያዝያ-15": {
+        "character_count": 4062,
+        "content_hash": "19f0016845d8dc6e78a826077e3702ccc8a35374737663fa9eec766e31546f9b",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ሚያዝያ-23": {
+        "character_count": 7006,
+        "content_hash": "e1bd64e44eef3e0ea8d5fa9bdab610c756dfabe38acd6eed261a7b045c95decb",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ሚያዝያ-30": {
+        "character_count": 4633,
+        "content_hash": "5f27e441facfdfb3ecfe3d1d35d2160636be54a475823440fa229d4f0bc6bdf5",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ሰኔ-15": {
+        "character_count": 2672,
+        "content_hash": "028c1aec8b7f10b7bc761a4cdef8e1f5af34d9676e9951a604c9b9a08feb8bb7",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ሰኔ-16": {
+        "character_count": 4067,
+        "content_hash": "021ef98ccd7ab35bbd4a2f9bb5ba8c75c8df7ee89638c5ec31050d08c613e05b",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ሰኔ-18": {
+        "character_count": 3776,
+        "content_hash": "d0091887c338b25e31738e08e51c1683f4fda75cad45bf9b98347ecd2dd4e64b",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ሰኔ-20": {
+        "character_count": 7556,
+        "content_hash": "33afc02542883f96e724a693491e872cb4219a69590db3a424e4d697efb91995",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ሰኔ-23": {
+        "character_count": 10365,
+        "content_hash": "331db07f2613dbc64614188d0150e38c3b00abbfd8040b84968173d67e6954cb",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ሰኔ-30": {
+        "character_count": 4641,
+        "content_hash": "a542190fa897b448c86530211dd79eb576ad8c3b32b8639a0bb2384c41ed0a52",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ታኅሣሥ-12": {
+        "character_count": 8241,
+        "content_hash": "c9f2dc8fff36d421628c6527a635b7cf9200a28d27a827a4d848c59a0cac6e95",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ታኅሣሥ-14": {
+        "character_count": 11786,
+        "content_hash": "b261e2369dbf7ec60d6e0f4e978c6206a1a4ba47b6b8be68dc8b1a1922f695ca",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ታኅሣሥ-18": {
+        "character_count": 3596,
+        "content_hash": "4e45131d46f2064b37966e6669b307be9a43dd5c33d51724ea6123de4e32adab",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ታኅሣሥ-20": {
+        "character_count": 2568,
+        "content_hash": "e34a3f8e6f84c353647ca8ae0053af8f79b201502f25b3bbe9e2ec88f0e860be",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ታኅሣሥ-22": {
+        "character_count": 6219,
+        "content_hash": "81aeea1b366a12bd5a5411d1b2c8c7786e4283fc24b2ad5b0c0986dbd1cacf4f",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ነሐሴ-01": {
+        "character_count": 8067,
+        "content_hash": "1d0a07633f4a15e6e68286e2ce8b0fc5d2f0483c87e54c782ab6dfd6f5c5aca8",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ነሐሴ-06": {
+        "character_count": 3821,
+        "content_hash": "0c232cbe89ab5898f3330934db14880c88f29762e75025b22887d33d3705b2b4",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ነሐሴ-09": {
+        "character_count": 2443,
+        "content_hash": "f6397df802adb0f99b992161e4665bc7370f38af15bf225088bb8e0640689c4d",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ነሐሴ-13": {
+        "character_count": 5860,
+        "content_hash": "04d44fe2a3dd9f7353b0ea5dbfe16158eb698755eaf6d5c71e7669c4d0814064",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ነሐሴ-18": {
+        "character_count": 3802,
+        "content_hash": "a3e115b11d518697a601976878356068914a3860c44e7066dcc20e4f453eb7fb",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ነሐሴ-23": {
+        "character_count": 3439,
+        "content_hash": "5ae225031a3a57d66e89b342088e88719ff63843d8f4138aa6cecf45fbe85318",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ነሐሴ-24": {
+        "character_count": 8705,
+        "content_hash": "93af6831555bcc11661a0351c095fc389c193e5de84f4247fe0ce67ca27cf1fb",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-የካቲት-01": {
+        "character_count": 4549,
+        "content_hash": "dd6d500440708e8c7abf37589f33f2dd77314afd5e3271630b1be11a638a03dd",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-የካቲት-02": {
+        "character_count": 10496,
+        "content_hash": "5f1e2bad71358d56e547970c87a53016b577d4396b0133474ee4b4c5a0d08ccd",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-የካቲት-03": {
+        "character_count": 6077,
+        "content_hash": "8e200e3478d2bee6deaa78a88546f44216fbccb8bc1bd81c798dd30cdb489e8f",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-የካቲት-08": {
+        "character_count": 7240,
+        "content_hash": "d73cb18728c2a5104e24f299808cc707f9969a8e096980f6a36145f5e69d5fdb",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-የካቲት-12": {
+        "character_count": 4786,
+        "content_hash": "a920f0e37f2450c9b33e9c673eebcba607d28af13704c002fda943dd09981f82",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-የካቲት-20": {
+        "character_count": 4078,
+        "content_hash": "07623e37133e15717c1c87209c8b6558c11cf01b7239ece0b76676dfd04b0895",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-የካቲት-22": {
+        "character_count": 2646,
+        "content_hash": "32191f330b679a19fef7a87f0b708d476ed32d0d4956b79c31f6b5d604b64c16",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-የካቲት-23": {
+        "character_count": 3462,
+        "content_hash": "f8d6dc942a53c98d45858e52edb4a6df41c4aafa08113ad94edb3b975461f58f",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ግንቦት-12": {
+        "character_count": 10060,
+        "content_hash": "81b40046e6882957d8f093dad89eeabc686de927bd1c3c996c8a23cd791c6826",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ግንቦት-13": {
+        "character_count": 3323,
+        "content_hash": "b3e3647d86fb628f866f34d289af36e6c9b7eb31867f4a04f68f02db03549126",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ግንቦት-23": {
+        "character_count": 2796,
+        "content_hash": "54bdf80cbf93b8a9f919a9cfb5e33c3eb4118a485447e12663e2d589c5b0efed",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ግንቦት-26": {
+        "character_count": 5839,
+        "content_hash": "834f40f3838a8de782f00df6d72f13d6fb5567c1d7013f0cb950e323b8f125df",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ግንቦት-30": {
+        "character_count": 3648,
+        "content_hash": "a4ca2d3c105b907f5d5a0327084647c318f48ae228297c0a5f2c0d54753d90c4",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ጥር-06": {
+        "character_count": 16880,
+        "content_hash": "940d5e68dc5cd38417ba605b4ac5ff04ac0f75f9115b5cf913a21a967cf0fda3",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ጥር-11": {
+        "character_count": 7193,
+        "content_hash": "d395e52f56aa715cd5c475cde2255b934a48bc65cccf17f9b901526b42450495",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ጥር-17": {
+        "character_count": 7053,
+        "content_hash": "4982afd6fb4840d962c75568a12903030364d645f1370dca52f75bad1cb2e865",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ጥር-24": {
+        "character_count": 3525,
+        "content_hash": "fa309eaf1988730a74af8b9cf53e633823ee21837c180193462ed4ada3401793",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ጥቅምት-05": {
+        "character_count": 4748,
+        "content_hash": "72bf62dc6add2535085e09460fc9cdca8ad969d904a3b2ae11c1fb9108e4f0c4",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ጥቅምት-06": {
+        "character_count": 8055,
+        "content_hash": "bb0089eed8fbc54d44e7fa67df508f67b9b84e16bb1d887ec640546def0b11a6",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ጥቅምት-07": {
+        "character_count": 3469,
+        "content_hash": "3546a10e22ed5d11b7a2448bb1a283261aa9a58494441a24f53b43a2a20d0b2c",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ጥቅምት-23": {
+        "character_count": 6535,
+        "content_hash": "6959fd2fb407efe063714d91f64282482ac69e157d4a7225357742e561973486",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      },
+      "synaxarium-ጥቅምት-29": {
+        "character_count": 4512,
+        "content_hash": "4e041b557f6ed88b4f26a2bf610a42cb40a76e5fcaa918572e04e92b2ddc792f",
+        "data_class": "rights_cleared_pilot",
+        "license_id": "MIT",
+        "pii_review": "public_historical_religious_text_no_personal_profile_data",
+        "retention_policy": "public_mit_research_pilot",
+        "source_uri": "https://huggingface.co/datasets/Nexuss0781/synaxarium/viewer/default/train"
+      }
+    },
+    "fingerprint": "af695a05e610610f9aedd5ae3039f66db734b127d4ab6d6c1aa70110dc9c57c0",
+    "format": "dcss-cdi-p1-data-manifest-v1",
+    "policy": {
+      "allowed_data_classes": [
+        "synthetic",
+        "rights_cleared_pilot"
+      ],
+      "phase": "P2",
+      "real_corpus_training_authorized": true
+    },
+    "splits": {
+      "test": [
+        "synaxarium-ታኅሣሥ-22",
+        "synaxarium-ጥቅምት-29",
+        "synaxarium-መስከረም-23",
+        "synaxarium-ጥር-17",
+        "synaxarium-ሚያዝያ-23",
+        "synaxarium-የካቲት-12",
+        "synaxarium-የካቲት-22",
+        "synaxarium-ጥቅምት-05",
+        "synaxarium-ሐምሌ-26"
+      ],
+      "train": [
+        "synaxarium-ነሐሴ-01",
+        "synaxarium-መስከረም-18",
+        "synaxarium-ሚያዝያ-09",
+        "synaxarium-ሚያዝያ-30",
+        "synaxarium-ግንቦት-26",
+        "synaxarium-ሰኔ-16",
+        "synaxarium-ሐምሌ-16",
+        "synaxarium-ነሐሴ-06",
+        "synaxarium-መጋቢት-26",
+        "synaxarium-ታኅሣሥ-12",
+        "synaxarium-ግንቦት-30",
+        "synaxarium-የካቲት-01",
+        "synaxarium-ጥር-24",
+        "synaxarium-ሚያዝያ-15",
+        "synaxarium-ሐምሌ-21",
+        "synaxarium-ጥቅምት-23",
+        "synaxarium-መስከረም-07",
+        "synaxarium-ሰኔ-18",
+        "synaxarium-ሕዳር-14",
+        "synaxarium-ነሐሴ-09",
+        "synaxarium-ነሐሴ-24",
+        "synaxarium-ጥር-11",
+        "synaxarium-መስከረም-27",
+        "synaxarium-ሰኔ-30",
+        "synaxarium-ሰኔ-23",
+        "synaxarium-ሐምሌ-12",
+        "synaxarium-የካቲት-02",
+        "synaxarium-መስከረም-30",
+        "synaxarium-ታኅሣሥ-20",
+        "synaxarium-የካቲት-03",
+        "synaxarium-ነሐሴ-23",
+        "synaxarium-የካቲት-23",
+        "synaxarium-ሰኔ-20",
+        "synaxarium-የካቲት-08",
+        "synaxarium-ግንቦት-13",
+        "synaxarium-ጥቅምት-07",
+        "synaxarium-ነሐሴ-13",
+        "synaxarium-ሐምሌ-29",
+        "synaxarium-ሚያዝያ-07",
+        "synaxarium-ጥር-06",
+        "synaxarium-ታኅሣሥ-18",
+        "synaxarium-ጥቅምት-06"
+      ],
+      "validation": [
+        "synaxarium-መስከረም-06",
+        "synaxarium-ታኅሣሥ-14",
+        "synaxarium-ግንቦት-12",
+        "synaxarium-የካቲት-20",
+        "synaxarium-ግንቦት-23",
+        "synaxarium-ነሐሴ-18",
+        "synaxarium-ሐምሌ-13",
+        "synaxarium-መጋቢት-12",
+        "synaxarium-ሰኔ-15"
+      ]
+    }
+  },
+  "data_manifest_fingerprint": "af695a05e610610f9aedd5ae3039f66db734b127d4ab6d6c1aa70110dc9c57c0",
+  "dataset": {
+    "document_count": 60,
+    "id": "Nexuss0781/synaxarium",
+    "license_asserted_by_source_card": "MIT",
+    "url": "https://huggingface.co/datasets/Nexuss0781/synaxarium"
+  },
+  "decision": {
+    "baseline_gate": true,
+    "best_baseline_validation_loss": 8.461075385411581,
+    "dcss_relative_validation_loss_gap": 0.07810387054363144,
+    "learning_gate": true,
+    "scope": "This verdict applies only to the current 48-state CPU nano DCSS configuration and the bounded Synaxarium token budget.",
+    "tolerance": 0.1,
+    "verdict": "EARNED_NEXT_PILOT"
+  },
+  "environment": {
+    "device": "cpu",
+    "python": "3.12.3",
+    "torch": "2.13.0+cu130"
+  },
+  "fingerprint": "8462f5342e8063d30dca9716bae079b206cd68245c02678e1a5b58faec7036f0",
+  "format": "dcss-cdi-ethiobbpe-synaxarium-pilot-v1",
+  "packed_example_counts": {
+    "test": 72,
+    "train": 336,
+    "validation": 72
+  },
+  "records": [
+    {
+      "elapsed_seconds": 2.841776833003678,
+      "initial_validation": {
+        "loss": 9.680347522099813,
+        "perplexity": 16000.0546875,
+        "token_accuracy": 0.0,
+        "token_count": 360.0
+      },
+      "model": "dcss_cdi",
+      "parameter_count": 80366,
+      "seed": 11,
+      "test": {
+        "loss": 9.061854362487793,
+        "perplexity": 8620.12109375,
+        "token_accuracy": 0.011111111111111112,
+        "token_count": 360.0
+      },
+      "tokens_processed": 900,
+      "train_loss_decreased": true,
+      "train_loss_first": 9.680350303649902,
+      "train_loss_last": 9.364518165588379,
+      "validation": {
+        "loss": 9.113557577133179,
+        "perplexity": 9077.5341796875,
+        "token_accuracy": 0.013888888888888888,
+        "token_count": 360.0
+      }
+    },
+    {
+      "elapsed_seconds": 0.33352161899529165,
+      "initial_validation": {
+        "loss": 9.682063420613607,
+        "perplexity": 16027.529296875,
+        "token_accuracy": 0.0,
+        "token_count": 360.0
+      },
+      "model": "gru_baseline",
+      "parameter_count": 80120,
+      "seed": 11,
+      "test": {
+        "loss": 8.721040487289429,
+        "perplexity": 6130.55615234375,
+        "token_accuracy": 0.011111111111111112,
+        "token_count": 360.0
+      },
+      "tokens_processed": 900,
+      "train_loss_decreased": true,
+      "train_loss_first": 9.682528495788574,
+      "train_loss_last": 9.15982723236084,
+      "validation": {
+        "loss": 8.809399724006653,
+        "perplexity": 6696.8974609375,
+        "token_accuracy": 0.013888888888888888,
+        "token_count": 360.0
+      }
+    },
+    {
+      "elapsed_seconds": 0.20048090000636876,
+      "initial_validation": {
+        "loss": 9.67615000406901,
+        "perplexity": 15933.0419921875,
+        "token_accuracy": 0.0,
+        "token_count": 360.0
+      },
+      "model": "transformer",
+      "parameter_count": 80172,
+      "seed": 11,
+      "test": {
+        "loss": 8.497621297836304,
+        "perplexity": 4903.09326171875,
+        "token_accuracy": 0.08611111111111111,
+        "token_count": 360.0
+      },
+      "tokens_processed": 900,
+      "train_loss_decreased": true,
+      "train_loss_first": 9.652996063232422,
+      "train_loss_last": 9.037434577941895,
+      "validation": {
+        "loss": 8.606244842211405,
+        "perplexity": 5465.6865234375,
+        "token_accuracy": 0.08611111111111111,
+        "token_count": 360.0
+      }
+    },
+    {
+      "elapsed_seconds": 3.008873851998942,
+      "initial_validation": {
+        "loss": 9.680347760518393,
+        "perplexity": 16000.0546875,
+        "token_accuracy": 0.0,
+        "token_count": 360.0
+      },
+      "model": "dcss_cdi",
+      "parameter_count": 80366,
+      "seed": 29,
+      "test": {
+        "loss": 9.077305952707926,
+        "perplexity": 8754.3486328125,
+        "token_accuracy": 0.019444444444444445,
+        "token_count": 360.0
+      },
+      "tokens_processed": 900,
+      "train_loss_decreased": true,
+      "train_loss_first": 9.680347442626953,
+      "train_loss_last": 9.35732650756836,
+      "validation": {
+        "loss": 9.1295379002889,
+        "perplexity": 9223.755859375,
+        "token_accuracy": 0.022222222222222223,
+        "token_count": 360.0
+      }
+    },
+    {
+      "elapsed_seconds": 0.3162041149989818,
+      "initial_validation": {
+        "loss": 9.680291493733725,
+        "perplexity": 15999.1552734375,
+        "token_accuracy": 0.0,
+        "token_count": 360.0
+      },
+      "model": "gru_baseline",
+      "parameter_count": 80120,
+      "seed": 29,
+      "test": {
+        "loss": 8.794319073359171,
+        "perplexity": 6596.66259765625,
+        "token_accuracy": 0.011111111111111112,
+        "token_count": 360.0
+      },
+      "tokens_processed": 900,
+      "train_loss_decreased": true,
+      "train_loss_first": 9.682415962219238,
+      "train_loss_last": 9.187178611755371,
+      "validation": {
+        "loss": 8.877895752588907,
+        "perplexity": 7171.68115234375,
+        "token_accuracy": 0.013888888888888888,
+        "token_count": 360.0
+      }
+    },
+    {
+      "elapsed_seconds": 0.181106579999323,
+      "initial_validation": {
+        "loss": 9.676037232081095,
+        "perplexity": 15931.2333984375,
+        "token_accuracy": 0.0,
+        "token_count": 360.0
+      },
+      "model": "transformer",
+      "parameter_count": 80172,
+      "seed": 29,
+      "test": {
+        "loss": 8.275126616160074,
+        "perplexity": 3925.01904296875,
+        "token_accuracy": 0.08611111111111111,
+        "token_count": 360.0
+      },
+      "tokens_processed": 900,
+      "train_loss_decreased": true,
+      "train_loss_first": 9.676328659057617,
+      "train_loss_last": 8.924850463867188,
+      "validation": {
+        "loss": 8.410763263702393,
+        "perplexity": 4495.18798828125,
+        "token_accuracy": 0.08611111111111111,
+        "token_count": 360.0
+      }
+    },
+    {
+      "elapsed_seconds": 3.1922740809968673,
+      "initial_validation": {
+        "loss": 9.680346647898356,
+        "perplexity": 16000.0400390625,
+        "token_accuracy": 0.0,
+        "token_count": 360.0
+      },
+      "model": "dcss_cdi",
+      "parameter_count": 80366,
+      "seed": 47,
+      "test": {
+        "loss": 9.072069565455118,
+        "perplexity": 8708.625,
+        "token_accuracy": 0.019444444444444445,
+        "token_count": 360.0
+      },
+      "tokens_processed": 900,
+      "train_loss_decreased": true,
+      "train_loss_first": 9.680349349975586,
+      "train_loss_last": 9.34937572479248,
+      "validation": {
+        "loss": 9.122658888498941,
+        "perplexity": 9160.5244140625,
+        "token_accuracy": 0.022222222222222223,
+        "token_count": 360.0
+      }
+    },
+    {
+      "elapsed_seconds": 0.36640768600045703,
+      "initial_validation": {
+        "loss": 9.681383609771729,
+        "perplexity": 16016.634765625,
+        "token_accuracy": 0.0,
+        "token_count": 360.0
+      },
+      "model": "gru_baseline",
+      "parameter_count": 80120,
+      "seed": 47,
+      "test": {
+        "loss": 8.841464122136435,
+        "perplexity": 6915.109375,
+        "token_accuracy": 0.011111111111111112,
+        "token_count": 360.0
+      },
+      "tokens_processed": 900,
+      "train_loss_decreased": true,
+      "train_loss_first": 9.68252182006836,
+      "train_loss_last": 9.204874992370605,
+      "validation": {
+        "loss": 8.917351961135864,
+        "perplexity": 7460.30615234375,
+        "token_accuracy": 0.016666666666666666,
+        "token_count": 360.0
+      }
+    },
+    {
+      "elapsed_seconds": 0.20156568400125252,
+      "initial_validation": {
+        "loss": 9.676534414291382,
+        "perplexity": 15939.166015625,
+        "token_accuracy": 0.0,
+        "token_count": 360.0
+      },
+      "model": "transformer",
+      "parameter_count": 80172,
+      "seed": 47,
+      "test": {
+        "loss": 8.229528665542603,
+        "perplexity": 3750.06494140625,
+        "token_accuracy": 0.08611111111111111,
+        "token_count": 360.0
+      },
+      "tokens_processed": 900,
+      "train_loss_decreased": true,
+      "train_loss_first": 9.655375480651855,
+      "train_loss_last": 8.896605491638184,
+      "validation": {
+        "loss": 8.366218050320944,
+        "perplexity": 4299.34326171875,
+        "token_accuracy": 0.08611111111111111,
+        "token_count": 360.0
+      }
+    }
+  ],
+  "status": "COMPLETE",
+  "summary": {
+    "dcss_cdi": {
+      "all_train_loss_decreased": 1.0,
+      "mean_elapsed_seconds": 3.0143082553331624,
+      "mean_test_loss": 9.070409960216946,
+      "mean_test_perplexity": 8694.364908854166,
+      "mean_tokens_per_second": 299.2497252168885,
+      "mean_validation_accuracy": 0.019444444444444445,
+      "mean_validation_loss": 9.121918121973673,
+      "mean_validation_perplexity": 9153.938151041666,
+      "parameter_count": 80366.0,
+      "runs": 3.0
+    },
+    "gru_baseline": {
+      "all_train_loss_decreased": 1.0,
+      "mean_elapsed_seconds": 0.3387111399982435,
+      "mean_test_loss": 8.785607894261679,
+      "mean_test_perplexity": 6547.442708333333,
+      "mean_tokens_per_second": 2667.006289502444,
+      "mean_validation_accuracy": 0.014814814814814814,
+      "mean_validation_loss": 8.86821581257714,
+      "mean_validation_perplexity": 7109.628255208333,
+      "parameter_count": 80120.0,
+      "runs": 3.0
+    },
+    "transformer": {
+      "all_train_loss_decreased": 1.0,
+      "mean_elapsed_seconds": 0.19438438800231475,
+      "mean_test_loss": 8.33409219317966,
+      "mean_test_perplexity": 4192.725748697917,
+      "mean_tokens_per_second": 4641.233644126978,
+      "mean_validation_accuracy": 0.08611111111111111,
+      "mean_validation_loss": 8.461075385411581,
+      "mean_validation_perplexity": 4753.405924479167,
+      "parameter_count": 80172.0,
+      "runs": 3.0
+    }
+  },
+  "tokenizer_fingerprint": "d78996f0aca122d74054b927902aa9bf80c2b5cf00747a7cf4327ff0f7d1a88c",
+  "tokenizer_vocab_size": 16000
+}
