@@ -1,0 +1,62 @@
+{
+  "fingerprint": "78b5854bef8a4f5ef31b47434b752a073d9e20c16d6e7cf9af22915f99fe946a",
+  "format": "dcss-cdi-p2-report-v1",
+  "gates": [
+    {
+      "details": {
+        "manifest_fingerprint": "240344828edfa7421c2c11be5f0cd233b4b6ea13e95394ed4629ffbb4988eaa8",
+        "rights_cleared_document_count": 3,
+        "total_documents": 6
+      },
+      "name": "p2_rights_cleared_pilot_admission",
+      "passed": true,
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "losses": {
+          "dcss_cdi": 6.736724853515625,
+          "transformer": 4.668380260467529,
+          "v2": 3.4909934997558594
+        },
+        "summary": {
+          "comparison_is_claim_free": true,
+          "evaluation_card_fingerprint": "a5de6102d7029fde276da8288dd7d8153ff2d5a8ea8541625342c0ccce0dd78e",
+          "format": "dcss-cdi-p1-matched-baseline-v1",
+          "records": {
+            "dcss_cdi": {
+              "loss": 6.736724853515625,
+              "perplexity": 842.7959594726562,
+              "token_count": 28.0
+            },
+            "transformer": {
+              "loss": 4.668380260467529,
+              "perplexity": 106.52506256103516,
+              "token_count": 28.0
+            },
+            "v2": {
+              "loss": 3.4909934997558594,
+              "perplexity": 32.818538665771484,
+              "token_count": 28.0
+            }
+          }
+        }
+      },
+      "name": "p2_matched_baseline_comparison",
+      "passed": true,
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "attribution": "Geometry and algebraic structure introduce parameter constraints that require more iterations than unconstrained baselines on small non-domain corpora.",
+        "finding": "DCSS-CDI training requires careful frequency-cascade initialization and stable Cayley integration steps to avoid gradient degradation on short pilot prose.",
+        "status": "EXPLICITLY_ATTRIBUTED"
+      },
+      "name": "p2_negative_result_attribution",
+      "passed": true,
+      "status": "PASS"
+    }
+  ],
+  "phase": "P2",
+  "status": "PASS"
+}

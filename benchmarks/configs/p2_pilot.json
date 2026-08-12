@@ -1,0 +1,30 @@
+{
+  "format": "dcss-cdi-p2-pilot-config-v1",
+  "phase": "P2",
+  "run_name": "real-data-pilot-and-scale-ladder",
+  "seed": 42,
+  "device": "cpu",
+  "dtype": "float32",
+  "training_mode": "rights_cleared_pilot_training",
+  "max_steps": 50,
+  "checkpoint_interval": 25,
+  "data_policy": {
+    "allowed_data_classes": ["synthetic", "rights_cleared_pilot"],
+    "real_corpus_training_authorized": true,
+    "rights_cleared_pilot_admitted": true
+  },
+  "release_boundary": {
+    "status": "offline_research_pilot",
+    "fine_tuning_authorized": false,
+    "deployment_authorized": false,
+    "external_side_effects_enabled": false,
+    "capability_tools_enabled": false
+  },
+  "required_gates": [
+    "pilot_data_admission",
+    "governed_manifest_provenance",
+    "matched_baseline_comparison",
+    "negative_result_attribution",
+    "evaluation_card_binding"
+  ]
+}
