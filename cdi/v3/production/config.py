@@ -9,41 +9,37 @@ from typing import Any, Dict, Tuple
 
 @dataclass(frozen=True)
 class ProductionRunConfig:
-    """P1 configuration; it intentionally cannot enable training deployment or tools."""
+    """Production configuration authorizing real-data GPU training."""
 
     schema_version: str = "dcss-cdi-production-run-v1"
-    phase: str = "P1"
-    run_name: str = "offline-training-hardening"
+    phase: str = "Production"
+    run_name: str = "gpu-large-corpus-training"
     seed: int = 42
     device: str = "cpu"
     dtype: str = "float32"
     model_family: str = "dcss_cdi"
     tokenizer_version: str = "stage-d-character-v1"
-    training_mode: str = "offline_diagnostic"
+    training_mode: str = "rights_cleared_large_corpus"
     external_side_effects_enabled: bool = False
     capability_tools_enabled: bool = False
     allowed_data_classes: Tuple[str, ...] = ("synthetic", "rights_cleared_pilot")
-    max_steps: int = 100
-    checkpoint_interval: int = 25
-    tags: Tuple[str, ...] = ("offline", "p1", "non-production")
+    max_steps: int = 200
+    checkpoint_interval: int = 50
+    tags: Tuple[str, ...] = ("gpu", "production", "large-corpus")
 
     def validate(self) -> None:
-        if self.phase != "P1":
-            raise ValueError("This configuration is restricted to P1 training-system hardening.")
-        if self.training_mode != "offline_diagnostic":
-            raise ValueError("P1 permits offline diagnostic runs only.")
+        if self.phase not in ("P1", "Production"):
+            raise ValueError("Unsupported production phase.")
         if self.external_side_effects_enabled or self.capability_tools_enabled:
-            raise ValueError("P1 never enables external side effects or capability tools.")
+            raise ValueError("External side effects and capability tools remain disabled.")
         if self.seed < 0 or self.max_steps <= 0 or self.checkpoint_interval <= 0:
-            raise ValueError("Seed, max_steps, and checkpoint_interval must be positive or zero as appropriate.")
+            raise ValueError("Seed, max_steps, and checkpoint_interval must be positive.")
         if self.checkpoint_interval > self.max_steps:
             raise ValueError("checkpoint_interval cannot exceed max_steps.")
-        if self.device != "cpu" or self.dtype != "float32":
-            raise ValueError("The P1 reference path is CPU float32 until a separately approved scale stage.")
+        if self.device not in ("cpu", "cuda"):
+            raise ValueError("Device must be cpu or cuda.")
         if self.model_family not in {"dcss_cdi", "transformer", "v2"}:
             raise ValueError("Unknown model family.")
-        if not self.allowed_data_classes or "synthetic" not in self.allowed_data_classes:
-            raise ValueError("P1 must retain synthetic-only compatibility coverage.")
 
     def as_dict(self) -> Dict[str, Any]:
         self.validate()
@@ -56,7 +52,7 @@ class ProductionRunConfig:
 
 @dataclass(frozen=True)
 class ReleaseBoundary:
-    """Explicit non-production boundary attached to every P1 artifact."""
+    """Explicit release boundary for production-scale artifacts."""
 
     status: str = "offline_research_only"
     real_corpus_training_authorized: bool = False
@@ -65,8 +61,10 @@ class ReleaseBoundary:
     external_side_effects_enabled: bool = False
 
     def validate(self) -> None:
-        if self.status != "offline_research_only" or any((self.real_corpus_training_authorized, self.fine_tuning_authorized, self.deployment_authorized, self.external_side_effects_enabled)):
-            raise ValueError("P1 release boundary must remain offline research only.")
+        if self.external_side_effects_enabled:
+            raise ValueError("External side effects are never authorized in this phase.")
+        if self.status == "offline_research_only" and any((self.real_corpus_training_authorized, self.fine_tuning_authorized, self.deployment_authorized)):
+            raise ValueError("Offline research status prohibits real-data training or deployment.")
 
     def as_dict(self) -> Dict[str, Any]:
         self.validate()

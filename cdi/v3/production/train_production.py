@@ -18,6 +18,7 @@ from cdi.v3 import (
     ProductionRunConfig,
     ReleaseBoundary,
     StageCConfig,
+    StageDConfig,
     TokenizerConfig,
     build_envelope,
     evaluate_causal_offline,
@@ -32,30 +33,61 @@ from .hf_ingest import ingest_wikitext_and_sciq
 def run_production_pipeline(output_dir: str | Path = "results/production") -> Dict[str, Any]:
     out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
+    
+    # 1. Ingest Data from Hugging Face
     ingest_result = ingest_wikitext_and_sciq(out / "data")
     manifest_path = ingest_result["manifest"]
+    text_path = ingest_result["text_jsonl"]
     manifest_data = json.loads(manifest_path.read_text(encoding="utf-8"))
+    
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Training on device: {device}")
-    config = ProductionRunConfig(device=device, max_steps=200, checkpoint_interval=50)
-    config.validate()
-    seed_everything(config.seed)
+    
+    # Production config for the run
+    run_config = ProductionRunConfig(device=device, max_steps=200, checkpoint_interval=50)
+    run_config.validate()
+    
+    # StageDConfig wrapper for training helpers
+    training_config = StageDConfig(
+        name="nano", 
+        seed=run_config.seed, 
+        device=device, 
+        chunk_length=16, 
+        batch_size=8
+    )
+    
+    seed_everything(run_config.seed)
+    
+    # 2. Setup Tokenizer and Model
     tokenizer_config = TokenizerConfig(max_chunk_length=16, embedding_dim=64)
-    from datasets import load_dataset
-    wt103 = load_dataset("wikitext", "wikitext-103-raw-v1", split="train[:2000]")
-    texts = [item["text"] for item in wt103 if len(item["text"].strip()) > 30]
+    
+    # Load texts from the local JSONL created by ingest
+    texts = []
+    with text_path.open("r", encoding="utf-8") as f:
+        for line in f:
+            texts.append(json.loads(line)["text"])
+    
     tokenizer = CharacterTokenizer.from_texts(texts, tokenizer_config)
-    stage_c = StageCConfig.nano(seed=config.seed)
-    stage_c = replace_stage_c_dims(stage_c, embed_dim=64)
+    
+    # Scale Stage C config for GPU
+    stage_c = StageCConfig.nano(seed=run_config.seed)
+    stage_c = scale_stage_c(stage_c, embed_dim=64)
     model = DCSSLanguageModel(tokenizer, stage_c).to(device)
+    
+    # 3. Pack and Batch Training Data
     corpus_docs = [CorpusDocument(f"doc-{i}", t) for i, t in enumerate(texts)]
     train_ex, _ = pack_documents(corpus_docs, tokenizer, tokenizer_config.max_chunk_length)
-    batches = deterministic_batches(train_ex, tokenizer, config.as_dict() | {"chunk_length": 16, "batch_size": 8})
-    optimizer = optimizer_for(model, config.as_dict() | {"learning_rate": 0.02, "weight_decay": 0.01})
+    batches = deterministic_batches(train_ex, tokenizer, training_config)
+    
+    optimizer = optimizer_for(model, training_config)
+    
     print("Starting production pretraining...")
-    losses, optimizer, cursor = train_steps(model, batches, config.as_dict() | {"gradient_clip_norm": 1.0}, steps=config.max_steps, optimizer=optimizer)
+    losses, optimizer, cursor = train_steps(model, batches, training_config, steps=run_config.max_steps, optimizer=optimizer)
+    
+    # 4. Evaluation and Checkpoint
     eval_card = EvaluationCard("production-eval-v1", "evaluate causal loss on wikitext pilot", manifest_data["fingerprint"], ("loss", "perplexity"))
-    lineage = ArtifactLineage("prod-commit", config.fingerprint, manifest_data["fingerprint"], tokenizer.fingerprint, parameter_fingerprint(model))
+    lineage = ArtifactLineage("prod-commit", run_config.fingerprint, manifest_data["fingerprint"], tokenizer.fingerprint, parameter_fingerprint(model))
+    
     stage_d_payload = {
         "format": "dcss-cdi-stage-d-checkpoint-v1",
         "model_state": model.state_dict(),
@@ -63,18 +95,21 @@ def run_production_pipeline(output_dir: str | Path = "results/production") -> Di
         "tokenizer_artifact": tokenizer.artifact(),
         "tokenizer_fingerprint": tokenizer.fingerprint,
         "data_manifest": manifest_data,
-        "config": config.as_dict(),
-        "global_step": config.max_steps,
+        "config": training_config.as_dict(),
+        "global_step": run_config.max_steps,
         "cursor": cursor,
         "random_state": {"python": None, "numpy": None, "torch": None},
         "topology_fingerprint": model.ssm.cell.topology.fingerprint(),
         "hardware": {"device": device, "dtype": "float32", "torch": torch.__version__},
     }
+    
     boundary = ReleaseBoundary(status="production_pilot", real_corpus_training_authorized=True)
     envelope = build_envelope(stage_d_payload, lineage, boundary, EnvironmentLineage.current(device=device))
+    
     checkpoint_path = out / "production_checkpoint.pt"
     save_atomic(checkpoint_path, envelope)
     print(f"Saved production checkpoint to {checkpoint_path}")
+    
     report = {
         "status": "PASS",
         "final_loss": losses[-1],
@@ -85,6 +120,6 @@ def run_production_pipeline(output_dir: str | Path = "results/production") -> Di
     (out / "production_report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
     return report
 
-def replace_stage_c_dims(c_config, embed_dim: int):
+def scale_stage_c(c_config: StageCConfig, embed_dim: int) -> StageCConfig:
     from dataclasses import replace
-    return replace(c_config, n_points=16, total_belief_dim=embed_dim)
+    return replace(c_config, input_width=embed_dim, output_width=embed_dim)
