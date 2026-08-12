@@ -75,3 +75,11 @@ The Stage D matched v2, v3, and Transformer comparison is restricted to the same
 Stage E uses the frozen Stage D local synthetic corpus, tokenizer, CPU float32 precision, and deterministic 100-step token budget for all matrix members. This supports controlled engineering and synthetic-sequence diagnostics only. The study does not label these results as real-corpus quality, transfer, WikiText, SciQ, or natural-language claims.
 
 The nano scaling range is frozen at lengths 8–256 and the streaming range at 512 tokens. The Stage E report will calculate empirical exponents over that measured range but will retain the specification's 4k–8k memory and legacy-speed targets as `NOT_MEASURED`; it will not extrapolate or mark them passed. The no-harmonic, no-geometry, ungated, Euler, and unconstrained-cochain variants are isolated named ablations. The unconstrained-cochain diagnostic is explicitly exempt from the full-production no-dense claim; allocation auditing applies to the full DCSS path.
+
+## Stage F bounded diagnostic capability customization
+
+Stage F proceeds only as an explicitly user-approved diagnostic extension of the Stage E conditional synthetic-only result. The implementation is restricted to deterministic local memory, retrieval, tools, planning, execution, and verification fixtures. It does not claim general language capability, retrieval quality on real documents, operational autonomy, or external-system safety.
+
+All tools are typed, local, and dry-run by default. No shell, network, account, payment, posting, deletion, transfer, external file mutation, or real side effect is registered or enabled. A mutating demo tool is retained only as a negative permission-boundary fixture and must reject before execution. Retrieved and tool-generated instruction-like strings are treated strictly as untrusted data.
+
+The optional capability modules are not wired into the mandatory DCSS recurrence training path. Stage F verifies exact core-path optionality and labels every capability at most `Experimental`. The final manifest will retain `external_side_effects_enabled: false` and Stage G does not exist; any follow-up requires an explicit new user request.

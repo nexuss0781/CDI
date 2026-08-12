@@ -1,0 +1,26 @@
+{
+  "budgets": {
+    "memory_capacity": 8,
+    "plan_max_steps": 4,
+    "tool_timeout_ms": 100
+  },
+  "enabled_permissions": [
+    "read_only",
+    "simulated"
+  ],
+  "external_side_effects_enabled": false,
+  "fingerprint": "b003267e1cab3e567af1223afa108437c6606bf0f6b5244e1a762afda30d17cb",
+  "format": "dcss-cdi-stage-f-capability-manifest-v1",
+  "known_failure_modes": [
+    "synthetic-only evaluation",
+    "no free-form core answer claim",
+    "no real-document retrieval evaluation",
+    "no external side effects",
+    "no deployment authorization"
+  ],
+  "next_stage_authorized": false,
+  "rollback_conditions": [
+    "any containment, provenance, audit, schema, timeout, or optionality failure"
+  ],
+  "status": "Experimental"
+}
