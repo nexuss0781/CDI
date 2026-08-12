@@ -59,3 +59,13 @@ The Stage B Laplacian is applied after each band update as the fixed degree-pres
 The Stage C 10,000-step stability envelope is executed under `torch.no_grad()` because it is a forward-only empirical stability measurement, while gradient equivalence is a separate mandatory gate. This avoids retaining a 30,000-update autograd graph across the three stress modes and keeps the complete nano gate below 30 seconds on CPU. It does not change the state update, stability thresholds, or gradient gate.
 
 The synthetic-memory command exposes `--task delayed_copy --steps 1000` as specified. The first Stage C probe measures delayed impulse retention with zero distractors: after a fixed delay, harmonic retention must exceed middle retention, middle must exceed fast retention, and harmonic retention must be at least twice fast retention. This is an explicit Stage C recurrence-capacity probe, not a claim of tokenizer or language-model performance; full data-based delayed-copy training remains outside the Stage C non-goals.
+
+## Stage D tokenizer and reproducible training customization
+
+The external EthioBBPE tokenizer dependency is replaced by a pure-Python, Unicode-NFC character tokenizer with a deterministic vocabulary built from a documented local corpus. The original code imported `ethiobbpe` and downloaded a pretrained tokenizer at construction time. The replacement removes all external runtime dependencies and network behavior, adds a versioned tokenizer artifact and fingerprint, and does not weaken any causal, masking, or checkpoint gate.
+
+The default Stage D corpus is a small repository-local deterministic synthetic corpus. It is intentionally labeled as synthetic debugging data rather than a primary language-quality corpus; its purpose is reproducible causal alignment, tokenizer, masking, resume, and matched-baseline validation under the CPU nano budget. This is a hardware- and dependency-safe adaptation of the Stage D corpus requirement, and the report will not present its metrics as WikiText/SciQ or real-corpus quality.
+
+Stage D uses float32 on CPU, with no AMP path claimed in the default environment. The precision gate verifies finite float32 computation and records CUDA/bfloat16 as unavailable when applicable. This does not alter the precision-safety threshold.
+
+The Stage D matched v2, v3, and Transformer comparison is restricted to the same tokenizer, local synthetic corpus, token budget, optimizer family, and evaluation code. It validates fair comparison plumbing only; it does not claim that the systems have been evaluated on a real language-model benchmark.

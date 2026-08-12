@@ -1,0 +1,761 @@
+{
+  "config": {
+    "batch_size": 4,
+    "chunk_length": 8,
+    "device": "cpu",
+    "dtype_str": "float32",
+    "gradient_accumulation": 1,
+    "gradient_clip_norm": 1.0,
+    "learning_rate": 0.05,
+    "name": "nano",
+    "overfit_steps": 100,
+    "resume_interrupt_at": 25,
+    "resume_steps": 50,
+    "seed": 42,
+    "warmup_steps": 0,
+    "weight_decay": 0.0
+  },
+  "elapsed_seconds": 5.067213083995739,
+  "environment": {
+    "cuda_available": false,
+    "platform": "Linux-6.1.102-x86_64-with-glibc2.39",
+    "python": "3.12.3",
+    "torch": "2.13.0+cu130"
+  },
+  "format": "dcss-cdi-stage-d-report-v1",
+  "gates": [
+    {
+      "details": {
+        "config": {
+          "byte_policy": "unicode_character_with_unk_fallback",
+          "embedding_dim": 4,
+          "format": "dcss-cdi-character-tokenizer-v1",
+          "max_chunk_length": 8,
+          "normalization": "NFC",
+          "special_tokens": [
+            "<pad>",
+            "<unk>",
+            "<bos>",
+            "<eos>",
+            "<doc>"
+          ],
+          "whitespace_policy": "preserve"
+        },
+        "fingerprint": "daebf458e55e56a433cf8f621c7d3f773de2c3af0a63456939b56e004061eaf4",
+        "fixtures": [
+          {
+            "decoded": "",
+            "input": "",
+            "length": 2,
+            "passed": true
+          },
+          {
+            "decoded": "a  b\t\n\u00e9",
+            "input": "a  b\t\ne\u0301",
+            "length": 9,
+            "passed": true
+          },
+          {
+            "decoded": "\ufffd",
+            "input": "\u2603",
+            "length": 3,
+            "passed": true
+          },
+          {
+            "decoded": "long long long long long long long long ",
+            "input": "long long long long long long long long ",
+            "length": 42,
+            "passed": true
+          }
+        ],
+        "vocab_size": 29
+      },
+      "name": "tokenizer_round_trip",
+      "passed": true,
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "boundary_policy": "bos_eos_per_document_no_cross_document_packing",
+        "hash_overlap": 0,
+        "manifest_fingerprint": "edbba5d41e615e38f34394e556bc35517604b490ad224d6445716a040607ae9a",
+        "source": "data/stage_d/synthetic_corpus.jsonl",
+        "split_document_counts": {
+          "test": 3,
+          "train": 9,
+          "validation": 2
+        },
+        "truncation_count": 0
+      },
+      "name": "data_integrity",
+      "passed": true,
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "perturbed_index": 4,
+        "pre_causal_max_abs": 0.0,
+        "tolerance": 1e-06
+      },
+      "name": "causal_alignment",
+      "passed": true,
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "masked_gradient_max_abs": 0.0,
+        "masked_loss_difference": 0.0,
+        "unmasked_loss_difference": 3.99999737739563
+      },
+      "name": "mask_correctness",
+      "passed": true,
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "final_loss": 0.12152446806430817,
+        "gradient_groups": {
+          "gates": true,
+          "generators": true,
+          "normalization_readout": true,
+          "sparse_geometry": true,
+          "token_embeddings": true
+        },
+        "initial_loss": 3.367295026779175,
+        "parameter_inventory": {
+          "entries": [
+            {
+              "count": 29,
+              "group": "normalization_readout",
+              "name": "output_bias",
+              "requires_grad": true,
+              "shape": [
+                29
+              ]
+            },
+            {
+              "count": 116,
+              "group": "token_embeddings",
+              "name": "embedding.weight",
+              "requires_grad": true,
+              "shape": [
+                29,
+                4
+              ]
+            },
+            {
+              "count": 48,
+              "group": "initial_state_optional",
+              "name": "ssm.cell.learned_initial_state",
+              "requires_grad": true,
+              "shape": [
+                3,
+                4,
+                4
+              ]
+            },
+            {
+              "count": 5,
+              "group": "sparse_geometry",
+              "name": "ssm.cell.geometry.edge_log_weights",
+              "requires_grad": true,
+              "shape": [
+                5
+              ]
+            },
+            {
+              "count": 16,
+              "group": "gates",
+              "name": "ssm.cell.bands.fast.gate.forcing_projection.weight",
+              "requires_grad": true,
+              "shape": [
+                4,
+                4
+              ]
+            },
+            {
+              "count": 4,
+              "group": "gates",
+              "name": "ssm.cell.bands.fast.gate.forcing_projection.bias",
+              "requires_grad": true,
+              "shape": [
+                4
+              ]
+            },
+            {
+              "count": 8,
+              "group": "gates",
+              "name": "ssm.cell.bands.fast.gate.input_gate_projection.weight",
+              "requires_grad": true,
+              "shape": [
+                2,
+                4
+              ]
+            },
+            {
+              "count": 2,
+              "group": "gates",
+              "name": "ssm.cell.bands.fast.gate.input_gate_projection.bias",
+              "requires_grad": true,
+              "shape": [
+                2
+              ]
+            },
+            {
+              "count": 8,
+              "group": "gates",
+              "name": "ssm.cell.bands.fast.gate.transport_projection.weight",
+              "requires_grad": true,
+              "shape": [
+                2,
+                4
+              ]
+            },
+            {
+              "count": 2,
+              "group": "gates",
+              "name": "ssm.cell.bands.fast.gate.transport_projection.bias",
+              "requires_grad": true,
+              "shape": [
+                2
+              ]
+            },
+            {
+              "count": 16,
+              "group": "gates",
+              "name": "ssm.cell.bands.fast.gate.timescale_projection.weight",
+              "requires_grad": true,
+              "shape": [
+                4,
+                4
+              ]
+            },
+            {
+              "count": 4,
+              "group": "gates",
+              "name": "ssm.cell.bands.fast.gate.timescale_projection.bias",
+              "requires_grad": true,
+              "shape": [
+                4
+              ]
+            },
+            {
+              "count": 4,
+              "group": "gates",
+              "name": "ssm.cell.bands.fast.gate.geometry_projection.weight",
+              "requires_grad": true,
+              "shape": [
+                1,
+                4
+              ]
+            },
+            {
+              "count": 1,
+              "group": "gates",
+              "name": "ssm.cell.bands.fast.gate.geometry_projection.bias",
+              "requires_grad": true,
+              "shape": [
+                1
+              ]
+            },
+            {
+              "count": 4,
+              "group": "generators",
+              "name": "ssm.cell.bands.fast.generator.log_tau_base",
+              "requires_grad": true,
+              "shape": [
+                4
+              ]
+            },
+            {
+              "count": 2,
+              "group": "generators",
+              "name": "ssm.cell.bands.fast.generator.rotation_bias",
+              "requires_grad": true,
+              "shape": [
+                2
+              ]
+            },
+            {
+              "count": 16,
+              "group": "generators",
+              "name": "ssm.cell.bands.fast.generator.input_injection",
+              "requires_grad": true,
+              "shape": [
+                4,
+                4
+              ]
+            },
+            {
+              "count": 16,
+              "group": "gates",
+              "name": "ssm.cell.bands.middle.gate.forcing_projection.weight",
+              "requires_grad": true,
+              "shape": [
+                4,
+                4
+              ]
+            },
+            {
+              "count": 4,
+              "group": "gates",
+              "name": "ssm.cell.bands.middle.gate.forcing_projection.bias",
+              "requires_grad": true,
+              "shape": [
+                4
+              ]
+            },
+            {
+              "count": 8,
+              "group": "gates",
+              "name": "ssm.cell.bands.middle.gate.input_gate_projection.weight",
+              "requires_grad": true,
+              "shape": [
+                2,
+                4
+              ]
+            },
+            {
+              "count": 2,
+              "group": "gates",
+              "name": "ssm.cell.bands.middle.gate.input_gate_projection.bias",
+              "requires_grad": true,
+              "shape": [
+                2
+              ]
+            },
+            {
+              "count": 8,
+              "group": "gates",
+              "name": "ssm.cell.bands.middle.gate.transport_projection.weight",
+              "requires_grad": true,
+              "shape": [
+                2,
+                4
+              ]
+            },
+            {
+              "count": 2,
+              "group": "gates",
+              "name": "ssm.cell.bands.middle.gate.transport_projection.bias",
+              "requires_grad": true,
+              "shape": [
+                2
+              ]
+            },
+            {
+              "count": 16,
+              "group": "gates",
+              "name": "ssm.cell.bands.middle.gate.timescale_projection.weight",
+              "requires_grad": true,
+              "shape": [
+                4,
+                4
+              ]
+            },
+            {
+              "count": 4,
+              "group": "gates",
+              "name": "ssm.cell.bands.middle.gate.timescale_projection.bias",
+              "requires_grad": true,
+              "shape": [
+                4
+              ]
+            },
+            {
+              "count": 4,
+              "group": "gates",
+              "name": "ssm.cell.bands.middle.gate.geometry_projection.weight",
+              "requires_grad": true,
+              "shape": [
+                1,
+                4
+              ]
+            },
+            {
+              "count": 1,
+              "group": "gates",
+              "name": "ssm.cell.bands.middle.gate.geometry_projection.bias",
+              "requires_grad": true,
+              "shape": [
+                1
+              ]
+            },
+            {
+              "count": 4,
+              "group": "generators",
+              "name": "ssm.cell.bands.middle.generator.log_tau_base",
+              "requires_grad": true,
+              "shape": [
+                4
+              ]
+            },
+            {
+              "count": 2,
+              "group": "generators",
+              "name": "ssm.cell.bands.middle.generator.rotation_bias",
+              "requires_grad": true,
+              "shape": [
+                2
+              ]
+            },
+            {
+              "count": 16,
+              "group": "generators",
+              "name": "ssm.cell.bands.middle.generator.input_injection",
+              "requires_grad": true,
+              "shape": [
+                4,
+                4
+              ]
+            },
+            {
+              "count": 16,
+              "group": "gates",
+              "name": "ssm.cell.bands.harmonic.gate.forcing_projection.weight",
+              "requires_grad": true,
+              "shape": [
+                4,
+                4
+              ]
+            },
+            {
+              "count": 4,
+              "group": "gates",
+              "name": "ssm.cell.bands.harmonic.gate.forcing_projection.bias",
+              "requires_grad": true,
+              "shape": [
+                4
+              ]
+            },
+            {
+              "count": 8,
+              "group": "gates",
+              "name": "ssm.cell.bands.harmonic.gate.input_gate_projection.weight",
+              "requires_grad": true,
+              "shape": [
+                2,
+                4
+              ]
+            },
+            {
+              "count": 2,
+              "group": "gates",
+              "name": "ssm.cell.bands.harmonic.gate.input_gate_projection.bias",
+              "requires_grad": true,
+              "shape": [
+                2
+              ]
+            },
+            {
+              "count": 8,
+              "group": "gates",
+              "name": "ssm.cell.bands.harmonic.gate.transport_projection.weight",
+              "requires_grad": true,
+              "shape": [
+                2,
+                4
+              ]
+            },
+            {
+              "count": 2,
+              "group": "gates",
+              "name": "ssm.cell.bands.harmonic.gate.transport_projection.bias",
+              "requires_grad": true,
+              "shape": [
+                2
+              ]
+            },
+            {
+              "count": 16,
+              "group": "gates",
+              "name": "ssm.cell.bands.harmonic.gate.timescale_projection.weight",
+              "requires_grad": true,
+              "shape": [
+                4,
+                4
+              ]
+            },
+            {
+              "count": 4,
+              "group": "gates",
+              "name": "ssm.cell.bands.harmonic.gate.timescale_projection.bias",
+              "requires_grad": true,
+              "shape": [
+                4
+              ]
+            },
+            {
+              "count": 4,
+              "group": "gates",
+              "name": "ssm.cell.bands.harmonic.gate.geometry_projection.weight",
+              "requires_grad": true,
+              "shape": [
+                1,
+                4
+              ]
+            },
+            {
+              "count": 1,
+              "group": "gates",
+              "name": "ssm.cell.bands.harmonic.gate.geometry_projection.bias",
+              "requires_grad": true,
+              "shape": [
+                1
+              ]
+            },
+            {
+              "count": 4,
+              "group": "generators",
+              "name": "ssm.cell.bands.harmonic.generator.log_tau_base",
+              "requires_grad": true,
+              "shape": [
+                4
+              ]
+            },
+            {
+              "count": 2,
+              "group": "generators",
+              "name": "ssm.cell.bands.harmonic.generator.rotation_bias",
+              "requires_grad": true,
+              "shape": [
+                2
+              ]
+            },
+            {
+              "count": 16,
+              "group": "generators",
+              "name": "ssm.cell.bands.harmonic.generator.input_injection",
+              "requires_grad": true,
+              "shape": [
+                4,
+                4
+              ]
+            },
+            {
+              "count": 48,
+              "group": "normalization_readout",
+              "name": "ssm.cell.readout.weight",
+              "requires_grad": true,
+              "shape": [
+                4,
+                12
+              ]
+            },
+            {
+              "count": 4,
+              "group": "normalization_readout",
+              "name": "ssm.cell.readout.bias",
+              "requires_grad": true,
+              "shape": [
+                4
+              ]
+            }
+          ],
+          "groups": {
+            "cochain_maps": 0,
+            "gates": 195,
+            "generators": 66,
+            "initial_state_optional": 48,
+            "memory_bands": 0,
+            "normalization_readout": 81,
+            "output_projection_tied": 116,
+            "sparse_geometry": 5,
+            "token_embeddings": 116
+          },
+          "tied_output": "embedding.weight",
+          "total_parameters": 511
+        },
+        "relative_reduction": 0.9639103591761763,
+        "steps": 100
+      },
+      "name": "tiny_overfit_and_gradient_coverage",
+      "passed": true,
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "interrupt_at": 25,
+        "logit_max_abs": 0.0,
+        "loss_max_abs": 0.0,
+        "parameter_max_abs": 0.0,
+        "restored_cursor": 25,
+        "steps": 50,
+        "tokenizer_fingerprint": "daebf458e55e56a433cf8f621c7d3f773de2c3af0a63456939b56e004061eaf4"
+      },
+      "name": "checkpoint_resume_determinism",
+      "passed": true,
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "cuda_amp": "UNAVAILABLE",
+        "finite": true,
+        "generation": {
+          "greedy_ids": [
+            2,
+            18,
+            19,
+            5,
+            14,
+            12,
+            8
+          ],
+          "reproducible": true,
+          "sample_ids": [
+            2,
+            18,
+            19,
+            16,
+            21,
+            26,
+            12
+          ]
+        },
+        "precision": "float32_cpu",
+        "validation": {
+          "loss": 3.367295980453491,
+          "perplexity": 29.000003814697266,
+          "token_count": 28
+        },
+        "validation_parameter_unchanged": true
+      },
+      "name": "precision_validation_generation",
+      "passed": true,
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "records": [
+          {
+            "finite": true,
+            "length": 2,
+            "rss_mb": 680.12109375,
+            "seconds": 0.0011542759893927723,
+            "state_elements_per_batch": 48,
+            "tokens_per_second": 6930
+          },
+          {
+            "finite": true,
+            "length": 4,
+            "rss_mb": 680.12109375,
+            "seconds": 0.001979366992600262,
+            "state_elements_per_batch": 48,
+            "tokens_per_second": 8083
+          },
+          {
+            "finite": true,
+            "length": 8,
+            "rss_mb": 680.12109375,
+            "seconds": 0.0037067770026624203,
+            "state_elements_per_batch": 48,
+            "tokens_per_second": 8632
+          }
+        ]
+      },
+      "name": "throughput_memory",
+      "passed": true,
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "results": {
+          "dcss_cdi": {
+            "classification": "synthetic_plumbing_validation",
+            "final_loss": 2.721639633178711,
+            "initial_loss": 3.367295026779175,
+            "model_class": "DCSSLanguageModel",
+            "parameter_count": 511,
+            "seconds": 0.2423231340071652,
+            "steps": 20,
+            "tokens_per_second": 2310,
+            "validation": {
+              "loss": 3.587451934814453,
+              "perplexity": 36.14186477661133,
+              "token_count": 28
+            }
+          },
+          "transformer": {
+            "classification": "synthetic_plumbing_validation",
+            "final_loss": 2.561933755874634,
+            "initial_loss": 3.3613195419311523,
+            "model_class": "TinyTransformerBaseline",
+            "parameter_count": 317,
+            "seconds": 0.026516295998590067,
+            "steps": 20,
+            "tokens_per_second": 21119,
+            "validation": {
+              "loss": 3.508403778076172,
+              "perplexity": 33.394920349121094,
+              "token_count": 28
+            }
+          },
+          "v2": {
+            "classification": "synthetic_plumbing_validation",
+            "final_loss": 2.765810251235962,
+            "initial_loss": 3.3670814037323,
+            "model_class": "LegacyCDIV2Adapter",
+            "parameter_count": 265,
+            "seconds": 0.026795605997904204,
+            "steps": 20,
+            "tokens_per_second": 20898,
+            "validation": {
+              "loss": 3.635427713394165,
+              "perplexity": 37.918067932128906,
+              "token_count": 28
+            }
+          }
+        },
+        "shared_data_manifest": "edbba5d41e615e38f34394e556bc35517604b490ad224d6445716a040607ae9a",
+        "shared_optimizer": "AdamW",
+        "shared_tokenizer_fingerprint": "daebf458e55e56a433cf8f621c7d3f773de2c3af0a63456939b56e004061eaf4",
+        "warning": "This is a local synthetic plumbing comparison, not a real-corpus language-quality benchmark."
+      },
+      "name": "matched_baseline_comparison",
+      "passed": true,
+      "status": "PASS"
+    }
+  ],
+  "seed": 42,
+  "stage": "D",
+  "stage_e_implementation_allowed": false,
+  "status": "PASS",
+  "transition": "Await explicit user approval before Stage E.",
+  "transition_manifest": {
+    "config": {
+      "batch_size": 4,
+      "chunk_length": 8,
+      "device": "cpu",
+      "dtype_str": "float32",
+      "gradient_accumulation": 1,
+      "gradient_clip_norm": 1.0,
+      "learning_rate": 0.05,
+      "name": "nano",
+      "overfit_steps": 100,
+      "resume_interrupt_at": 25,
+      "resume_steps": 50,
+      "seed": 42,
+      "warmup_steps": 0,
+      "weight_decay": 0.0
+    },
+    "data_manifest_fingerprint": "edbba5d41e615e38f34394e556bc35517604b490ad224d6445716a040607ae9a",
+    "data_ordering_policy": "deterministic_document_chunks_no_cross_document_packing",
+    "format": "dcss-cdi-stage-d-transition-manifest-v1",
+    "manifest_fingerprint": "0992acdd3ab8b6a0d8e50a0e92cbb47a81ba79de4d9a4fc4773d97abf6894156",
+    "model_widths": {
+      "chunk_length": 8,
+      "embedding_dim": 4
+    },
+    "optimizer": {
+      "gradient_clip_norm": 1.0,
+      "learning_rate": 0.05,
+      "name": "AdamW",
+      "weight_decay": 0.0
+    },
+    "precision": "float32_cpu",
+    "stage_e_implementation_allowed": false,
+    "stopping_rule": "fixed_steps",
+    "tokenizer_fingerprint": "daebf458e55e56a433cf8f621c7d3f773de2c3af0a63456939b56e004061eaf4",
+    "training_token_budget": 2800
+  }
+}

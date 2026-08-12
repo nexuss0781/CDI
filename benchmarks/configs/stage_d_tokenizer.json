@@ -1,0 +1,50 @@
+{
+  "config": {
+    "byte_policy": "unicode_character_with_unk_fallback",
+    "embedding_dim": 4,
+    "format": "dcss-cdi-character-tokenizer-v1",
+    "max_chunk_length": 8,
+    "normalization": "NFC",
+    "special_tokens": [
+      "<pad>",
+      "<unk>",
+      "<bos>",
+      "<eos>",
+      "<doc>"
+    ],
+    "whitespace_policy": "preserve"
+  },
+  "fingerprint": "daebf458e55e56a433cf8f621c7d3f773de2c3af0a63456939b56e004061eaf4",
+  "format": "dcss-cdi-character-tokenizer-v1",
+  "vocabulary": [
+    "<pad>",
+    "<unk>",
+    "<bos>",
+    "<eos>",
+    "<doc>",
+    "\t",
+    "\n",
+    " ",
+    "a",
+    "b",
+    "c",
+    "d",
+    "e",
+    "f",
+    "g",
+    "h",
+    "l",
+    "m",
+    "n",
+    "o",
+    "r",
+    "s",
+    "t",
+    "u",
+    "w",
+    "é",
+    "ላ",
+    "ም",
+    "ሰ"
+  ]
+}

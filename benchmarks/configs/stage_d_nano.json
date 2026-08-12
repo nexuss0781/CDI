@@ -1,0 +1,18 @@
+{
+  "name": "nano",
+  "seed": 42,
+  "dtype_str": "float32",
+  "device": "cpu",
+  "chunk_length": 8,
+  "batch_size": 4,
+  "learning_rate": 0.05,
+  "weight_decay": 0.0,
+  "gradient_clip_norm": 1.0,
+  "gradient_accumulation": 1,
+  "warmup_steps": 0,
+  "overfit_steps": 100,
+  "resume_steps": 50,
+  "resume_interrupt_at": 25,
+  "corpus": "data/stage_d/synthetic_corpus.jsonl",
+  "classification": "synthetic_debugging_and_reproducibility_only"
+}
