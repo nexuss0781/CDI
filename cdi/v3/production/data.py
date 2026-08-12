@@ -46,6 +46,19 @@ class P1DataPolicy:
 
 
 @dataclass(frozen=True)
+class P2DataPolicy:
+    """P2 admits governed rights-cleared pilot data and real-corpus pilot training."""
+
+    phase: str = "P2"
+    allowed_data_classes: Tuple[str, ...] = ("synthetic", "rights_cleared_pilot")
+    real_corpus_training_authorized: bool = True
+
+    def validate(self) -> None:
+        if self.phase != "P2" or "rights_cleared_pilot" not in self.allowed_data_classes or not self.real_corpus_training_authorized:
+            raise ValueError("P2 data policy requires rights-cleared pilot admission.")
+
+
+@dataclass(frozen=True)
 class DataManifest:
     """Immutable corpus/split description containing no hidden ingestion operation."""
 
@@ -56,7 +69,7 @@ class DataManifest:
     fingerprint: str
 
     @classmethod
-    def build(cls, documents: Sequence[GovernedDocument], splits: Mapping[str, Sequence[str]], policy: P1DataPolicy | None = None) -> "DataManifest":
+    def build(cls, documents: Sequence[GovernedDocument], splits: Mapping[str, Sequence[str]], policy: P1DataPolicy | P2DataPolicy | None = None) -> "DataManifest":
         policy = policy or P1DataPolicy()
         policy.validate()
         if not documents:
