@@ -1,0 +1,25 @@
+{
+  "name": "nano",
+  "n_vertices": 4,
+  "input_width": 4,
+  "output_width": 4,
+  "band_width": 4,
+  "seed": 42,
+  "dtype_str": "float32",
+  "device": "cpu",
+  "geometry_ablation": false,
+  "dt": 0.1,
+  "geometry_step_cap": 0.02,
+  "tau_min": 0.05,
+  "tau_max": 64.0,
+  "max_log_timescale_offset": 0.35,
+  "rotation_limit": 1.0,
+  "input_bound": 1.0,
+  "state_norm_bound": 10000.0,
+  "band_ranges": {
+    "fast": [0.25, 1.0],
+    "middle": [2.0, 8.0],
+    "harmonic": [16.0, 64.0]
+  },
+  "total_state_dim": 48
+}
