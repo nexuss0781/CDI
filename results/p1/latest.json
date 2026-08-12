@@ -1,0 +1,71 @@
+{
+  "deployment_authorized": false,
+  "external_side_effects_enabled": false,
+  "fine_tuning_authorized": false,
+  "fingerprint": "2eaa77f8a35392d4d96a027d8e49eda4cae35e6c1744c7f12043bc8cf43153bc",
+  "format": "dcss-cdi-p1-readiness-report-v1",
+  "gates": [
+    {
+      "details": {
+        "boundary": {
+          "deployment_authorized": false,
+          "external_side_effects_enabled": false,
+          "fine_tuning_authorized": false,
+          "real_corpus_training_authorized": false,
+          "status": "offline_research_only"
+        },
+        "config_fingerprint": "c3e81b4a4ad6feb46fc0a9c05bb13d7a3cc13ba56210dc624dabc2f88f7b1669"
+      },
+      "name": "p1_offline_configuration_boundary",
+      "passed": true,
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "data_classes": [
+          "synthetic"
+        ],
+        "manifest_fingerprint": "4799985e2a93f6d0349720c1f3340ba4eb972dd26b4b6a494db3e43af5b75e18",
+        "splits": {
+          "test": [
+            "test"
+          ],
+          "train": [
+            "train"
+          ],
+          "validation": [
+            "validation"
+          ]
+        }
+      },
+      "name": "p1_governed_synthetic_manifest",
+      "passed": true,
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "checkpoint_sha256": "3ef79b6df3d470583315daf4068c9c5907795c3b451cc8aa7302d98df9c2ec97",
+        "full_cursor": 6,
+        "loss_sequence_equal": true,
+        "parameter_fingerprints_equal": true,
+        "resumed_cursor": 6
+      },
+      "name": "p1_atomic_checkpoint_deterministic_resume",
+      "passed": true,
+      "status": "PASS"
+    },
+    {
+      "details": {
+        "atol": 1e-06,
+        "max_abs_error": 0.0
+      },
+      "name": "p1_core_optionality",
+      "passed": true,
+      "status": "PASS"
+    }
+  ],
+  "offline_only": true,
+  "phase": "P1",
+  "real_corpus_training_authorized": false,
+  "status": "PASS"
+}
