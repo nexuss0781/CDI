@@ -27,6 +27,18 @@ class ProductionRunConfig:
     checkpoint_interval: int = 50
     tags: Tuple[str, ...] = ("gpu", "production", "large-corpus")
 
+    @staticmethod
+    def from_json(path: str | Path) -> ProductionRunConfig:
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
+        # Filter keys to match dataclass fields
+        fields = {"phase", "run_name", "seed", "device", "dtype", "model_family", "tokenizer_version", "training_mode", "max_steps", "checkpoint_interval"}
+        filtered = {k: v for k, v in data.items() if k in fields}
+        # Handle data_policy nested structure from production_large.json
+        if "data_policy" in data:
+            if "allowed_data_classes" in data["data_policy"]:
+                filtered["allowed_data_classes"] = tuple(data["data_policy"]["allowed_data_classes"])
+        return ProductionRunConfig(**filtered)
+
     def validate(self) -> None:
         if self.phase not in ("P1", "Production"):
             raise ValueError("Unsupported production phase.")
