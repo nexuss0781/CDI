@@ -13,3 +13,7 @@ The first artifact-generation invocation ran from outside the repository and cou
 The updated legacy integration runner initially marked `W_iota` as severed because its finite initial gradient was `6.39e-09`, below the generic `1e-08` diagnostic threshold after the tied output vocabulary increased to 16,000 EthioBBPE tokens. The `W_iota` diagnostic now uses a documented `1e-12` projection threshold while all other checks retain their existing thresholds.
 
 Final validation passed after the migration: the complete `pytest -q` suite passed 245 tests in 45.48 seconds, the focused Stage D suite passed 9 tests, production checkpoint/inference tests passed 7 tests, `run_tests.py` completed every phase successfully, and `bash -n run.sh` passed.
+
+## Real Synaxarium pilot duplicate-content rejection
+
+The first full 60-document pilot build failed before training because the governed data manifest correctly detected duplicate Synaxarium text (`synaxarium-ሕዳር-19` matched `synaxarium-ሕዳር-14`). The pilot loader now computes a SHA-256 content hash before selection, retains only the first stable unique document, and then constructs the 70/15/15 document-level splits. This preserves the manifest’s no-duplicate and no-leakage contract rather than weakening it.
