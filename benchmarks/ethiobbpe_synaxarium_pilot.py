@@ -92,9 +92,17 @@ def load_governed_synaxarium(config: PilotConfig) -> tuple[list[GovernedDocument
         identifier = f"synaxarium-{month}-{day:02d}"
         if text:
             rows.append((identifier, text))
-    rows = sorted(rows, key=lambda row: _stable_rank(row[0]))[: config.document_limit]
-    if len(rows) < config.document_limit:
-        raise ValueError(f"Expected at least {config.document_limit} usable Synaxarium documents; found {len(rows)}.")
+    unique_rows: list[tuple[str, str]] = []
+    seen_content_hashes: set[str] = set()
+    for identifier, text in sorted(rows, key=lambda row: _stable_rank(row[0])):
+        content_hash = sha256(text.encode("utf-8")).hexdigest()
+        if content_hash not in seen_content_hashes:
+            seen_content_hashes.add(content_hash)
+            unique_rows.append((identifier, text))
+        if len(unique_rows) >= config.document_limit:
+            break
+    if len(unique_rows) < config.document_limit:
+        raise ValueError(f"Expected at least {config.document_limit} unique usable Synaxarium documents; found {len(unique_rows)}.")
 
     documents = [
         GovernedDocument(
@@ -106,7 +114,7 @@ def load_governed_synaxarium(config: PilotConfig) -> tuple[list[GovernedDocument
             data_class="rights_cleared_pilot",
             pii_review="public_historical_religious_text_no_personal_profile_data",
         )
-        for identifier, text in rows
+        for identifier, text in unique_rows
     ]
     count = len(documents)
     train_end = int(count * 0.70)
