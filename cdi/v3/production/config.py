@@ -12,8 +12,8 @@ class ProductionRunConfig:
     """Production configuration authorizing real-data GPU training."""
 
     schema_version: str = "dcss-cdi-production-run-v1"
-    phase: str = "Production"
-    run_name: str = "gpu-large-corpus-training"
+    phase: str = "P1"
+    run_name: str = "offline-training-hardening"
     seed: int = 42
     device: str = "cpu"
     dtype: str = "float32"
@@ -36,6 +36,8 @@ class ProductionRunConfig:
             raise ValueError("Seed, max_steps, and checkpoint_interval must be positive.")
         if self.checkpoint_interval > self.max_steps:
             raise ValueError("checkpoint_interval cannot exceed max_steps.")
+        if self.phase == "P1" and self.device != "cpu":
+            raise ValueError("P1 hardening is restricted to CPU execution.")
         if self.device not in ("cpu", "cuda"):
             raise ValueError("Device must be cpu or cuda.")
         if self.model_family not in {"dcss_cdi", "transformer", "v2"}:

@@ -44,7 +44,12 @@ def run_production_pipeline(output_dir: str | Path = "results/production") -> Di
     print(f"Training on device: {device}")
     
     # Production config for the run
-    run_config = ProductionRunConfig(device=device, max_steps=200, checkpoint_interval=50)
+    run_config = ProductionRunConfig(
+        phase="Production", 
+        device=device, 
+        max_steps=200, 
+        checkpoint_interval=50
+    )
     run_config.validate()
     
     # StageDConfig wrapper for training helpers
