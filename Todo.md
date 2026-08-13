@@ -102,7 +102,7 @@ Before marking any sprint complete, confirm all applicable artifacts exist in on
 - [x] CCT passed the predefined bounded learning gate in three seeds.
 - [x] CCT passed the bounded matched-baseline tolerance gate.
 - [x] The bounded result was independently reproduced on CPU.
-- [ ] Preserve the final result directory and commit reference in the CCT evidence index.
+- [x] Preserve the final result directory and commit reference in the CCT evidence index; see `docs/CCT_EVIDENCE_INDEX.md`.
 
 **If a future G1 reproduction fails:** identify exactly one failure class—tokenizer/data contract, target construction, gradient path, state stability, optimizer, or readout—then repair that class and rerun the unchanged protocol.
 
