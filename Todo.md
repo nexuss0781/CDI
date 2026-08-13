@@ -1,0 +1,430 @@
+# CCT Todo
+
+> **Private scope:** This is the sole execution checklist for CCT Level 1. It contains only CCT technical objectives, evidence, gates, and decisions. Do not add product narrative, personal background, later-stage design, or unrelated system work.
+
+## How to Use This Checklist
+
+- [ ] Work on **one unchecked CCT Goal or sprint at a time**.
+- [ ] Do not begin a later goal until the current goal has its required evidence and an allowed transition verdict.
+- [ ] Record the exact command, code revision, seed list, configuration, tokenizer fingerprint, data manifest fingerprint, metrics, hardware, and result directory for every decision run.
+- [ ] Keep comparisons fair: same data split, causal token budget, context length, precision, optimizer family, evaluation protocol, and approximately matched parameter count.
+- [ ] Keep document-level isolation and content-hash leakage checks enabled for all real-data runs.
+- [ ] Treat text samples as supporting evidence only after numerical loss and stability gates pass.
+- [ ] Do not claim speed from a microbenchmark; measure end-to-end training and generation at fixed hardware, vocabulary, batch size, context, and precision.
+- [ ] Change only one declared variable family per ablation. Mark a multi-variable experiment as **diagnostic only**.
+- [ ] Use CCT Goal labels, technical facts, commands, and results only in repository artifacts.
+
+## Required Record for Every Decision Sprint
+
+Before marking any sprint complete, confirm all applicable artifacts exist in one unique results directory.
+
+- [ ] `latest.json` records configuration, code revision, fingerprints, per-seed metrics, summary metrics, hardware, and verdict.
+- [ ] `REPORT.md` records method, locked controls, gates, metrics, result, and scope.
+- [ ] `manifest.json`, or an embedded manifest, records dataset lineage, splits, deduplication, leakage checks, and fingerprint.
+- [ ] `environment.txt` records Python, package versions, device, precision, operating system, and code revision.
+- [ ] `commands.sh` records the exact commands used.
+- [ ] `generation.json` exists for generation sprints and records prompts, settings, raw IDs, decoded output, and labels.
+- [ ] The working tree is clean or every intentional change is committed before the result is treated as reproducible.
+
+## Verdict Rules
+
+| Verdict | Checklist action |
+|---|---|
+| `READY_FOR_NEXT_GOAL` | Mark the current transition gate complete and unlock only the next listed goal. |
+| `REPAIR_CURRENT_GOAL` | Keep the transition gate unchecked; repair the named data, setup, or implementation issue and rerun the same sprint. |
+| `REDESIGN_BEFORE_SCALE` | Keep all scale tasks unchecked; create one controlled redesign/ablation task. |
+| `OPTIMIZE_IMPLEMENTATION` | Do not make speed claims; profile and optimize while retaining a correctness oracle. |
+| `STOP_UNTIL_NEW_EVIDENCE` | Stop execution, preserve artifacts, and define one testable hypothesis before resuming. |
+
+---
+
+# CCT-G0 — Reproducible Execution Readiness
+
+**Goal:** Establish one repeatable environment that installs the exact CCT dependency contract and runs the same code without hidden manual steps.
+
+## G0.1 — Repository and Dependency Readiness
+
+- [x] Pin the tokenizer backend in `requirements.txt` as `EthioBBPE==2.0.0`.
+- [x] Remove the unused `transformers` runtime requirement that conflicts with EthioBBPE’s Tokenizers constraint.
+- [x] Provide a clean master-branch Colab bootstrap in `colab.md`.
+- [x] Verify the pinned EthioBBPE backend imports in the validated environment.
+- [x] Run the CDI regression suite after the dependency repair; baseline evidence is **246 passing tests**.
+- [ ] In every new runtime, delete stale local checkouts before cloning.
+- [ ] In every new runtime, clone `master` only and record `git rev-parse HEAD`.
+- [ ] Install dependencies with `python -m pip install -r requirements.txt` before importing CCT.
+- [ ] Confirm `import ethiobbpe` and record the module path.
+- [ ] Record Python version, PyTorch version, operating system, CPU/GPU availability, precision, and package versions.
+- [ ] Run the complete regression suite before starting any new training sprint.
+- [ ] Save terminal output and environment versions under the sprint result directory.
+
+### G0 Transition Gate
+
+- [ ] Regression suite passes in the target runtime.
+- [ ] EthioBBPE import succeeds in the target runtime.
+- [ ] The target checkout is `master` at a recorded commit.
+- [ ] The working tree is clean.
+
+**If the gate fails:** repair the checkout, dependency constraint, import, or environment contract. Do **not** change CCT model parameters.
+
+---
+
+# CCT-G1 — Bounded Learning Proof
+
+**Goal:** Verify that CCT learns a real, document-isolated language task under a fair three-seed comparison against matched GRU and Transformer baselines.
+
+## G1.1 — Exact Baseline Reproduction
+
+### Locked protocol
+
+- [x] Use the EthioBBPE tokenizer artifact and record its fingerprint.
+- [x] Use document-isolated Synaxarium text with governed splits and content-hash duplicate checks.
+- [x] Use seeds `[11, 29, 47]`.
+- [x] Use matched CCT, GRU, and Transformer baselines at the bounded 300-step protocol.
+- [x] Record held-out validation/test metrics, parameter counts, token budget, and throughput.
+- [x] Independently reproduce the bounded CPU run with `EARNED_NEXT_PILOT`.
+
+### Reproduction checklist
+
+- [ ] Clone the recorded code revision and install the exact requirements.
+- [ ] Run the unchanged bounded protocol; do not change seeds, tokenizer, document limit, context, batch size, optimizer settings, models, or evaluation budget.
+- [ ] Confirm document-level split isolation passes.
+- [ ] Confirm content-hash leakage checks pass.
+- [ ] Confirm CCT training loss decreases in every seed.
+- [ ] Confirm no NaN, Inf, missing-gradient, or invalid-token failure appears.
+- [ ] Record validation cross-entropy, test cross-entropy, perplexity, and token accuracy per seed for every model.
+- [ ] Record parameter count, causal token positions, batch size, chunk length, optimizer settings, precision, elapsed time, and tokens/second per model.
+- [ ] Confirm the report contains data-manifest and tokenizer fingerprints.
+
+### G1 Transition Gate
+
+- [x] CCT passed the predefined bounded learning gate in three seeds.
+- [x] CCT passed the bounded matched-baseline tolerance gate.
+- [x] The bounded result was independently reproduced on CPU.
+- [ ] Preserve the final result directory and commit reference in the CCT evidence index.
+
+**If a future G1 reproduction fails:** identify exactly one failure class—tokenizer/data contract, target construction, gradient path, state stability, optimizer, or readout—then repair that class and rerun the unchanged protocol.
+
+---
+
+# CCT-G2 — Real-Data Scale Survival
+
+**Goal:** Determine whether CCT’s bounded quality signal survives broader real-data exposure without changing the core comparison contract.
+
+## G2.1 — Full-Corpus 1,000-Step Diagnostic
+
+### Preparation checklist
+
+- [x] Deduplicate the real corpus and record the governed manifest process.
+- [x] Add deterministic per-epoch shuffled training batches to the pilot harness.
+- [x] Add complete held-out evaluation mode (`--eval-batches 0`).
+- [x] Add a regression test proving shuffled training resumes identically from a checkpoint.
+- [x] Run the full CDI test suite after these controls; baseline evidence is **246 passing tests**.
+- [x] Push the hardened Stage 2 harness to `master`.
+- [ ] Start from a clean master checkout with the current requirements installed.
+- [ ] Record the code revision before the run.
+- [ ] Use the deduplicated governed corpus and record its manifest fingerprint.
+- [ ] Use deterministic per-epoch batch shuffle and record the seed-derived method.
+- [ ] Use all held-out validation and test batches (`--eval-batches 0`).
+- [ ] Use seeds `[11, 29, 47]`.
+- [ ] Use 1,000 training steps.
+- [ ] Use the declared full-corpus diagnostic configuration: `--document-limit 321`, `--chunks-per-document 32`, `--chunk-length 16`, `--batch-size 2`, `--learning-rate 0.01`.
+- [ ] Run CCT, GRU, and Transformer under the same data, token budget, context, precision, and evaluation protocol.
+- [ ] Save the final `Pilot ...` verdict line.
+- [ ] Save `REPORT.md`, `latest.json`, manifest, environment record, and commands.
+
+### G2.1 Measurement checklist
+
+- [ ] Confirm no duplicate content or cross-split leakage.
+- [ ] Confirm all three CCT seeds have finite training and evaluation values.
+- [ ] Confirm CCT training loss decreases in every seed.
+- [ ] Record validation/test cross-entropy, perplexity, token accuracy, and uncertainty across seeds.
+- [ ] Record parameter count and total causal token positions per model/seed.
+- [ ] Record training elapsed time and tokens/second for every model/seed.
+- [ ] Confirm the report declares `deterministic_per_epoch_shuffle`.
+- [ ] Confirm the report declares `all_held_out_batches`.
+- [ ] Compute the CCT relative validation-loss gap to the best baseline.
+- [ ] Check whether CCT is within the declared Transformer loss tolerance.
+- [ ] Check whether CCT consistently matches or beats the GRU.
+
+### G2.1 Transition Gate
+
+- [ ] The quality relation does not materially collapse relative to G1.
+- [ ] No stability failure appears.
+- [ ] CCT remains within the declared Transformer tolerance.
+- [ ] CCT consistently matches or beats the GRU.
+- [ ] The result has a complete, reproducible artifact set.
+
+**If the gate passes:** unlock G2.2 only.
+
+**If the gate fails:** do **not** add more data, steps, or context. Mark `REDESIGN_BEFORE_SCALE` and move to one controlled CCT-G3 ablation.
+
+## G2.2 — Scale Ladder
+
+Run one rung at a time. Every rung requires three seeds, the same evidence fields as G1, and a transition decision before the next rung.
+
+### Training-step ladder
+
+- [ ] Run 3,000 steps only after G2.1 passes.
+- [ ] Review three-seed metrics, stability, and throughput before moving onward.
+- [ ] Run 10,000 steps only after the 3,000-step gate passes.
+- [ ] Review three-seed metrics, stability, and throughput before changing any other axis.
+
+### Context ladder entry
+
+- [ ] Begin context changes only after the selected training-step rung is stable.
+- [ ] Keep corpus split, tokenizer, model family, parameter budget, and optimizer fixed when changing context.
+
+### Capacity ladder entry
+
+- [ ] Increase exactly one documented CCT configuration dimension at a time.
+- [ ] Record total parameter count and trainable-state size separately.
+- [ ] Keep vocabulary, tokenizer artifact, corpus split, context, and training budget fixed for each capacity comparison.
+
+### Corpus ladder entry
+
+- [ ] Expand corpus size only after smaller controlled rungs are stable.
+- [ ] Rebuild and record the governed manifest before every corpus expansion.
+- [ ] Re-run leakage and duplicate checks after every corpus change.
+
+---
+
+# CCT-G3 — Architecture Value
+
+**Goal:** Determine whether each distinctive CCT mechanism contributes measurable value rather than unverified complexity.
+
+## G3.1 — Controlled Mechanism Ablations
+
+### Common controls
+
+- [ ] Select one CCT mechanism for the first ablation hypothesis.
+- [ ] Write the pre-run hypothesis and expected metric before training.
+- [ ] Keep embeddings, tokenizer, output vocabulary, training budget, optimizer, data split, readout, context, precision, and seed list fixed.
+- [ ] Change exactly one mechanism in the selected variant.
+- [ ] Record parameter-count differences; if necessary, add a controlled parameter-matched counterpart.
+- [ ] Run Full CCT as the reference model.
+- [ ] Run the selected CCT ablation variant.
+- [ ] Run GRU baseline.
+- [ ] Run Transformer baseline.
+- [ ] Run every variant across three seeds.
+
+### Ablation A — State/geometry contribution
+
+- [ ] Define the exact state/geometry element changed or disabled.
+- [ ] Verify the variant remains causal and numerically stable.
+- [ ] Compare held-out loss, test loss, token accuracy, gradient/state norms, throughput, and memory.
+- [ ] Record whether the element improves a predeclared metric repeatedly across seeds.
+
+### Ablation B — Recurrence/readout contribution
+
+- [ ] Define the exact recurrence or readout element changed or disabled.
+- [ ] Verify output shape, causal target alignment, and gradient reachability.
+- [ ] Compare held-out loss, retention/context behavior, stability, and throughput.
+- [ ] Record whether the element improves a predeclared metric repeatedly across seeds.
+
+### G3 Transition Gate
+
+- [ ] At least one CCT-specific mechanism shows repeated predeclared value in held-out loss, stability, long-context retention, or end-to-end efficiency.
+- [ ] The value survives three-seed comparison and does not depend on hidden budget changes.
+
+**If the gate passes:** retain the contributing mechanism and return to the appropriate G2/G4 rung.
+
+**If the gate fails:** remove or simplify the non-contributing mechanism, then rerun the affected G1/G2 protocol. Do not retain complexity without evidence.
+
+---
+
+# CCT-G4 — Language Quality and Context Readiness
+
+**Goal:** Increase language-engine capacity and usable context while preserving causal correctness, numerical stability, fair comparison, and execution viability.
+
+## G4.1 — Context Ladder
+
+### Context 16
+
+- [x] Preserve the established 16-token reference protocol.
+- [ ] Reconfirm the selected post-G3 configuration against the reference before increasing context.
+
+### Context 64
+
+- [ ] Keep corpus split, tokenizer, vocabulary, model family, parameter target, training budget, optimizer, precision, and seeds fixed.
+- [ ] Train and evaluate CCT, GRU, and Transformer at context 64.
+- [ ] Record held-out loss, test loss, token accuracy, gradient norms, CCT state norms, throughput, and peak memory.
+- [ ] Confirm no CCT stability regression relative to the accepted context-16 configuration.
+
+### Context 128
+
+- [ ] Unlock only after the context-64 gate passes.
+- [ ] Repeat the locked matched comparison at context 128.
+- [ ] Record all context-64 metrics plus memory footprint and any long-context failure mode.
+- [ ] Confirm the quality relation remains within the declared tolerance.
+
+### Context 256 and beyond
+
+- [ ] Unlock only after context 128 passes.
+- [ ] Run the same matched protocol; do not change unrelated variables.
+- [ ] Record peak memory, throughput, stability, and held-out quality at every rung.
+- [ ] Stop the ladder if quality, stability, or resource use regresses without an explainable hypothesis.
+
+## G4.2 — Capacity Ladder
+
+- [ ] Select one CCT configuration dimension to increase.
+- [ ] Write the expected quality, stability, and throughput effect before running.
+- [ ] Increase that single dimension only.
+- [ ] Record parameter count and trainable-state size.
+- [ ] Run three seeds with fixed data, context, tokenizer, vocabulary, optimizer, and training budget.
+- [ ] Compare against the immediate preceding stable configuration.
+- [ ] Keep the new capacity only if quality improves monotonically or the trade-off is explicitly justified.
+
+### G4 Transition Gate
+
+- [ ] The selected CCT configuration improves or preserves held-out quality.
+- [ ] Training and inference remain numerically stable.
+- [ ] The configuration does not make the CCT-G5 throughput target impossible.
+- [ ] The result is reproducible with the required artifact set.
+
+**If the gate fails:** return to the last stable configuration and diagnose state bottleneck, readout capacity, initialization, learning-rate schedule, or gradient control.
+
+---
+
+# CCT-G5 — End-to-End Efficiency
+
+**Goal:** Measure and improve practical CCT training and generation efficiency without sacrificing correctness.
+
+## G5.1 — Matched Performance Baseline
+
+- [ ] Select the accepted quality configuration from CCT-G4.
+- [ ] Lock vocabulary, tokenizer, parameter count, batch size, context, precision, device, prompt length, and generation length.
+- [ ] Benchmark CCT, GRU, and Transformer under those same conditions.
+- [ ] Measure completed causal training token positions per second, including forward, backward, and optimizer step.
+- [ ] Measure new generated output tokens per second after prompt processing.
+- [ ] Measure prompt-to-first-token latency and fixed-length continuation latency.
+- [ ] Measure peak allocated or resident memory.
+- [ ] Record device, driver/runtime, precision, batch size, context, and vocabulary with each benchmark.
+- [ ] Save raw benchmark samples, not only averages.
+
+## G5.2 — Profile Before Change
+
+- [ ] Profile the reference CCT implementation before optimizing.
+- [ ] Measure time in embeddings/output projection.
+- [ ] Measure time in recurrent loop execution.
+- [ ] Measure time in state update operations.
+- [ ] Measure time in geometry/state-specific operations.
+- [ ] Measure data movement and allocation overhead.
+- [ ] Select one dominant bottleneck and write one optimization hypothesis.
+
+## G5.3 — Correctness-Preserving Optimization
+
+- [ ] Keep the unoptimized implementation as the correctness oracle.
+- [ ] Remove avoidable Python-loop or allocation overhead only after profiling identifies it.
+- [ ] Add compiled or chunked execution only with state and gradient equivalence tests.
+- [ ] Optimize vocabulary/output handling only if the profile proves it dominates.
+- [ ] Compare logits/loss within a declared tolerance before and after every optimization.
+- [ ] Re-run unit, gradient, checkpoint/resume, and generation regressions after every optimization.
+- [ ] Re-run the matched end-to-end benchmark after every optimization.
+
+### G5 Transition Gate
+
+- [ ] Any performance improvement preserves the declared correctness tolerance.
+- [ ] Any speed statement is based on matched end-to-end evidence.
+- [ ] Any memory statement is based on the same workload and hardware.
+
+**If the gate fails:** retain the reference implementation, mark `OPTIMIZE_IMPLEMENTATION`, and return to profiling. Do not trade correctness for throughput.
+
+---
+
+# CCT-G6 — Controlled Generation Readiness
+
+**Goal:** Demonstrate coherent, controlled **in-domain** continuation only after numerical language-quality and stability gates pass.
+
+## G6.1 — Versioned Fixed-Prompt Suite
+
+### Prompt-set preparation
+
+- [ ] Build prompts from held-out in-domain material only.
+- [ ] Version the prompt set and record its source split and fingerprint.
+- [ ] Define fixed prompt lengths, generation lengths, decoding mode, temperature, top-k/top-p if used, and seed behavior.
+- [ ] Keep the prompt set identical for CCT and baselines.
+
+### Generation run
+
+- [ ] Confirm G2/G4 held-out quality and stability gates passed before generating samples.
+- [ ] Generate from every fixed prompt with every evaluated model.
+- [ ] Record prompt text/IDs, generation configuration, seed, raw generated IDs, decoded text, length, repetition measures, and termination behavior.
+- [ ] Detect invalid token decoding.
+- [ ] Detect unbounded loops and degenerate repetition.
+- [ ] Evaluate continuation coherence relative to the local prompt and corpus domain.
+- [ ] Create anonymized samples for blind review without model labels.
+- [ ] Record blinded review criteria and labels.
+
+### Failure taxonomy
+
+- [ ] Classify each failure as tokenizer, decoding, short-context loss, state/memory issue, vocabulary issue, data limitation, or another explicitly named category.
+- [ ] Separate decoding failures from model-quality failures.
+- [ ] Connect each failure category to one next repair hypothesis.
+
+### G6 Transition Gate
+
+- [ ] CCT produces no unbounded repetition or invalid-decoding failure in the fixed suite.
+- [ ] CCT samples meet the predefined in-domain coherence criteria.
+- [ ] Sample quality does not contradict held-out numerical metrics.
+- [ ] The full generation artifact set is versioned and reproducible.
+
+**If the gate fails:** diagnose decoding and model failures separately. Do not mark CCT fluent because isolated samples look plausible.
+
+---
+
+# CCT-G7 — Bounded Instruction Readiness
+
+**Goal:** After stable language performance, test a small fully supervised instruction-to-output mapping while preserving language-engine controls.
+
+## G7.1 — Narrow Supervised Curriculum
+
+- [ ] Unlock only after CCT-G6 passes.
+- [ ] Define one narrow instruction domain.
+- [ ] Build a curated, versioned dataset with explicit train/validation/test splits.
+- [ ] Record source, licensing, deduplication, and split fingerprint.
+- [ ] Define task schema and expected outputs before training.
+- [ ] Define exact-match, schema-validity, refusal/unknown behavior, and language-regression metrics.
+- [ ] Fine-tune or train only under the recorded controlled configuration.
+- [ ] Evaluate on the held-out instruction split.
+- [ ] Re-run the CCT language-generation regression suite.
+- [ ] Compare language quality to the accepted pre-instruction baseline.
+- [ ] Save all task outputs and evaluation labels for audit.
+
+### G7 Transition Gate
+
+- [ ] CCT follows the narrow supervised task reliably.
+- [ ] Outputs are schema-valid and auditable.
+- [ ] Unknown or unsupported requests receive the defined behavior.
+- [ ] Language quality remains within the declared regression tolerance.
+
+**If the gate fails:** return to language modeling or curriculum design. Do not broaden the instruction domain.
+
+---
+
+# Current Execution Status
+
+| Field | Status |
+|---|---|
+| Active CCT Goal | **CCT-G2 — Real-Data Scale Survival** |
+| Active sprint | **CCT-G2.1 — Full-corpus 1,000-step diagnostic** |
+| Completed foundation | Bounded three-seed learning proof, matched baseline comparison, independent CPU reproduction, governed split checks, EthioBBPE contract, hardened shuffle/evaluation controls, and repository regression suite. |
+| Required next evidence | Final verdict line, `REPORT.md`, and `latest.json` from the exact CCT-G2.1 run. |
+| Not yet approved | Larger uncontrolled corpus training, fluency claims, speed claims, broad instruction training, or any work outside this Todo. |
+
+## Immediate Next Checklist
+
+- [ ] Start from a clean `master` checkout.
+- [ ] Install the current `requirements.txt`.
+- [ ] Verify `EthioBBPE==2.0.0` imports successfully.
+- [ ] Run the complete test suite or record an already verified clean-runtime result.
+- [ ] Run the exact CCT-G2.1 command from `colab.md`.
+- [ ] Save the verdict line, `REPORT.md`, and `latest.json`.
+- [ ] Review the evidence before checking any CCT-G2.2 task.
+
+## Stage Discipline
+
+- [ ] Do not skip a transition gate.
+- [ ] Do not replace a failed gate with a larger uncontrolled run.
+- [ ] Do not make a quality or speed claim without its required evidence.
+- [ ] Do not begin a later CCT Goal until the active goal has an allowed verdict.
+- [ ] Keep this file as the sole authoritative execution checklist; update checkboxes and commit the evidence-linked change after every completed sprint.
