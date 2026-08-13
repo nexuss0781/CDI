@@ -54,7 +54,7 @@ Run this first in a fresh Colab notebook. This stage does not train a model. It 
 # Safe to rerun in a fresh or partially failed CPU Colab runtime.
 %cd /content
 !rm -rf CDI
-!git clone --branch feat/ethiobbpe-tokenizer --single-branch https://github.com/nexuss0781/CDI.git CDI
+!git clone --branch master --single-branch https://github.com/nexuss0781/CDI.git CDI
 %cd /content/CDI
 !python -m pip install --upgrade pip
 !python -m pip install -r requirements.txt
@@ -64,7 +64,7 @@ Run this first in a fresh Colab notebook. This stage does not train a model. It 
 !python -m pytest -q
 ```
 
-**Expected evidence:** `246 passed`, the branch `feat/ethiobbpe-tokenizer`, the current commit, and a printed EthioBBPE installation path. If this setup cell fails, stop immediately; send the full error output rather than changing model hyperparameters.
+**Expected evidence:** `246 passed`, the branch `master`, the current commit, and a printed EthioBBPE installation path. If this setup cell fails, stop immediately; send the full error output rather than changing model hyperparameters.
 
 ## 5. Stage 1 — reproduce the completed 300-step real-data pilot
 

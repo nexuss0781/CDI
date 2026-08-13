@@ -21,3 +21,7 @@ The first full 60-document pilot build failed before training because the govern
 ## Pilot-artifact archive filename correction
 
 The first artifact-archiving command used the same misspelled destination filename as the source, so the shell correctly refused the no-op move. The archived verdict is being renamed to `ETHIOBBPE_SYNXARIUM_PILOT_VERDICT.md` before the evidence commit.
+
+## Fresh CPU Colab bootstrap repair
+
+A fresh Colab run cloned a non-main branch, attempted an impossible fast-forward to the feature branch, and then imported CDI before `requirements.txt` installed EthioBBPE. The package index reported `EthioBBPE 2.0.0` as the sole and latest published version, so requirements now pin `EthioBBPE==2.0.0`. The Colab bootstrap now removes any stale checkout, clones `master` directly, installs requirements, imports `ethiobbpe` as an explicit verification step, and only then runs CDI.
