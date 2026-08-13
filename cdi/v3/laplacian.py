@@ -26,7 +26,16 @@ class MatrixFreeLaplacian(nn.Module):
         self.topology = topology
         self.config = config
         self.incidence = SparseIncidence(topology)
-        initial = torch.linspace(-0.2, 0.2, topology.n_edges, dtype=config.dtype, device=config.device)
+        # Preserve the historical softplus effective initialization while using
+        # a bounded logit parameterization thereafter.  A hard post-update
+        # rejection makes a valid optimizer trajectory terminate at the cap;
+        # this mapping instead keeps all learned weights in the same declared
+        # stability envelope with a differentiable gradient.
+        historical_raw = torch.linspace(-0.2, 0.2, topology.n_edges, dtype=config.dtype, device=config.device)
+        historical_weights = torch.nn.functional.softplus(historical_raw) + 1.0e-6
+        maximum = torch.as_tensor(config.max_geometry_edge_weight, dtype=config.dtype, device=config.device)
+        ratio = (historical_weights / maximum).clamp(min=1.0e-6, max=1.0 - 1.0e-6)
+        initial = torch.logit(ratio)
         self.edge_log_weights = nn.Parameter(initial)
 
     @property
@@ -39,13 +48,12 @@ class MatrixFreeLaplacian(nn.Module):
 
     @property
     def edge_weights(self) -> torch.Tensor:
-        weights = torch.nn.functional.softplus(self.edge_log_weights) + 1.0e-6
-        if bool((weights > self.config.max_geometry_edge_weight).any().item()):
-            raise FloatingPointError(
-                "Learned geometry edge weight exceeded max_geometry_edge_weight; "
-                "refuse an unbounded explicit Laplacian correction."
-            )
-        return weights
+        maximum = torch.as_tensor(
+            self.config.max_geometry_edge_weight,
+            dtype=self.edge_log_weights.dtype,
+            device=self.edge_log_weights.device,
+        )
+        return maximum * torch.sigmoid(self.edge_log_weights)
 
     def apply(self, x: torch.Tensor) -> torch.Tensor:
         """Apply the factored geometry to ``(..., vertices, channels)`` state."""
@@ -76,12 +84,13 @@ class MatrixFreeLaplacian(nn.Module):
     def production_metadata(self) -> Dict[str, object]:
         return {
             "operator": self.__class__.__name__,
-            "factorization": "S_transpose @ diag(softplus(edge_log_weights)) @ S",
+            "factorization": "S_transpose @ diag(max_edge_weight * sigmoid(edge_log_weights)) @ S",
             "geometry_ablation": self.config.geometry_ablation,
             "full_state_dim": self.config.total_state_dim,
             "full_state_square": self.full_state_square,
             "sparse_nnz": self.incidence.nnz,
             "learnable_parameters": ["edge_log_weights"],
             "max_geometry_edge_weight": self.config.max_geometry_edge_weight,
+            "weight_parameterization": "bounded_sigmoid_preserving_historical_softplus_initialization",
             "forbidden_operations": ["torch.kron", "dense_full_state_operator"],
         }

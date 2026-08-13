@@ -37,3 +37,9 @@ The P2 regression runner wrote its generated report to the tracked `Stages/P2_RE
 ## CCT-G0 dependency-install correction
 
 The first CCT-G0 runner resolved `requirements.txt` with `--dry-run`, which exposed that the active environment lacked the declared SciPy dependency even though the tests happened to pass. A readiness gate must validate the installed contract, not only the resolver plan. The runner now installs `requirements.txt`, runs `pip check`, then records the environment and executes regressions.
+
+## CCT-G3.1 hard geometry-cap execution failure
+
+The first CCT-G3.1 Colab execution on master `bcc7e0b` completed setup and data loading but stopped during the first training path when AdamW drove a `softplus(edge_log_weights)` value above the new `max_geometry_edge_weight` guard. The guard correctly prevented an unbounded explicit Laplacian update, but its post-update hard failure also made the frozen experiment non-executable and produced no `REPORT.md` or `latest.json`.
+
+The repair retains the same maximum edge-weight bound and explicit-step spectral envelope but changes the existing edge-weight map to `max_geometry_edge_weight * sigmoid(edge_log_weights)`. The raw parameter is initialized by converting the former softplus effective weights to equivalent logits, preserving the initial operator, parameter count, full/geometry-free comparison, and G3.1 budget. A dedicated regression now verifies finite differentiable gradients and strict positive-below-cap weights even for extreme raw logits. The CCT-G3.1 pre-registration contains Amendment A; a clean rerun is required before any empirical conclusion.

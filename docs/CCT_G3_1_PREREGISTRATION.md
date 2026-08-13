@@ -50,3 +50,17 @@ The comparison set is: full geometry-observable CDI, exact geometry-disabled CDI
 ## Empirical Decision Rule
 
 The report must show seed-level finite values, training-loss direction, validation/test loss, token accuracy, parameter count, throughput, full-versus-geometry-disabled effect, CDI-to-GRU relation, and CDI-to-Transformer relation. It must distinguish a mechanism signal from an overall architecture pass. A null or negative geometry effect remains a CCT-G3 failure and does not unlock scaling.
+
+## Amendment A — Bounded Geometry-Weight Parameterization
+
+The first submitted CCT-G3.1 execution on master `bcc7e0b` stopped before producing any model metric because AdamW increased a `softplus(edge_log_weights)` value above the declared maximum edge weight. The earlier implementation rejected that valid optimizer state after the update, which preserved the numerical bound but made the controlled experiment non-executable.
+
+This amendment changes **only the safety parameterization of the existing geometry edge weight**. It does not change the recurrence, topology, readout, tokenizer, corpus, split, seed list, context, optimizer, parameter count, or comparison set. The effective initial weights are analytically preserved: the initial softplus weights are converted to logits whose bounded sigmoid has the same values. During training the effective weights are
+
+\[
+w_e = w_{\max}\,\sigma(\theta_e), \qquad 0 < w_e < w_{\max}.
+\]
+
+The same `max_geometry_edge_weight` and explicit-step stability envelope therefore remain enforced continuously rather than by terminating after an optimizer update. The full and geometry-disabled models retain the exact same parameter count and mapping. Before rerun, tests must establish finite forward/backward values, strict edge-weight bounds even for extreme raw logits, and preserved geometry-loss reachability.
+
+This amendment permits one clean rerun of the same frozen CCT-G3.1 command. It does not authorize an architecture-quality claim, additional training budget, or any scale progression.
