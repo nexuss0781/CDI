@@ -122,39 +122,41 @@ Before marking any sprint complete, confirm all applicable artifacts exist in on
 - [x] Add a regression test proving shuffled training resumes identically from a checkpoint.
 - [x] Run the full CDI test suite after these controls; baseline evidence is **246 passing tests**.
 - [x] Push the hardened Stage 2 harness to `master`.
-- [ ] Start from a clean master checkout with the current requirements installed.
-- [ ] Record the code revision before the run.
-- [ ] Use the deduplicated governed corpus and record its manifest fingerprint.
-- [ ] Use deterministic per-epoch batch shuffle and record the seed-derived method.
-- [ ] Use all held-out validation and test batches (`--eval-batches 0`).
-- [ ] Use seeds `[11, 29, 47]`.
-- [ ] Use 1,000 training steps.
-- [ ] Use the declared full-corpus diagnostic configuration: `--document-limit 321`, `--chunks-per-document 32`, `--chunk-length 16`, `--batch-size 2`, `--learning-rate 0.01`.
-- [ ] Run CCT, GRU, and Transformer under the same data, token budget, context, precision, and evaluation protocol.
-- [ ] Save the final `Pilot ...` verdict line.
-- [ ] Save `REPORT.md`, `latest.json`, manifest, environment record, and commands.
+- [x] Start from a clean master checkout with the current requirements installed; submitted revision `d5a2180`.
+- [x] Record the code revision before the run; `d5a2180e6e61494140b8ff221703cef7c317ecd3`.
+- [x] Use the deduplicated governed corpus and record its manifest fingerprint; `2b868a661d628ec0e4507f65ee99e79abfbed12910241f95e7660a99e97e39c8`.
+- [x] Use deterministic per-epoch batch shuffle and record the seed-derived method; `deterministic_per_epoch_shuffle`.
+- [x] Use all held-out validation and test batches (`--eval-batches 0`); `all_held_out_batches`.
+- [x] Use seeds `[11, 29, 47]`.
+- [x] Use 1,000 training steps.
+- [x] Use the declared full-corpus diagnostic configuration: `--document-limit 321`, `--chunks-per-document 32`, `--chunk-length 16`, `--batch-size 2`, `--learning-rate 0.01`.
+- [x] Run CCT, GRU, and Transformer under the same data, token budget, context, precision, and evaluation protocol.
+- [x] Save the final `Pilot ...` verdict line; `EARNED_NEXT_PILOT` from the harness.
+- [x] Save `REPORT.md`, `latest.json`, manifest, environment record, and commands; decision record: `docs/CCT_G2_1_DECISION.md`.
 
 ### G2.1 Measurement checklist
 
-- [ ] Confirm no duplicate content or cross-split leakage.
-- [ ] Confirm all three CCT seeds have finite training and evaluation values.
-- [ ] Confirm CCT training loss decreases in every seed.
-- [ ] Record validation/test cross-entropy, perplexity, token accuracy, and uncertainty across seeds.
-- [ ] Record parameter count and total causal token positions per model/seed.
-- [ ] Record training elapsed time and tokens/second for every model/seed.
-- [ ] Confirm the report declares `deterministic_per_epoch_shuffle`.
-- [ ] Confirm the report declares `all_held_out_batches`.
-- [ ] Compute the CCT relative validation-loss gap to the best baseline.
-- [ ] Check whether CCT is within the declared Transformer loss tolerance.
-- [ ] Check whether CCT consistently matches or beats the GRU.
+- [x] Confirm no duplicate content or cross-split leakage.
+- [x] Confirm all three CCT seeds have finite training and evaluation values; no non-finite values in the submitted result JSON.
+- [x] Confirm CCT training loss decreases in every seed.
+- [x] Record validation/test cross-entropy, perplexity, token accuracy, and uncertainty across seeds; see `docs/CCT_G2_1_DECISION.md` and the submitted result artifacts.
+- [x] Record parameter count and total causal token positions per model/seed; 80,366/80,120/80,172 parameters and 30,000 positions per model/seed.
+- [x] Record training elapsed time and tokens/second for every model/seed.
+- [x] Confirm the report declares `deterministic_per_epoch_shuffle`.
+- [x] Confirm the report declares `all_held_out_batches`.
+- [x] Compute the CCT relative validation-loss gap to the best baseline; +1.44% versus GRU.
+- [x] Check whether CCT is within the declared Transformer loss tolerance; +0.58%, within 5%.
+- [ ] Check whether CCT consistently matches or beats the GRU; **failed in all three seeds**.
 
 ### G2.1 Transition Gate
 
-- [ ] The quality relation does not materially collapse relative to G1.
-- [ ] No stability failure appears.
-- [ ] CCT remains within the declared Transformer tolerance.
-- [ ] CCT consistently matches or beats the GRU.
-- [ ] The result has a complete, reproducible artifact set.
+- [ ] The quality relation does not materially collapse relative to G1; **failed** because CDI lost to GRU in all three seeds after having a slight mean G1 advantage.
+- [x] No stability failure appears.
+- [x] CCT remains within the declared Transformer tolerance; +0.58% mean validation-loss gap versus Transformer.
+- [ ] CCT consistently matches or beats the GRU; **failed** with a +1.44% mean gap and losses above GRU in all three seeds.
+- [x] The result has a complete, reproducible artifact set; see `docs/CCT_G2_1_DECISION.md`.
+
+**CCT-G2.1 status:** `REDESIGN_BEFORE_SCALE`. The harness-level `EARNED_NEXT_PILOT` did not satisfy the stricter CCT transition gate.
 
 **If the gate passes:** unlock G2.2 only.
 
@@ -407,21 +409,21 @@ Run one rung at a time. Every rung requires three seeds, the same evidence field
 
 | Field | Status |
 |---|---|
-| Active CCT Goal | **CCT-G2 — Real-Data Scale Survival** |
-| Active sprint | **CCT-G2.1 — Full-corpus 1,000-step diagnostic** |
-| Completed foundation | CCT-G0 readiness validation at `a038147` (installed dependency contract, EthioBBPE import, clean working tree, and 246 passing tests), plus bounded three-seed learning proof, matched baseline comparison, independent CPU reproduction, governed split checks, EthioBBPE contract, and hardened shuffle/evaluation controls. |
-| Required next evidence | Final verdict line, `REPORT.md`, and `latest.json` from the exact CCT-G2.1 run. |
-| Not yet approved | Larger uncontrolled corpus training, fluency claims, speed claims, broad instruction training, or any work outside this Todo. |
+| Active CCT Goal | **CCT-G3 — Architecture Value** |
+| Active sprint | **CCT-G3.1 — One controlled mechanism ablation** |
+| Completed foundation | CCT-G0 readiness validation at `a038147` (installed dependency contract, EthioBBPE import, clean working tree, and 246 passing tests), bounded three-seed learning proof, and CCT-G2.1 full-corpus diagnostic at `d5a2180` with complete held-out evaluation and deterministic shuffle. |
+| Required next evidence | One pre-registered, parameter-aware CCT-G3.1 ablation report under the failed CCT-G2.1 comparison contract. |
+| Not yet approved | CCT-G2.2 (3,000 steps), larger corpus training, context/capacity changes, speed claims, fluency claims, broad instruction training, or any work outside this Todo. |
 
 ## Immediate Next Checklist
 
-- [ ] Start from a clean `master` checkout.
-- [ ] Install the current `requirements.txt`.
-- [ ] Verify `EthioBBPE==2.0.0` imports successfully.
-- [ ] Run the complete test suite or record an already verified clean-runtime result.
-- [ ] Run the exact CCT-G2.1 command from `colab.md`.
-- [ ] Save the verdict line, `REPORT.md`, and `latest.json`.
-- [ ] Review the evidence before checking any CCT-G2.2 task.
+- [x] Review and record the CCT-G2.1 decision as `REDESIGN_BEFORE_SCALE`; see `docs/CCT_G2_1_DECISION.md`.
+- [ ] Select exactly one CCT mechanism for CCT-G3.1 and write its pre-run hypothesis before training.
+- [ ] Keep the CCT-G2.1 tokenizer, governed corpus split, causal-token budget, optimizer, context, precision, batch size, and seed list fixed.
+- [ ] Verify the selected ablation is causal, numerically stable, parameter-aware, and covered by regression tests.
+- [ ] Run full CDI, the selected CCT ablation, GRU, and Transformer under the same controlled protocol.
+- [ ] Save the verdict line, `REPORT.md`, `latest.json`, pre-registration, and implementation diff.
+- [ ] Review the CCT-G3.1 evidence before checking any CCT-G2.2, context, capacity, corpus, or optimization task.
 
 ## Stage Discipline
 
