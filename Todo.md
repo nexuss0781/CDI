@@ -415,7 +415,7 @@ Run one rung at a time. Every rung requires three seeds, the same evidence field
 |---|---|
 | Active CCT Goal | **CCT-G3 — Architecture Value** |
 | Active sprint | **CCT-G3.1 — One controlled mechanism ablation** |
-| Completed foundation | CCT-G0 readiness validation at `a038147` (installed dependency contract, EthioBBPE import, clean working tree, and 246 passing tests), bounded three-seed learning proof, and CCT-G2.1 full-corpus diagnostic at `d5a2180` with complete held-out evaluation and deterministic shuffle. |
+| Completed foundation | CCT-G0 readiness validation at `a038147`, bounded three-seed learning proof, CCT-G2.1 full-corpus diagnostic at `d5a2180`, CCT-G3.1 pre-registration and geometry-observability implementation at `0a853c4`, and cumulative runtime/evaluation remediation at `5b17d95` with 267 passing tests. |
 | Required next evidence | One pre-registered, parameter-aware CCT-G3.1 ablation report under the failed CCT-G2.1 comparison contract. |
 | Not yet approved | CCT-G2.2 (3,000 steps), larger corpus training, context/capacity changes, speed claims, fluency claims, broad instruction training, or any work outside this Todo. |
 
@@ -425,8 +425,9 @@ Run one rung at a time. Every rung requires three seeds, the same evidence field
 - [x] Select exactly one CCT mechanism for CCT-G3.1 and write its pre-run hypothesis before training; see `docs/CCT_G3_1_PREREGISTRATION.md`.
 - [x] Keep the CCT-G2.1 tokenizer, governed corpus split, causal-token budget, optimizer, context, precision, batch size, and seed list fixed in the dedicated G3.1 harness.
 - [x] Verify the selected ablation is causal, numerically stable, parameter-aware, and covered by regression tests; the full suite currently has 267 passing tests.
+- [x] Preserve the pre-registration, implementation diff, dedicated harness, local geometry-signal tests, and remediation evidence on `master`; commits `0a853c4` and `5b17d95`.
 - [ ] Run full CDI, the selected CCT ablation, GRU, and Transformer under the same controlled protocol.
-- [ ] Save the verdict line, `REPORT.md`, `latest.json`, pre-registration, and implementation diff.
+- [ ] Save the empirical verdict line, `REPORT.md`, and `latest.json` from the CCT-G3.1 run.
 - [ ] Review the CCT-G3.1 evidence before checking any CCT-G2.2, context, capacity, corpus, or optimization task.
 
 ## Stage Discipline
