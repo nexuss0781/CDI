@@ -200,9 +200,11 @@ Run one rung at a time. Every rung requires three seeds, the same evidence field
 
 ### Common controls
 
+- [x] Complete a source-level architecture review and issue inventory; see `Architecture.md` and `ISSUES_TODO.md`.
+- [x] Identify the first gate-blocking diagnostic: the current mean-over-vertices language readout makes Laplacian geometry unobservable to causal token loss.
 - [ ] Select one CCT mechanism for the first ablation hypothesis.
 - [ ] Write the pre-run hypothesis and expected metric before training.
-- [ ] Keep embeddings, tokenizer, output vocabulary, training budget, optimizer, data split, readout, context, precision, and seed list fixed.
+- [ ] Keep embeddings, tokenizer, output vocabulary, training budget, optimizer, data split, context, precision, and seed list fixed; change only the pre-registered mechanism and any explicitly declared parameter-matching control.
 - [ ] Change exactly one mechanism in the selected variant.
 - [ ] Record parameter-count differences; if necessary, add a controlled parameter-matched counterpart.
 - [ ] Run Full CCT as the reference model.
@@ -212,6 +214,8 @@ Run one rung at a time. Every rung requires three seeds, the same evidence field
 - [ ] Run every variant across three seeds.
 
 ### Ablation A — State/geometry contribution
+
+> The current geometry-free comparison is not yet informative because the mean-only readout cancels the zero-sum Laplacian correction at the token-loss path. CCT-G3.1 must first pre-register a single state-to-readout access mechanism that makes this signal measurable, while retaining an exact geometry-disabled counterpart.
 
 - [ ] Define the exact state/geometry element changed or disabled.
 - [ ] Verify the variant remains causal and numerically stable.
