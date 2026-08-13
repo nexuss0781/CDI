@@ -51,18 +51,20 @@ The stages below are in order. We will stop after every stage so you can inspect
 Run this first in a fresh Colab notebook. This stage does not train a model. It confirms that everyone is running the same repository, branch, package versions, and test suite.
 
 ```bash
-!git clone https://github.com/nexuss0781/CDI.git
+# Safe to rerun in a fresh or partially failed CPU Colab runtime.
+%cd /content
+!rm -rf CDI
+!git clone --branch feat/ethiobbpe-tokenizer --single-branch https://github.com/nexuss0781/CDI.git CDI
 %cd /content/CDI
-!git fetch origin
-!git switch feat/ethiobbpe-tokenizer
-!git pull --ff-only origin feat/ethiobbpe-tokenizer
 !python -m pip install --upgrade pip
 !python -m pip install -r requirements.txt
-!python -m pytest -q
+!python -c "import ethiobbpe; print('EthioBBPE installed:', ethiobbpe.__file__)"
+!git branch --show-current
 !git rev-parse HEAD
+!python -m pytest -q
 ```
 
-**Expected evidence:** `245 passed` and the current branch commit. If tests fail, stop immediately; send the full error output rather than changing model hyperparameters.
+**Expected evidence:** `246 passed`, the branch `feat/ethiobbpe-tokenizer`, the current commit, and a printed EthioBBPE installation path. If this setup cell fails, stop immediately; send the full error output rather than changing model hyperparameters.
 
 ## 5. Stage 1 — reproduce the completed 300-step real-data pilot
 
@@ -104,7 +106,7 @@ Run this exact command first. It is a bounded three-seed, full-corpus diagnostic
 
 ```bash
 %cd /content/CDI
-!git pull --ff-only origin feat/ethiobbpe-tokenizer
+# Stage 0 already cloned the exact feature branch and installed requirements.
 !PYTHONPATH=. python benchmarks/ethiobbpe_synaxarium_pilot.py \\
   --steps 1000 \\
   --document-limit 321 \\
