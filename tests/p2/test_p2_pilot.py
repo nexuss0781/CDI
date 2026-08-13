@@ -21,4 +21,5 @@ def test_p2_run_all_generates_report(tmp_path: Path) -> None:
     report = run_all(tmp_path)
     assert report["status"] == "PASS"
     assert (tmp_path / "latest.json").is_file()
-    assert Path("Stages/P2_REAL_DATA_PILOT_REPORT.md").is_file()
+    assert (tmp_path / "REPORT.md").is_file()
+    assert not Path("Stages/P2_REAL_DATA_PILOT_REPORT.md").resolve().samefile(tmp_path / "REPORT.md")

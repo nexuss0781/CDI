@@ -29,3 +29,7 @@ A fresh Colab run cloned a non-main branch, attempted an impossible fast-forward
 ## Colab dependency-resolver conflict
 
 The stale Colab requirements install spent time backtracking through `transformers` versions because EthioBBPE 2.0.0 requires `tokenizers>=0.20.0,<0.22`, whereas recent Transformers releases require newer Tokenizers versions. CDI imports neither `transformers` nor its APIs, so the unused runtime dependency was removed from `requirements.txt`. The pinned `EthioBBPE==2.0.0` installation is now compatible with the actual CDI runtime dependencies and resolves without the unrelated Transformer constraint.
+
+## CCT-G0 tracked-artifact mutation repair
+
+The P2 regression runner wrote its generated report to the tracked `Stages/P2_REAL_DATA_PILOT_REPORT.md` file. This left the working tree dirty after an otherwise successful test suite and violated the clean-checkout readiness gate. The runner now writes `REPORT.md` beside `latest.json` in the caller-selected output directory, and its regression test requires that local output contract.

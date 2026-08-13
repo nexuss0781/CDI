@@ -127,7 +127,7 @@ def run_all(output_dir: str | Path = "results/p2") -> Dict[str, Any]:
     directory = Path(output_dir)
     directory.mkdir(parents=True, exist_ok=True)
     (directory / "latest.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    Path("Stages/P2_REAL_DATA_PILOT_REPORT.md").write_text(render(report), encoding="utf-8")
+    (directory / "REPORT.md").write_text(render(report), encoding="utf-8")
     return report
 
 
