@@ -51,18 +51,20 @@ The stages below are in order. We will stop after every stage so you can inspect
 Run this first in a fresh Colab notebook. This stage does not train a model. It confirms that everyone is running the same repository, branch, package versions, and test suite.
 
 ```bash
-!git clone https://github.com/nexuss0781/CDI.git
+# Safe to rerun in a fresh or partially failed CPU Colab runtime.
+%cd /content
+!rm -rf CDI
+!git clone --branch feat/ethiobbpe-tokenizer --single-branch https://github.com/nexuss0781/CDI.git CDI
 %cd /content/CDI
-!git fetch origin
-!git switch feat/ethiobbpe-tokenizer
-!git pull --ff-only origin feat/ethiobbpe-tokenizer
 !python -m pip install --upgrade pip
 !python -m pip install -r requirements.txt
-!python -m pytest -q
+!python -c "import ethiobbpe; print('EthioBBPE installed:', ethiobbpe.__file__)"
+!git branch --show-current
 !git rev-parse HEAD
+!python -m pytest -q
 ```
 
-**Expected evidence:** `245 passed` and the current branch commit. If tests fail, stop immediately; send the full error output rather than changing model hyperparameters.
+**Expected evidence:** `246 passed`, the branch `feat/ethiobbpe-tokenizer`, the current commit, and a printed EthioBBPE installation path. If this setup cell fails, stop immediately; send the full error output rather than changing model hyperparameters.
 
 ## 5. Stage 1 — reproduce the completed 300-step real-data pilot
 
@@ -96,7 +98,30 @@ This stage verifies that the existing result is not specific to one machine. It 
 
 Use the complete deduplicated Synaxarium corpus only after Stage 1 passes. This tests whether CDI retains its quality signal when it sees substantially more document variation. It is still an **in-domain Amharic pilot**, not evidence of English general language modeling.
 
-The harness should be extended before this run to use every unique document and report total tokenizer tokens. The run should begin at a modest scale ladder: 3,000 steps, then 10,000 steps, each with three seeds. The Transformer and GRU receive the same data order, total causal token positions, tokenizer, context length, precision, and optimizer family.
+The Stage 2 harness now uses all **321 unique** documents available after removing 45 exact duplicate-content records from the 366-row source. It supports deterministic per-epoch batch shuffling and complete held-out evaluation, so it no longer repeatedly trains on the first small set of batches or evaluates a short held-out prefix. The Transformer and GRU receive the same shuffled data order, total causal token positions, tokenizer, context length, precision, and optimizer family for each seed.
+
+### Stage 2A — CPU-safe full-corpus diagnostic
+
+Run this exact command first. It is a bounded three-seed, full-corpus diagnostic at 1,000 steps; it is **not** the final scaling claim. It will take longer than Stage 1 because it evaluates every validation and test batch.
+
+```bash
+%cd /content/CDI
+# Stage 0 already cloned the exact feature branch and installed requirements.
+!PYTHONPATH=. python benchmarks/ethiobbpe_synaxarium_pilot.py \\
+  --steps 1000 \\
+  --document-limit 321 \\
+  --chunks-per-document 32 \\
+  --chunk-length 16 \\
+  --batch-size 2 \\
+  --eval-batches 0 \\
+  --shuffle-training-batches \\
+  --learning-rate 0.01 \\
+  --relative-loss-tolerance 0.05 \\
+  --output-dir results/colab_stage2a_full_corpus
+!cat results/colab_stage2a_full_corpus/REPORT.md
+```
+
+Do not begin Stage 2B (3,000 steps) until Stage 2A is reviewed. Send the full `REPORT.md` and `latest.json`; the required result fields now include `deterministic_per_epoch_shuffle` and `all_held_out_batches`.
 
 | Stage 2 measurement | Required report |
 |---|---|

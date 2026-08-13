@@ -154,6 +154,38 @@ def test_checkpoint_resume_matches_uninterrupted():
         assert torch.allclose(left, right, atol=1e-6, rtol=1e-5)
 
 
+def test_shuffled_checkpoint_resume_matches_uninterrupted():
+    config, _, tokenizer, _, batches = resources()
+    seed_everything(config.seed)
+    uninterrupted = build_model("dcss_cdi", tokenizer, config)
+    full_losses, _, full_cursor = train_steps(uninterrupted, batches, config, steps=12, shuffle_each_epoch=True)
+    probe = batches[0]
+    full_logits, _ = uninterrupted.forward_chunk(probe["input_ids"], attention_mask=probe["attention_mask"])
+
+    seed_everything(config.seed)
+    partial = build_model("dcss_cdi", tokenizer, config)
+    first_losses, optimizer, cursor = train_steps(partial, batches, config, steps=6, shuffle_each_epoch=True)
+    resumed = build_model("dcss_cdi", tokenizer, config)
+    resumed_optimizer = optimizer_for(resumed, config)
+    resumed.load_state_dict(partial.state_dict())
+    resumed_optimizer.load_state_dict(optimizer.state_dict())
+    second_losses, _, resumed_cursor = train_steps(
+        resumed,
+        batches,
+        config,
+        steps=6,
+        optimizer=resumed_optimizer,
+        start_cursor=cursor,
+        shuffle_each_epoch=True,
+    )
+    resumed_logits, _ = resumed.forward_chunk(probe["input_ids"], attention_mask=probe["attention_mask"])
+    assert full_cursor == resumed_cursor
+    assert full_losses == first_losses + second_losses
+    assert torch.allclose(full_logits, resumed_logits, atol=1e-6, rtol=1e-5)
+    for left, right in zip(uninterrupted.parameters(), resumed.parameters()):
+        assert torch.allclose(left, right, atol=1e-6, rtol=1e-5)
+
+
 def test_deterministic_generation_and_matched_baselines_forward():
     config, _, tokenizer, _, batches = resources()
     seed_everything(config.seed)
