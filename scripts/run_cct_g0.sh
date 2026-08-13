@@ -25,8 +25,8 @@ chmod +x "$OUTPUT_DIR/commands.sh"
 git rev-parse HEAD > "$OUTPUT_DIR/code_revision.txt"
 cat requirements.txt > "$OUTPUT_DIR/requirements.txt"
 
+python -m pip install -r requirements.txt | tee "$OUTPUT_DIR/requirements_install.txt"
 python -m pip check | tee "$OUTPUT_DIR/pip_check.txt"
-python -m pip install --dry-run -r requirements.txt | tee "$OUTPUT_DIR/requirements_plan.txt"
 python scripts/cct_g0_environment.py --output "$OUTPUT_DIR/environment.json" | tee "$OUTPUT_DIR/environment.txt"
 pytest -q | tee "$OUTPUT_DIR/pytest.txt"
 

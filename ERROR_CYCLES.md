@@ -33,3 +33,7 @@ The stale Colab requirements install spent time backtracking through `transforme
 ## CCT-G0 tracked-artifact mutation repair
 
 The P2 regression runner wrote its generated report to the tracked `Stages/P2_REAL_DATA_PILOT_REPORT.md` file. This left the working tree dirty after an otherwise successful test suite and violated the clean-checkout readiness gate. The runner now writes `REPORT.md` beside `latest.json` in the caller-selected output directory, and its regression test requires that local output contract.
+
+## CCT-G0 dependency-install correction
+
+The first CCT-G0 runner resolved `requirements.txt` with `--dry-run`, which exposed that the active environment lacked the declared SciPy dependency even though the tests happened to pass. A readiness gate must validate the installed contract, not only the resolver plan. The runner now installs `requirements.txt`, runs `pip check`, then records the environment and executes regressions.
