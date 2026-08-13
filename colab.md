@@ -135,16 +135,37 @@ Do not begin Stage 2B (3,000 steps) until Stage 2A is reviewed. The completed St
 
 ## 7. Stage 3 — prove whether the CDI geometry adds value
 
-A custom architecture is worthwhile only if its distinctive mechanism helps. The current code already supports a geometry ablation. Keep parameter count and all non-geometry settings fixed, then compare:
+A custom architecture is worthwhile only if its distinctive mechanism helps. The source review found that the former mean-only readout canceled the zero-sum Laplacian correction before causal token loss. CCT-G3.1 therefore changes **one pre-registered mechanism only**: the readout now exposes fixed zero-sum vertex contrasts alongside the existing per-band mean. Full CDI and its geometry-free counterpart share the same contrast readout and parameter count.
 
 | Variant | What changes | What it tests |
 |---|---|---|
-| Full DCSS/CDI | Current sparse topology, cohomodynamic state, and geometry correction | The claimed architecture |
-| Geometry-free DCSS | Disable only the geometry correction | Whether geometry improves language learning or retention |
+| Full DCSS/CDI | Sparse topology, geometry correction, and mean-plus-contrast readout | Whether geometry reaches and improves causal language loss |
+| Geometry-free DCSS | Disable only the geometry correction; retain the same contrast readout | Whether the geometry correction itself contributes value |
 | GRU baseline | Standard recurrence | Whether CDI exceeds ordinary recurrence |
 | Transformer baseline | Causal attention | Conventional quality/throughput reference |
 
-**Stage 3 pass rule:** Full CDI must show a repeated improvement in at least one preregistered metric: held-out loss, long-context retention, stability, or throughput. If the geometry-free ablation is indistinguishable, simplify the model rather than claiming that the geometry is useful.
+The local pre-flight gates are already covered by regression tests: full and geometry-free models have different logits/losses under identical initialization, full geometry receives a finite nonzero causal-loss gradient, and the exact ablation remains capacity-matched. The empirical CCT-G3.1 result is still required before any scale decision.
+
+### Stage 3.1 — CPU-safe geometry-observability ablation
+
+```bash
+%cd /content/CDI
+!PYTHONPATH=. python benchmarks/cct_g3_1_geometry_ablation.py \
+  --steps 1000 \
+  --document-limit 321 \
+  --chunks-per-document 32 \
+  --chunk-length 16 \
+  --batch-size 2 \
+  --eval-batches 0 \
+  --shuffle-training-batches \
+  --learning-rate 0.01 \
+  --relative-loss-tolerance 0.05 \
+  --parameter-relative-tolerance 0.01 \
+  --output-dir results/colab_cct_g3_1_geometry
+!cat results/colab_cct_g3_1_geometry/REPORT.md
+```
+
+Send `results/colab_cct_g3_1_geometry/REPORT.md` and `results/colab_cct_g3_1_geometry/latest.json` for gate review. **Stage 3 pass rule:** full CDI must have lower validation loss than geometry-free CDI in every seed under the frozen contract, with matched parameter count. A null or negative geometry effect is `NO_GEOMETRY_EVIDENCE`, not permission to scale.
 
 ## 8. Stage 4 — context ladder and retention test
 

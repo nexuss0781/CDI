@@ -181,6 +181,8 @@ def make_batches(
 def build_model(name: str, tokenizer: EthioBBPETokenizer, seed: int) -> torch.nn.Module:
     if name == "dcss_cdi":
         return DCSSLanguageModel(tokenizer, StageCConfig.nano(seed=seed))
+    if name == "dcss_geometry_free":
+        return DCSSLanguageModel(tokenizer, StageCConfig.nano(seed=seed, geometry_ablation=True))
     if name == "gru_baseline":
         return LegacyCDIV2Adapter(tokenizer, width=tokenizer.config.embedding_dim, dtype=torch.float32)
     if name == "transformer":
@@ -300,6 +302,8 @@ def architecture_decision(
     summary: Mapping[str, Mapping[str, float]],
     config: PilotConfig,
     records: Sequence[Mapping[str, Any]],
+    *,
+    required_models: Sequence[str] = MODEL_NAMES,
 ) -> Dict[str, Any]:
     """Apply the complete CCT transition gate to the seed-level pilot evidence.
 
@@ -318,7 +322,7 @@ def architecture_decision(
         model = record.get("model")
         if isinstance(seed, int) and isinstance(model, str):
             by_seed.setdefault(seed, {})[model] = record
-    required_models = set(MODEL_NAMES)
+    required_models = set(required_models)
     expected_seeds = set(config.seeds)
     complete_seed_matrix = set(by_seed) == expected_seeds and all(set(rows) == required_models for rows in by_seed.values())
     finite = complete_seed_matrix and all(_record_values_are_finite(record) for rows in by_seed.values() for record in rows.values())
@@ -407,7 +411,7 @@ If the verdict is `REDESIGN_BEFORE_SCALING`, do not solve the result by adding a
 """
 
 
-def run(config: PilotConfig) -> Dict[str, Any]:
+def run(config: PilotConfig, *, model_names: Sequence[str] = MODEL_NAMES) -> Dict[str, Any]:
     config.validate()
     documents, manifest = load_governed_synaxarium(config)
     partitions = _split_documents(documents, manifest)
@@ -422,7 +426,7 @@ def run(config: PilotConfig) -> Dict[str, Any]:
     records = [
         run_one(name, seed, tokenizer, batches["train"], batches["validation"], batches["test"], config)
         for seed in config.seeds
-        for name in MODEL_NAMES
+        for name in model_names
     ]
     summary = aggregate(records)
     report: Dict[str, Any] = {
@@ -437,7 +441,7 @@ def run(config: PilotConfig) -> Dict[str, Any]:
         "packed_example_counts": {name: len(examples) for name, examples in packed.items()},
         "records": records,
         "summary": summary,
-        "decision": architecture_decision(summary, config, records),
+        "decision": architecture_decision(summary, config, records, required_models=model_names),
         "code_revision": _git_revision(),
         "environment": {"python": platform.python_version(), "torch": torch.__version__, "device": "cpu"},
     }

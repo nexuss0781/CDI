@@ -202,11 +202,11 @@ Run one rung at a time. Every rung requires three seeds, the same evidence field
 
 - [x] Complete a source-level architecture review and issue inventory; see `Architecture.md` and `ISSUES_TODO.md`.
 - [x] Identify the first gate-blocking diagnostic: the current mean-over-vertices language readout makes Laplacian geometry unobservable to causal token loss.
-- [ ] Select one CCT mechanism for the first ablation hypothesis.
-- [ ] Write the pre-run hypothesis and expected metric before training.
-- [ ] Keep embeddings, tokenizer, output vocabulary, training budget, optimizer, data split, context, precision, and seed list fixed; change only the pre-registered mechanism and any explicitly declared parameter-matching control.
-- [ ] Change exactly one mechanism in the selected variant.
-- [ ] Record parameter-count differences; if necessary, add a controlled parameter-matched counterpart.
+- [x] Select one CCT mechanism for the first ablation hypothesis: state-to-readout geometry observability through fixed zero-sum vertex contrasts.
+- [x] Write the pre-run hypothesis and expected metric before training; see `docs/CCT_G3_1_PREREGISTRATION.md`.
+- [x] Keep embeddings, tokenizer, output vocabulary, training budget, optimizer, data split, context, precision, and seed list fixed in the CCT-G3.1 harness; only the pre-registered readout access and exact geometry-disabled counterpart differ.
+- [x] Change exactly one mechanism in the selected variant: expose vertex contrasts to the existing output-width readout without changing recurrence or tokenizer.
+- [x] Record parameter-count differences: full CDI 80,510; geometry-free CDI 80,510; GRU 80,120; Transformer 80,172; 0.49% maximum relative spread.
 - [ ] Run Full CCT as the reference model.
 - [ ] Run the selected CCT ablation variant.
 - [ ] Run GRU baseline.
@@ -215,17 +215,17 @@ Run one rung at a time. Every rung requires three seeds, the same evidence field
 
 ### Ablation A — State/geometry contribution
 
-> The current geometry-free comparison is not yet informative because the mean-only readout cancels the zero-sum Laplacian correction at the token-loss path. CCT-G3.1 must first pre-register a single state-to-readout access mechanism that makes this signal measurable, while retaining an exact geometry-disabled counterpart.
+> CCT-G3.1 resolved the mean-readout blind spot by adding fixed zero-sum vertex contrasts to the full and geometry-disabled readouts. The empirical comparison remains required; implementation-level signal only is not a scale decision.
 
-- [ ] Define the exact state/geometry element changed or disabled.
-- [ ] Verify the variant remains causal and numerically stable.
+- [x] Define the exact state/geometry element changed or disabled; see `docs/CCT_G3_1_PREREGISTRATION.md`.
+- [x] Verify the variant remains causal and numerically stable through the local geometry-observability and Stage C regression gates.
 - [ ] Compare held-out loss, test loss, token accuracy, gradient/state norms, throughput, and memory.
 - [ ] Record whether the element improves a predeclared metric repeatedly across seeds.
 
 ### Ablation B — Recurrence/readout contribution
 
-- [ ] Define the exact recurrence or readout element changed or disabled.
-- [ ] Verify output shape, causal target alignment, and gradient reachability.
+- [x] Define the exact readout element: concatenate deterministic zero-sum vertex contrasts with the existing per-band mean; recurrence unchanged.
+- [x] Verify output shape, causal target alignment, and geometry-gradient reachability through `tests/test_cct_geometry_observability.py`.
 - [ ] Compare held-out loss, retention/context behavior, stability, and throughput.
 - [ ] Record whether the element improves a predeclared metric repeatedly across seeds.
 
