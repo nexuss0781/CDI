@@ -212,7 +212,23 @@ def model_loss(model: nn.Module, batch: Mapping[str, Any]):
     return model.causal_loss(batch["input_ids"], batch["attention_mask"])
 
 
-def train_steps(model: nn.Module, batches: Sequence[Mapping[str, Any]], config: StageDConfig, steps: int, optimizer: torch.optim.Optimizer | None = None, start_cursor: int = 0) -> Tuple[List[float], torch.optim.Optimizer, int]:
+def train_steps(
+    model: nn.Module,
+    batches: Sequence[Mapping[str, Any]],
+    config: StageDConfig,
+    steps: int,
+    optimizer: torch.optim.Optimizer | None = None,
+    start_cursor: int = 0,
+    *,
+    shuffle_each_epoch: bool = False,
+) -> Tuple[List[float], torch.optim.Optimizer, int]:
+    """Train a fixed number of steps with reproducible fixed or shuffled batch order.
+
+    When ``shuffle_each_epoch`` is enabled, a local RNG derives one permutation
+    from ``config.seed + epoch``.  This preserves deterministic resume behavior
+    while avoiding repeated exposure to only the first batches of a larger
+    corpus.
+    """
     if not batches:
         raise ValueError("train_steps requires at least one batch.")
     model.train()
@@ -221,7 +237,13 @@ def train_steps(model: nn.Module, batches: Sequence[Mapping[str, Any]], config: 
     cursor = start_cursor
     for _ in range(steps):
         optimizer.zero_grad(set_to_none=True)
-        batch = batches[cursor % len(batches)]
+        if shuffle_each_epoch:
+            epoch = cursor // len(batches)
+            order = list(range(len(batches)))
+            random.Random(config.seed + epoch).shuffle(order)
+            batch = batches[order[cursor % len(batches)]]
+        else:
+            batch = batches[cursor % len(batches)]
         report = model_loss(model, batch)
         if not torch.isfinite(report.loss):
             raise FloatingPointError("Encountered a non-finite Stage D causal loss.")
