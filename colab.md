@@ -121,7 +121,7 @@ Run this exact command first. It is a bounded three-seed, full-corpus diagnostic
 !cat results/colab_stage2a_full_corpus/REPORT.md
 ```
 
-Do not begin Stage 2B (3,000 steps) until Stage 2A is reviewed. Send the full `REPORT.md` and `latest.json`; the required result fields now include `deterministic_per_epoch_shuffle` and `all_held_out_batches`.
+Do not begin Stage 2B (3,000 steps) until Stage 2A is reviewed. The completed Stage 2A execution met the harness-level tolerance but failed the stricter CCT gate because CDI was above GRU validation loss in all three seeds. Its recorded decision is `REDESIGN_BEFORE_SCALE` in `docs/CCT_G2_1_DECISION.md`; Stage 2B is not authorized. The required next activity is one controlled CCT-G3.1 mechanism ablation under the same comparison contract.
 
 | Stage 2 measurement | Required report |
 |---|---|
@@ -217,13 +217,7 @@ I will keep the workflow bounded and visible. I will review the code and config 
 
 ## 13. First action for you to check
 
-CCT-G0 and CCT-G1 are complete. The current permitted action is **Stage 2A** only. Run the exact Stage 2A command above without changing its configuration, then send these three items when it finishes:
-
-```text
-1. The full output line beginning with: Pilot ...
-2. results/colab_stage2a_full_corpus/REPORT.md
-3. results/colab_stage2a_full_corpus/latest.json
-```
+CCT-G0, CCT-G1, and CCT-G2.1 are complete. CCT-G2.1 is recorded as `REDESIGN_BEFORE_SCALE`; therefore, do **not** rerun Stage 2A with a larger budget or begin Stage 2B. The next permitted action is a single pre-registered CCT-G3.1 mechanism ablation with the CCT-G2.1 comparison contract frozen. Its exact command must be reviewed before execution.
 
 If Colab has a GPU, record its name with:
 
@@ -232,7 +226,7 @@ If Colab has a GPU, record its name with:
 !python -c "import torch; print(torch.__version__); print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')"
 ```
 
-We will review the Stage 2A report before any 3,000-step, context, capacity, corpus, ablation, or optimization work.
+We will review the pre-registered CCT-G3.1 ablation evidence before any 3,000-step, context, capacity, corpus, or optimization work.
 
 ## References
 
