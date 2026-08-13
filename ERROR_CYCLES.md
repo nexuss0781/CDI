@@ -25,3 +25,7 @@ The first artifact-archiving command used the same misspelled destination filena
 ## Fresh CPU Colab bootstrap repair
 
 A fresh Colab run cloned a non-main branch, attempted an impossible fast-forward to the feature branch, and then imported CDI before `requirements.txt` installed EthioBBPE. The package index reported `EthioBBPE 2.0.0` as the sole and latest published version, so requirements now pin `EthioBBPE==2.0.0`. The Colab bootstrap now removes any stale checkout, clones `master` directly, installs requirements, imports `ethiobbpe` as an explicit verification step, and only then runs CDI.
+
+## Colab dependency-resolver conflict
+
+The stale Colab requirements install spent time backtracking through `transformers` versions because EthioBBPE 2.0.0 requires `tokenizers>=0.20.0,<0.22`, whereas recent Transformers releases require newer Tokenizers versions. CDI imports neither `transformers` nor its APIs, so the unused runtime dependency was removed from `requirements.txt`. The pinned `EthioBBPE==2.0.0` installation is now compatible with the actual CDI runtime dependencies and resolves without the unrelated Transformer constraint.
