@@ -8,7 +8,7 @@
 
 ## 1. Current starting point
 
-The EthioBBPE migration is complete on `feat/ethiobbpe-tokenizer`, and the real-data pilot established an important but narrow result. The 48-state CDI model learned held-out Amharic Synaxarium text after the tokenizer mismatch was fixed. At 300 matched CPU steps and three seeds, its validation cross-entropy was 7.1700, compared with 7.1923 for the GRU baseline and 7.0507 for the Transformer. CDI therefore learned and slightly exceeded the simple GRU on this task, but it did **not** beat the Transformer and was much slower in the current Python-oriented implementation.
+The EthioBBPE migration is complete on `master`, and the real-data pilot established an important but narrow result. The 48-state CDI model learned held-out Amharic Synaxarium text after the tokenizer mismatch was fixed. At 300 matched CPU steps and three seeds, its validation cross-entropy was 7.1700, compared with 7.1923 for the GRU baseline and 7.0507 for the Transformer. CDI therefore learned and slightly exceeded the simple GRU on this task, but it did **not** beat the Transformer and was much slower in the current Python-oriented implementation.
 
 | Current fact | Meaning | Decision |
 |---|---|---|
@@ -106,17 +106,17 @@ Run this exact command first. It is a bounded three-seed, full-corpus diagnostic
 
 ```bash
 %cd /content/CDI
-# Stage 0 already cloned the exact feature branch and installed requirements.
-!PYTHONPATH=. python benchmarks/ethiobbpe_synaxarium_pilot.py \\
-  --steps 1000 \\
-  --document-limit 321 \\
-  --chunks-per-document 32 \\
-  --chunk-length 16 \\
-  --batch-size 2 \\
-  --eval-batches 0 \\
-  --shuffle-training-batches \\
-  --learning-rate 0.01 \\
-  --relative-loss-tolerance 0.05 \\
+# CCT-G0 validated the master checkout and installed requirements.
+!PYTHONPATH=. python benchmarks/ethiobbpe_synaxarium_pilot.py \
+  --steps 1000 \
+  --document-limit 321 \
+  --chunks-per-document 32 \
+  --chunk-length 16 \
+  --batch-size 2 \
+  --eval-batches 0 \
+  --shuffle-training-batches \
+  --learning-rate 0.01 \
+  --relative-loss-tolerance 0.05 \
   --output-dir results/colab_stage2a_full_corpus
 !cat results/colab_stage2a_full_corpus/REPORT.md
 ```
@@ -217,12 +217,12 @@ I will keep the workflow bounded and visible. I will review the code and config 
 
 ## 13. First action for you to check
 
-Start with **Stage 0**, then run the **Stage 1** command exactly as written. Do not modify the command. Send me these three items when it finishes:
+CCT-G0 and CCT-G1 are complete. The current permitted action is **Stage 2A** only. Run the exact Stage 2A command above without changing its configuration, then send these three items when it finishes:
 
 ```text
 1. The full output line beginning with: Pilot ...
-2. results/colab_reproduction_300steps/REPORT.md
-3. results/colab_reproduction_300steps/latest.json
+2. results/colab_stage2a_full_corpus/REPORT.md
+3. results/colab_stage2a_full_corpus/latest.json
 ```
 
 If Colab has a GPU, record its name with:
@@ -232,12 +232,12 @@ If Colab has a GPU, record its name with:
 !python -c "import torch; print(torch.__version__); print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')"
 ```
 
-We will review that report before moving to Stage 2.
+We will review the Stage 2A report before any 3,000-step, context, capacity, corpus, ablation, or optimization work.
 
 ## References
 
 [1]: https://arxiv.org/abs/2111.00396 "Gu, Goel and Ré. Efficiently Modeling Long Sequences with Structured State Spaces (S4), 2021"
 [2]: https://arxiv.org/abs/2312.00752 "Gu and Dao. Mamba: Linear-Time Sequence Modeling with Selective State Spaces, 2023"
 [3]: https://arxiv.org/abs/2405.21060 "Dao and Gu. Transformers are SSMs: Generalized Models and Efficient Algorithms Through Structured State Space Duality, 2024"
-[4]: https://github.com/nexuss0781/CDI/tree/feat/ethiobbpe-tokenizer "CDI EthioBBPE feature branch"
+[4]: https://github.com/nexuss0781/CDI/tree/master "CDI master branch"
 [5]: https://huggingface.co/datasets/Nexuss0781/synaxarium "Nexuss0781 Synaxarium dataset card"
