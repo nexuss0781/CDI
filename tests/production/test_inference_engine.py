@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from hashlib import sha256
+import json
 from pathlib import Path
 
 import pytest
@@ -44,9 +46,11 @@ def _checkpoint(tmp_path: Path, *, embedding_dim: int = 4, n_vertices: int = 4, 
     optimizer = optimizer_for(model, stage_d)
     manifest = {
         "format": "test-manifest-v1",
-        "fingerprint": "test-corpus-fingerprint",
         "tokenizer_fingerprint": tokenizer.fingerprint,
     }
+    manifest["fingerprint"] = sha256(
+        json.dumps(manifest, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
     payload = checkpoint_payload(model, optimizer, tokenizer, manifest, stage_d, step=3, cursor=0)
     lineage = ArtifactLineage(
         code_revision="inference-regression-test",

@@ -386,7 +386,7 @@ def run_all(config_name: str, seed: int, sizes: Sequence[int], output_dir: Path)
     }
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "latest.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    Path("Stages/STAGE_B_GATE_REPORT.md").write_text(_report_markdown(report), encoding="utf-8")
+    (output_dir / "REPORT.md").write_text(_report_markdown(report), encoding="utf-8")
     return report
 
 

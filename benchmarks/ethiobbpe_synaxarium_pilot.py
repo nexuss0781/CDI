@@ -11,6 +11,7 @@ import argparse
 from dataclasses import asdict, dataclass
 from hashlib import sha256
 import json
+import math
 from pathlib import Path
 import platform
 from statistics import mean
@@ -280,20 +281,67 @@ def aggregate(records: Iterable[Mapping[str, Any]]) -> Dict[str, Dict[str, float
     return summary
 
 
-def architecture_decision(summary: Mapping[str, Mapping[str, float]], config: PilotConfig) -> Dict[str, Any]:
+def _record_values_are_finite(record: Mapping[str, Any]) -> bool:
+    values = [
+        record.get("train_loss_first"),
+        record.get("train_loss_last"),
+        record.get("elapsed_seconds"),
+        record.get("tokens_processed"),
+    ]
+    for split_name in ("initial_validation", "validation", "test"):
+        split = record.get(split_name, {})
+        if not isinstance(split, Mapping):
+            return False
+        values.extend(split.get(name) for name in ("loss", "perplexity", "token_accuracy", "token_count"))
+    return all(isinstance(value, (int, float)) and math.isfinite(float(value)) for value in values)
+
+
+def architecture_decision(
+    summary: Mapping[str, Mapping[str, float]],
+    config: PilotConfig,
+    records: Sequence[Mapping[str, Any]],
+) -> Dict[str, Any]:
+    """Apply the complete CCT transition gate to the seed-level pilot evidence.
+
+    A mean-only best-baseline comparison is insufficient: CDI must learn with
+    finite values, stay within the declared mean Transformer-loss tolerance,
+    and match or beat GRU validation loss in every declared seed.
+    """
     dcss = summary["dcss_cdi"]
-    baseline_loss = min(summary["gru_baseline"]["mean_validation_loss"], summary["transformer"]["mean_validation_loss"])
-    relative_gap = (dcss["mean_validation_loss"] / baseline_loss) - 1.0
-    learning = bool(dcss["all_train_loss_decreased"])
-    comparable = bool(relative_gap <= config.relative_loss_tolerance)
+    transformer = summary["transformer"]
+    gru = summary["gru_baseline"]
+    transformer_gap = (dcss["mean_validation_loss"] / transformer["mean_validation_loss"]) - 1.0
+    gru_gap = (dcss["mean_validation_loss"] / gru["mean_validation_loss"]) - 1.0
+    by_seed: Dict[int, Dict[str, Mapping[str, Any]]] = {}
+    for record in records:
+        seed = record.get("seed")
+        model = record.get("model")
+        if isinstance(seed, int) and isinstance(model, str):
+            by_seed.setdefault(seed, {})[model] = record
+    required_models = set(MODEL_NAMES)
+    expected_seeds = set(config.seeds)
+    complete_seed_matrix = set(by_seed) == expected_seeds and all(set(rows) == required_models for rows in by_seed.values())
+    finite = complete_seed_matrix and all(_record_values_are_finite(record) for rows in by_seed.values() for record in rows.values())
+    learning = finite and all(bool(by_seed[seed]["dcss_cdi"].get("train_loss_decreased")) for seed in config.seeds)
+    transformer_tolerance = finite and transformer_gap <= config.relative_loss_tolerance
+    per_seed_gru = {
+        str(seed): float(by_seed[seed]["dcss_cdi"]["validation"]["loss"]) <= float(by_seed[seed]["gru_baseline"]["validation"]["loss"])
+        for seed in config.seeds
+    } if finite else {}
+    gru_gate = finite and bool(per_seed_gru) and all(per_seed_gru.values())
+    passed = learning and transformer_tolerance and gru_gate
     return {
+        "finite_values_gate": finite,
+        "complete_seed_matrix_gate": complete_seed_matrix,
         "learning_gate": learning,
-        "baseline_gate": comparable,
-        "best_baseline_validation_loss": baseline_loss,
-        "dcss_relative_validation_loss_gap": relative_gap,
+        "transformer_tolerance_gate": transformer_tolerance,
+        "gru_per_seed_gate": gru_gate,
+        "gru_per_seed": per_seed_gru,
+        "dcss_transformer_relative_validation_loss_gap": transformer_gap,
+        "dcss_gru_relative_validation_loss_gap": gru_gap,
         "tolerance": config.relative_loss_tolerance,
-        "verdict": "EARNED_NEXT_PILOT" if learning and comparable else "REDESIGN_BEFORE_SCALING",
-        "scope": "This verdict applies only to the current 48-state CPU nano DCSS configuration and the bounded Synaxarium token budget.",
+        "verdict": "EARNED_NEXT_PILOT" if passed else "REDESIGN_BEFORE_SCALE",
+        "scope": "This CCT verdict applies only to the current configuration, governed manifest, and declared bounded token budget.",
     }
 
 
@@ -325,8 +373,10 @@ The pilot used document-isolated Amharic readings from [`{DATASET_ID}`]({DATASET
 
 | Gate | Result | Evidence |
 |---|---|---|
-| Learning | {'PASS' if decision['learning_gate'] else 'FAIL'} | DCSS training loss decreased in every seed: `{report['summary']['dcss_cdi']['all_train_loss_decreased']}`. |
-| Matched baseline | {'PASS' if decision['baseline_gate'] else 'FAIL'} | DCSS relative validation-loss gap: `{decision['dcss_relative_validation_loss_gap']:.2%}`; predeclared tolerance: `{decision['tolerance']:.0%}`. |
+| Complete finite evidence | {'PASS' if decision['finite_values_gate'] else 'FAIL'} | Three seeds and all required model records are present with finite metrics. |
+| Learning | {'PASS' if decision['learning_gate'] else 'FAIL'} | CDI training loss decreased in every seed. |
+| Transformer tolerance | {'PASS' if decision['transformer_tolerance_gate'] else 'FAIL'} | CDI-to-Transformer mean validation-loss gap: `{decision['dcss_transformer_relative_validation_loss_gap']:.2%}`; tolerance: `{decision['tolerance']:.0%}`. |
+| GRU relation | {'PASS' if decision['gru_per_seed_gate'] else 'FAIL'} | CDI matches or beats GRU in every seed: `{decision['gru_per_seed']}`; mean gap: `{decision['dcss_gru_relative_validation_loss_gap']:.2%}`. |
 | Split isolation | PASS | The governed manifest's document and content-hash leakage checks passed before training. |
 
 > {decision['scope']}
@@ -387,7 +437,7 @@ def run(config: PilotConfig) -> Dict[str, Any]:
         "packed_example_counts": {name: len(examples) for name, examples in packed.items()},
         "records": records,
         "summary": summary,
-        "decision": architecture_decision(summary, config),
+        "decision": architecture_decision(summary, config, records),
         "code_revision": _git_revision(),
         "environment": {"python": platform.python_version(), "torch": torch.__version__, "device": "cpu"},
     }

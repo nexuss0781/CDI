@@ -324,7 +324,9 @@ def run_all(seeds: Sequence[int] = SEEDS, output_dir: Path | str = Path("results
     manifest_payload = json.dumps(study_manifest, indent=2, sort_keys=True) + "\n"
     (output_dir / "study_manifest.json").write_text(manifest_payload, encoding="utf-8")
     (run_dir / "study_manifest.json").write_text(manifest_payload, encoding="utf-8")
-    Path("Stages/STAGE_E_GATE_REPORT.md").write_text(render_report(report), encoding="utf-8")
+    rendered = render_report(report)
+    (output_dir / "REPORT.md").write_text(rendered, encoding="utf-8")
+    (run_dir / "REPORT.md").write_text(rendered, encoding="utf-8")
     return report
 
 

@@ -28,11 +28,23 @@ def checkpoint_sidecar(path: Path) -> Path:
     return path.with_suffix(path.suffix + ".sha256")
 
 
+def _validate_stage_d_lineage_binding(stage_d_payload: Mapping[str, Any], lineage: ArtifactLineage) -> None:
+    required = {
+        "tokenizer_fingerprint": lineage.tokenizer_fingerprint,
+        "data_manifest_fingerprint": lineage.corpus_manifest_fingerprint,
+        "model_fingerprint": lineage.model_fingerprint,
+    }
+    for field, expected in required.items():
+        if stage_d_payload.get(field) != expected:
+            raise ValueError(f"Stage D payload {field} does not match envelope lineage.")
+
+
 def build_envelope(stage_d_payload: Mapping[str, Any], lineage: ArtifactLineage, boundary: ReleaseBoundary, environment: EnvironmentLineage | None = None) -> Dict[str, Any]:
     lineage.validate()
     boundary.validate()
-    if stage_d_payload.get("format") != "dcss-cdi-stage-d-checkpoint-v1":
+    if stage_d_payload.get("format") != "dcss-cdi-stage-d-checkpoint-v2":
         raise ValueError("P1 envelopes require a validated Stage D checkpoint payload.")
+    _validate_stage_d_lineage_binding(stage_d_payload, lineage)
     return {
         "format": CHECKPOINT_FORMAT,
         "stage_d_payload": dict(stage_d_payload),
@@ -49,11 +61,13 @@ def validate_envelope(payload: Mapping[str, Any]) -> None:
     ArtifactLineage(**dict(payload.get("lineage", {}))).validate()
     ReleaseBoundary(**dict(payload.get("release_boundary", {}))).validate()
     stage_d = payload.get("stage_d_payload", {})
-    if not isinstance(stage_d, Mapping) or stage_d.get("format") != "dcss-cdi-stage-d-checkpoint-v1":
+    if not isinstance(stage_d, Mapping) or stage_d.get("format") != "dcss-cdi-stage-d-checkpoint-v2":
         raise ValueError("Production checkpoint lacks a valid Stage D payload.")
-    expected = ArtifactLineage(**dict(payload["lineage"])).fingerprint
+    lineage = ArtifactLineage(**dict(payload["lineage"]))
+    expected = lineage.fingerprint
     if payload.get("lineage_fingerprint") != expected:
         raise ValueError("Production checkpoint lineage fingerprint mismatch.")
+    _validate_stage_d_lineage_binding(stage_d, lineage)
 
 
 def save_atomic(path: str | Path, envelope: Mapping[str, Any]) -> Dict[str, str]:

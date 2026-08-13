@@ -1,39 +1,51 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+# CCT-safe repository entry point.
+#
+# This script intentionally does not fetch external data, authenticate, or begin
+# training. CCT-G2.1 concluded REDESIGN_BEFORE_SCALE, so the only executable
+# default is reproducible readiness validation.
+set -euo pipefail
 
-echo "=================================================="
-echo "DCSS-CDI Production GPU Training & Evaluation Runner"
-echo "=================================================="
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$ROOT"
 
-# Ensure the root directory is in the Python path
-export PYTHONPATH=$PYTHONPATH:.
+usage() {
+  cat <<'EOF'
+Usage: ./run.sh [readiness|status|help]
 
-# Check for HF_TOKEN
-if [ -n "$HF_TOKEN" ]; then
-    echo "[INFO] HF_TOKEN detected in environment."
-    export HF_TOKEN=$HF_TOKEN
-else
-    echo "[INFO] No HF_TOKEN detected. Public datasets will be accessed without authentication."
-fi
+Commands:
+  readiness  Run the clean-master CCT-G0 environment and regression verifier.
+  status     Print the current governed CCT execution state without side effects.
+  help       Print this message.
 
-echo "[1/4] Installing/Updating dependencies..."
-python3 -m pip install --upgrade -r requirements.txt
-# Ensure torch is installed with CUDA support if not present
-python3 -c "import torch; print(f'Torch version: {torch.__version__}, CUDA: {torch.cuda.is_available()}')" || pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+The legacy v2 and external production routes are intentionally blocked here.
+CCT-G2.2 scale work is blocked pending the CCT-G3.1 mechanism decision.
+EOF
+}
 
-echo "[2/4] Verifying mathematical test suite and syntax..."
-find cdi/v3 -name "*.py" -exec python3 -m py_compile {} +
-pytest -q
+status() {
+  echo "CDI CCT safe entry point"
+  echo "branch: $(git branch --show-current)"
+  echo "revision: $(git rev-parse --short HEAD)"
+  echo "active gate: CCT-G3.1 — one pre-registered geometry-observability mechanism"
+  echo "blocked: legacy v2 training, external production ingestion, CCT-G2.2 scale ladder"
+  echo "authoritative checklist: Todo.md"
+}
 
-echo "[3/4] Launching GPU training & fine-tuning pipeline..."
-# Run as a module to ensure correct package resolution
-python3 -m cdi.v3.production.train_production --config benchmarks/configs/production_large.json
-
-echo "[4/4] Finalizing results..."
-if [ -f "results/production/production_report.json" ]; then
-    echo "SUCCESS: Production run completed."
-    cat results/production/production_report.json
-else
-    echo "ERROR: Production report not found."
-    exit 1
-fi
+command="${1:-readiness}"
+case "$command" in
+  readiness)
+    exec ./scripts/run_cct_g0.sh
+    ;;
+  status)
+    status
+    ;;
+  help|-h|--help)
+    usage
+    ;;
+  legacy|production|train|*)
+    echo "ERROR: '$command' is not an approved CCT command." >&2
+    usage >&2
+    exit 2
+    ;;
+esac

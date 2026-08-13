@@ -451,7 +451,8 @@ def run_all(seed: int = 42, output_dir: Path | str = Path("results/stage_c"), st
     (run_directory / "transition_manifest.json").write_text(manifest_json, encoding="utf-8")
     (output_dir / "transition_manifest.json").write_text(manifest_json, encoding="utf-8")
     report_markdown = render_report(report)
-    Path("Stages/STAGE_C_GATE_REPORT.md").write_text(report_markdown, encoding="utf-8")
+    (output_dir / "REPORT.md").write_text(report_markdown, encoding="utf-8")
+    (run_directory / "REPORT.md").write_text(report_markdown, encoding="utf-8")
     return report
 
 

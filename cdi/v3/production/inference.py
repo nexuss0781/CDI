@@ -155,7 +155,7 @@ class DCSSInferenceEngine:
         payload = envelope.get("stage_d_payload")
         if not isinstance(payload, Mapping):
             raise ValueError("Verified production envelope lacks a Stage D payload.")
-        if payload.get("format") != "dcss-cdi-stage-d-checkpoint-v1":
+        if payload.get("format") != "dcss-cdi-stage-d-checkpoint-v2":
             raise ValueError("Unsupported Stage D payload format for inference.")
 
         model_state = payload.get("model_state")

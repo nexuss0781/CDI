@@ -100,8 +100,9 @@ def test_atomic_checkpoint_integrity_and_lineage_round_trip(tmp_path: Path) -> N
     model = build_model("dcss_cdi", tokenizer, config)
     optimizer = optimizer_for(model, config)
     _, optimizer, cursor = train_steps(model, batches, config, steps=2, optimizer=optimizer)
-    stage_d = checkpoint_payload(model, optimizer, tokenizer, corpus.manifest(tokenizer, config), config, step=2, cursor=cursor)
-    lineage = ArtifactLineage("commit-test", ProductionRunConfig().fingerprint, _manifest().fingerprint, tokenizer.fingerprint, parameter_fingerprint(model))
+    stage_manifest = corpus.manifest(tokenizer, config)
+    stage_d = checkpoint_payload(model, optimizer, tokenizer, stage_manifest, config, step=2, cursor=cursor)
+    lineage = ArtifactLineage("commit-test", ProductionRunConfig().fingerprint, stage_manifest["fingerprint"], tokenizer.fingerprint, parameter_fingerprint(model))
     envelope = build_envelope(stage_d, lineage, ReleaseBoundary())
     path = tmp_path / "checkpoint.pt"
     written = save_atomic(path, envelope)
@@ -127,15 +128,23 @@ def test_deterministic_resume_reaches_identical_parameters(tmp_path: Path) -> No
     interrupted = build_model("dcss_cdi", tokenizer, config)
     interrupted_optimizer = optimizer_for(interrupted, config)
     losses_first, interrupted_optimizer, cursor = train_steps(interrupted, batches, config, split_steps, interrupted_optimizer)
-    stage_d = checkpoint_payload(interrupted, interrupted_optimizer, tokenizer, corpus.manifest(tokenizer, config), config, step=split_steps, cursor=cursor)
-    lineage = ArtifactLineage("commit-test", ProductionRunConfig(seed=config.seed).fingerprint, _manifest().fingerprint, tokenizer.fingerprint, parameter_fingerprint(interrupted))
+    stage_manifest = corpus.manifest(tokenizer, config)
+    stage_d = checkpoint_payload(interrupted, interrupted_optimizer, tokenizer, stage_manifest, config, step=split_steps, cursor=cursor)
+    lineage = ArtifactLineage("commit-test", ProductionRunConfig(seed=config.seed).fingerprint, stage_manifest["fingerprint"], tokenizer.fingerprint, parameter_fingerprint(interrupted))
     path = tmp_path / "resume.pt"
     save_atomic(path, build_envelope(stage_d, lineage, ReleaseBoundary()))
 
     resumed = build_model("dcss_cdi", tokenizer, config)
     resumed_optimizer = optimizer_for(resumed, config)
     restored = load_verified(path)["stage_d_payload"]
-    step, restored_cursor = restore_checkpoint(restored, resumed, resumed_optimizer, tokenizer)
+    step, restored_cursor = restore_checkpoint(
+        restored,
+        resumed,
+        resumed_optimizer,
+        tokenizer,
+        expected_data_manifest=stage_manifest,
+        expected_config=config,
+    )
     assert (step, restored_cursor) == (split_steps, cursor)
     losses_second, _, cursor_resumed = train_steps(resumed, batches, config, total_steps - split_steps, resumed_optimizer, start_cursor=restored_cursor)
     assert cursor_full == cursor_resumed
