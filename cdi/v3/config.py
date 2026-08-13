@@ -32,6 +32,7 @@ class DCSSConfig:
     allocation_fraction_limit: float = 0.50
     spectral_target: float = 0.10
     energy_limit: float = 1.0e8
+    max_geometry_edge_weight: float = 2.0
 
     @property
     def dtype(self) -> torch.dtype:
@@ -60,6 +61,8 @@ class DCSSConfig:
             raise ValueError("Stage B accepts CPU or CUDA device strings only.")
         if self.allocation_fraction_limit <= 0.0:
             raise ValueError("allocation_fraction_limit must be positive.")
+        if not 0.0 < self.max_geometry_edge_weight <= 2.0:
+            raise ValueError("max_geometry_edge_weight must lie in (0, 2] for the nano stability envelope.")
 
     def as_dict(self) -> Dict[str, Any]:
         return asdict(self)

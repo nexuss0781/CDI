@@ -8,6 +8,7 @@ then receives a bounded matrix-free Stage B Laplacian correction.
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+import math
 from hashlib import sha256
 from math import log
 from typing import Any, Dict, Iterable, Literal, Mapping, Sequence, Tuple
@@ -43,6 +44,7 @@ class StageCConfig:
     geometry_ablation: bool = False
     dt: float = 0.10
     geometry_step_cap: float = 0.02
+    max_geometry_edge_weight: float = 2.0
     tau_min: float = 0.05
     tau_max: float = 64.0
     max_log_timescale_offset: float = 0.35
@@ -87,6 +89,13 @@ class StageCConfig:
             raise ValueError("dt must be in (0, 1].")
         if not 0.0 <= self.geometry_step_cap <= 0.05:
             raise ValueError("geometry_step_cap must be in [0, 0.05] for the nano stability envelope.")
+        if not 0.0 < self.max_geometry_edge_weight <= 2.0:
+            raise ValueError("max_geometry_edge_weight must lie in (0, 2] for the nano stability envelope.")
+        # A graph with at most n_vertices - 1 incident edges has lambda_max(L)
+        # bounded by 2 * (n_vertices - 1) * max_edge_weight. The explicit
+        # correction must remain non-expansive in that conservative envelope.
+        if self.geometry_step_cap * 2.0 * (self.n_vertices - 1) * self.max_geometry_edge_weight > 1.0:
+            raise ValueError("geometry_step_cap and max_geometry_edge_weight exceed the explicit correction stability envelope.")
         if not 0.0 < self.tau_min <= self.tau_max:
             raise ValueError("Timescale bounds must be finite and positive.")
         if len(self.band_ranges) != len(BAND_NAMES):
@@ -120,6 +129,7 @@ class StageCConfig:
             dtype_str=self.dtype_str,
             device=self.device,
             geometry_ablation=self.geometry_ablation,
+            max_geometry_edge_weight=self.max_geometry_edge_weight,
         )
         config.validate()
         return config
@@ -503,6 +513,8 @@ class CohomodynamicCell(nn.Module):
                 raise ValueError(f"State band {name!r} has shape {actual}, expected {expected} for input {tuple(x.shape)}.")
 
     def step(self, x: torch.Tensor, state: CohomodynamicState, dissipation_scale: float = 1.0) -> Tuple[torch.Tensor, CohomodynamicState]:
+        if not math.isfinite(dissipation_scale) or dissipation_scale < 0.0:
+            raise ValueError("dissipation_scale must be finite and non-negative.")
         if x.ndim < 1 or x.shape[-1] != self.config.input_width:
             raise ValueError(f"Expected (..., {self.config.input_width}) token input, received {tuple(x.shape)}.")
         x = x.to(dtype=self.readout.weight.dtype, device=self.readout.weight.device)
@@ -516,11 +528,19 @@ class CohomodynamicCell(nn.Module):
             band_state, params = self.bands[name].step(x, state.by_name(name), dissipation_scale=dissipation_scale)
             correction = self.geometry.apply(band_state)
             alpha = (self.config.geometry_step_cap * params.geometry_gate).unsqueeze(-1).unsqueeze(-1)
+            if bool((alpha * 2.0 * (self.config.n_vertices - 1) * self.config.max_geometry_edge_weight > 1.0).any().item()):
+                raise FloatingPointError("Explicit geometry correction exceeded the configured spectral stability envelope.")
             value = band_state - alpha * correction
+            geometry_energy = self.geometry.energy(value)
+            if bool((geometry_energy > self.stage_b_config.energy_limit).any().item()):
+                raise FloatingPointError("Geometry energy exceeded the configured runtime limit.")
             if self.unconstrained_cochain is not None:
                 # Named Stage E C-ablation only: unconstrained vertex mixing.
                 # It is absent from every full-production execution path.
                 value = value + torch.einsum("ij,...jw->...iw", self.unconstrained_cochain, band_state)
+            state_norm = torch.linalg.vector_norm(value, dim=(-2, -1))
+            if bool((state_norm > self.config.state_norm_bound).any().item()):
+                raise FloatingPointError("Cohomodynamic state norm exceeded the configured runtime limit.")
             updated[name] = value
             parameters[name] = params
         new_state = CohomodynamicState(updated["fast"], updated["middle"], updated["harmonic"])

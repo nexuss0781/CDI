@@ -113,17 +113,17 @@ z_{b,t+1}=\widetilde z_{b,t+1}-\alpha_{b,t}L\widetilde z_{b,t+1},
 
 The topology, incidence, PSD quadratic form, dense test oracle, and boundary-of-boundary diagnostics are all real code paths, not labels only. [5] [6] [7]
 
-## Readout and the Central Architectural Limitation
+## Readout and the CCT-G3.1 Geometry-Observability Repair
 
-After the correction, the cell forms one four-dimensional mean vector per band,
+The historical mean-only readout formed one four-dimensional mean vector per band. CCT-G3.1 preserves that feature but adds deterministic zero-sum vertex contrasts. With a fixed orthonormal basis \(Q\in\mathbb{R}^{V\times(V-1)}\) perpendicular to \(\mathbf{1}\), each band now contributes
 
 \[
-m_{b,t}=\frac{1}{V}\sum_{v=1}^{V}z_{b,t}[v,:],
+\phi(z_b)=\left[\frac{1}{V}\mathbf{1}^{\top}z_b,\ Q^{\top}z_b\right].
 \]
 
-concatenates the three vectors into a 12-dimensional feature, and applies a 12-to-4 linear readout. The tied output layer maps those four values to the vocabulary. [2] [4]
+At \(V=w=4\), each band contributes 16 values and the three-band readout is 48-to-4. The recurrence, topology, Laplacian, tokenizer, output width, and tied vocabulary projection remain unchanged. Full CDI and its exact geometry-disabled counterpart use the same readout. [2] [4]
 
-This readout creates a decisive invariant. Because \(L=S^{\top}WS\) is a graph Laplacian, \(\mathbf{1}^{\top}L=0\). The geometry correction therefore has zero vertex mean:
+The historical mean-only readout created a decisive invariant. Because \(L=S^{\top}WS\) is a graph Laplacian, \(\mathbf{1}^{\top}L=0\). The geometry correction therefore has zero vertex mean:
 
 \[
 \frac{1}{V}\mathbf{1}^{\top}(\widetilde z-\alpha L\widetilde z)
@@ -131,15 +131,15 @@ This readout creates a decisive invariant. Because \(L=S^{\top}WS\) is a graph L
 \frac{1}{V}\mathbf{1}^{\top}\widetilde z.
 \]
 
-The recurrent generator and selective gates are shared across vertices and depend on the token embedding rather than on vertex-specific state. By induction, the vertex-mean trajectory used by the readout is invariant to the Laplacian correction, while the correction only changes vertex contrast that the readout discards. This is confirmed by a direct language-model probe on identical full and geometry-disabled models: maximum logit difference `2.95585778076e-12`, causal-loss difference `0`, and geometry-weight causal-loss gradient L2 norm `0`. The full and geometry-disabled states do differ, so the problem is **state-to-readout observability**, not a missing Laplacian computation. [2] [4]
+The recurrent generator and selective gates are shared across vertices and depend on the token embedding rather than on vertex-specific state. Therefore the historical vertex-mean trajectory was invariant to the Laplacian correction while the correction changed only discarded contrast. The pre-repair probe measured maximum logit difference `2.95585778076e-12`, causal-loss difference `0`, and geometry-gradient L2 norm `0`; it established a **state-to-readout observability** defect rather than a missing Laplacian computation. [2] [4]
 
-> **Engineering conclusion:** the current model has a genuine sparse geometric state transformation, but that transformation does not currently affect the token-loss path in a meaningful numerical sense. The geometry-free ablation cannot establish geometry value until the readout or recurrence is revised under CCT-G3.1.
+> **Current engineering state:** CCT-G3.1 makes that contrast observable through the fixed basis above. Local regression gates now require full versus geometry-disabled logit/loss differences and a finite, nonzero causal-loss geometry gradient. The remaining question is empirical: the full model must show repeated held-out value against its exact geometry-disabled counterpart before any scale decision.
 
 ## Baselines and Parameter Matching
 
-The CCT pilot uses two baselines sharing the tokenizer, causal loss, padding behavior, optimizer family, chunk length, batch size, seed list, and batch schedule. The GRU baseline uses a width-four `GRUCell`; the Transformer baseline uses one causal encoder layer with width four, one head, feedforward width eight, and no dropout. All three models use tied output projection and a vocabulary bias. The resulting total parameter counts are approximately 80,120–80,366, with the 16,000-way embedding/output matrix dominating the count. [3] [4]
+The CCT pilot uses two baselines sharing the tokenizer, causal loss, padding behavior, optimizer family, chunk length, batch size, seed list, and batch schedule. The GRU baseline uses a width-four `GRUCell`; the Transformer baseline uses one causal encoder layer with width four, one head, feedforward width eight, and no dropout. All models use tied output projection and a vocabulary bias. The current counts are 80,510 for full CDI and geometry-free CDI, 80,120 for GRU, and 80,172 for Transformer: a maximum relative spread of 0.49%. [3] [4]
 
-This is a useful compact fairness design, but it also means that the recurrent core has very little parameter budget and only a four-dimensional vector reaches the vocabulary head. The 48-state CDI structure is internally richer than the final token feature, yet the current 12-to-4 compression discards vertex-resolved information and limits the mechanism that can distinguish CDI from a small GRU. [2] [4]
+This compact fairness design leaves a very small recurrent-core budget. The 48-state CDI structure is now exposed through fixed contrasts rather than discarded by mean-only compression, but its empirical contribution remains a CCT-G3.1 question rather than an assumed advantage. [2] [4]
 
 ## Stability and Reproducibility Strengths
 
@@ -149,22 +149,22 @@ The active implementation has several strong foundations that should be preserve
 |---|---|---|
 | Token identity integrity | Artifact snapshot, fingerprint, strict contiguous-ID and range checks. | Prevents the historical data-tokenizer/model-tokenizer corruption failure. |
 | Causal state handling | Step and chunk APIs are tested for equivalence; padding freezes recurrent state. | Ensures the evaluated model is causal and batch padding does not advance state. |
-| Bounded dynamics | Positive dissipation, bounded gates, finite timescale intervals, exact pairwise update. | Gives a meaningful local numerical stability contract. |
-| Sparse operator construction | Incidence gather/scatter and weighted Laplacian avoid a dense global state operator. | Prevents accidental dense lifting in the active recurrence. |
+| Bounded dynamics | Positive dissipation, bounded gates, finite timescale intervals, exact pairwise update, nonnegative dissipation validation, state-norm/energy limits, capped edge weights, and an explicit-step spectral guard. | Gives a fail-closed local numerical stability contract. |
+| Sparse operator construction | Incidence gather/scatter, weighted Laplacian, and cached immutable topology tensors avoid a dense global state operator and repeated topology materialization. | Preserves the matrix-free operator contract without a speed claim. |
 | Governed pilot | Content-hash deduplication, document split isolation, matched seed/model protocol, full held-out option. | Makes the G1/G2.1 comparison interpretable. |
-| Fail-closed inference | Production inference validates sidecar, tokenizer, vocabulary, topology, lineage, and model fingerprint. | Rejects incompatible checkpoints rather than silently decoding with guessed artifacts. |
+| Fail-closed inference | Production inference validates sidecar, tokenizer, vocabulary, topology, lineage, model fingerprint, and the complete serialized Stage C dynamics configuration. | Rejects incompatible checkpoints rather than silently decoding with guessed artifacts. |
 
 ## Boundaries of the Current Evidence
 
 CCT-G1 established that the repaired active language path can reduce loss on a bounded real-data task. CCT-G2.1 showed stable learning on the full deduplicated pilot corpus and remained within the declared Transformer tolerance, but CDI was above GRU validation loss in all three seeds. The governing decision is therefore `REDESIGN_BEFORE_SCALE`; the 3,000-step rung is not authorized. [8] [9]
 
-The implementation does **not** yet support a claim that CDI is faster than a Transformer. Its token loop is executed in Python, topology tensors are recreated lazily on property access, and CCT-G2.1 measured lower throughput than both baselines. It also does not yet support a long-context claim because training packs fixed, independent chunks and resets state for each chunk. [3] [9]
+The implementation does **not** yet support a claim that CDI is faster than a Transformer. Its token loop remains Python-serial, although immutable topology tensors are now cached; CCT-G2.1 measured lower throughput than both baselines. It also does not yet support a long-context claim because training packs fixed, independent chunks and resets state for each chunk. [3] [9]
 
 ## Legacy and Experimental Modules
 
 The repository also retains the earlier v2 dense engine (`cdi.engine`, `cdi.core`, `cdi.geometry`, `cdi.operators`, `cdi.dynamics`, `cdi.topology`, and `cdi.field`) and later optional capability modules. They are valuable historical and mathematical reference material, but they are not the active CCT language-model path. The v2 engine uses a dense flat belief state, Euler heat updates, manual tensor parameter ownership, and legacy data scripts. Its `small` preset implies a 393,216-element flat state before dense operator construction, which is not a demonstrated feasible dense CPU configuration. The optional capability modules are bounded retrieval/planning/verification utilities and explicitly do not generate language-model answers or modify core weights. [10] [11]
 
-The top-level `cdi` import exposes the legacy v2 API, while CCT uses `cdi.v3`. This separation should be made explicit in user-facing documentation and entry points to avoid executing the wrong system. [12] [13]
+The top-level `cdi` import is explicitly labeled as a legacy v2 compatibility API, while CCT uses `cdi.v3`; the README and safe shell entry point direct empirical users to the active namespace. [12] [13]
 
 ## References
 

@@ -422,9 +422,9 @@ Run one rung at a time. Every rung requires three seeds, the same evidence field
 ## Immediate Next Checklist
 
 - [x] Review and record the CCT-G2.1 decision as `REDESIGN_BEFORE_SCALE`; see `docs/CCT_G2_1_DECISION.md`.
-- [ ] Select exactly one CCT mechanism for CCT-G3.1 and write its pre-run hypothesis before training.
-- [ ] Keep the CCT-G2.1 tokenizer, governed corpus split, causal-token budget, optimizer, context, precision, batch size, and seed list fixed.
-- [ ] Verify the selected ablation is causal, numerically stable, parameter-aware, and covered by regression tests.
+- [x] Select exactly one CCT mechanism for CCT-G3.1 and write its pre-run hypothesis before training; see `docs/CCT_G3_1_PREREGISTRATION.md`.
+- [x] Keep the CCT-G2.1 tokenizer, governed corpus split, causal-token budget, optimizer, context, precision, batch size, and seed list fixed in the dedicated G3.1 harness.
+- [x] Verify the selected ablation is causal, numerically stable, parameter-aware, and covered by regression tests; the full suite currently has 267 passing tests.
 - [ ] Run full CDI, the selected CCT ablation, GRU, and Transformer under the same controlled protocol.
 - [ ] Save the verdict line, `REPORT.md`, `latest.json`, pre-registration, and implementation diff.
 - [ ] Review the CCT-G3.1 evidence before checking any CCT-G2.2, context, capacity, corpus, or optimization task.

@@ -39,7 +39,13 @@ class MatrixFreeLaplacian(nn.Module):
 
     @property
     def edge_weights(self) -> torch.Tensor:
-        return torch.nn.functional.softplus(self.edge_log_weights) + 1.0e-6
+        weights = torch.nn.functional.softplus(self.edge_log_weights) + 1.0e-6
+        if bool((weights > self.config.max_geometry_edge_weight).any().item()):
+            raise FloatingPointError(
+                "Learned geometry edge weight exceeded max_geometry_edge_weight; "
+                "refuse an unbounded explicit Laplacian correction."
+            )
+        return weights
 
     def apply(self, x: torch.Tensor) -> torch.Tensor:
         """Apply the factored geometry to ``(..., vertices, channels)`` state."""
@@ -76,5 +82,6 @@ class MatrixFreeLaplacian(nn.Module):
             "full_state_square": self.full_state_square,
             "sparse_nnz": self.incidence.nnz,
             "learnable_parameters": ["edge_log_weights"],
+            "max_geometry_edge_weight": self.config.max_geometry_edge_weight,
             "forbidden_operations": ["torch.kron", "dense_full_state_operator"],
         }
