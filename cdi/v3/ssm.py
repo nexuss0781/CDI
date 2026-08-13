@@ -442,13 +442,45 @@ class CohomodynamicCell(nn.Module):
         self.learned_initial_state = nn.Parameter(
             torch.zeros(len(BAND_NAMES), config.n_vertices, config.band_width, dtype=config.dtype, device=config.device)
         )
-        self.readout = nn.Linear(len(BAND_NAMES) * config.band_width, config.output_width, bias=True, dtype=config.dtype, device=config.device)
+        self.register_buffer(
+            "vertex_contrast_basis",
+            self._zero_sum_vertex_basis(config.n_vertices, dtype=config.dtype, device=config.device),
+            persistent=True,
+        )
+        self.readout = nn.Linear(
+            len(BAND_NAMES) * config.n_vertices * config.band_width,
+            config.output_width,
+            bias=True,
+            dtype=config.dtype,
+            device=config.device,
+        )
         nn.init.xavier_uniform_(self.readout.weight, gain=0.5)
         nn.init.zeros_(self.readout.bias)
         # Stage E ablation hooks are inert in the frozen full model.
         self.disable_harmonic = False
         self.register_parameter("unconstrained_cochain", None)
         self._last_parameters: Dict[str, GeneratorParameters] = {}
+
+    @staticmethod
+    def _zero_sum_vertex_basis(n_vertices: int, *, dtype: torch.dtype, device: str) -> torch.Tensor:
+        """Return a deterministic orthonormal basis for zero-sum vertex contrasts."""
+        basis = torch.zeros(n_vertices, n_vertices - 1, dtype=dtype, device=device)
+        for column in range(n_vertices - 1):
+            scale = ((column + 1) * (column + 2)) ** -0.5
+            basis[: column + 1, column] = scale
+            basis[column + 1, column] = -(column + 1) * scale
+        return basis
+
+    def _readout_features(self, state: CohomodynamicState) -> torch.Tensor:
+        """Concatenate per-band mean and fixed zero-sum vertex contrasts."""
+        features = []
+        for name in BAND_NAMES:
+            band = state.by_name(name)
+            mean = band.mean(dim=-2)
+            contrast = torch.einsum("vi,...vw->...iw", self.vertex_contrast_basis, band)
+            contrast = contrast.reshape(*band.shape[:-2], -1)
+            features.extend((mean, contrast))
+        return torch.cat(features, dim=-1)
 
     def initial_state(self, batch_shape: Sequence[int] = (), mode: Literal["zero", "learned"] = "zero") -> CohomodynamicState:
         if mode not in {"zero", "learned"}:
@@ -492,7 +524,7 @@ class CohomodynamicCell(nn.Module):
             updated[name] = value
             parameters[name] = params
         new_state = CohomodynamicState(updated["fast"], updated["middle"], updated["harmonic"])
-        features = torch.cat([new_state.by_name(name).mean(dim=-2) for name in BAND_NAMES], dim=-1)
+        features = self._readout_features(new_state)
         self._last_parameters = parameters
         return self.readout(features), new_state
 
@@ -505,6 +537,11 @@ class CohomodynamicCell(nn.Module):
             "entries": entries,
             "geometry": self.geometry.production_metadata(),
             "state_layout": "CohomodynamicState(fast, middle, harmonic), each (..., vertices, width)",
+            "readout": {
+                "feature_layout": "per-band mean plus fixed zero-sum vertex contrasts",
+                "feature_dim": self.readout.in_features,
+                "contrast_basis_shape": list(self.vertex_contrast_basis.shape),
+            },
         }
 
     def last_diagnostics(self) -> Dict[str, Any]:
