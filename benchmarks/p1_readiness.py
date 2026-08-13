@@ -63,15 +63,23 @@ def checkpoint_and_resume_gate() -> Dict[str, Any]:
     partial = build_model("dcss_cdi", tokenizer, config)
     partial_optimizer = optimizer_for(partial, config)
     losses_first, partial_optimizer, cursor = train_steps(partial, batches, config, split, partial_optimizer)
-    stage_d = checkpoint_payload(partial, partial_optimizer, tokenizer, corpus.manifest(tokenizer, config), config, step=split, cursor=cursor)
-    lineage = ArtifactLineage("p1-local", ProductionRunConfig(seed=config.seed).fingerprint, _manifest().fingerprint, tokenizer.fingerprint, parameter_fingerprint(partial))
+    stage_manifest = corpus.manifest(tokenizer, config)
+    stage_d = checkpoint_payload(partial, partial_optimizer, tokenizer, stage_manifest, config, step=split, cursor=cursor)
+    lineage = ArtifactLineage("p1-local", ProductionRunConfig(seed=config.seed).fingerprint, stage_manifest["fingerprint"], tokenizer.fingerprint, parameter_fingerprint(partial))
     with TemporaryDirectory() as directory:
         path = Path(directory) / "resume.pt"
         written = save_atomic(path, build_envelope(stage_d, lineage, ReleaseBoundary()))
         resumed = build_model("dcss_cdi", tokenizer, config)
         resumed_optimizer = optimizer_for(resumed, config)
         checkpoint = load_verified(path)["stage_d_payload"]
-        step, restored_cursor = restore_checkpoint(checkpoint, resumed, resumed_optimizer, tokenizer)
+        step, restored_cursor = restore_checkpoint(
+            checkpoint,
+            resumed,
+            resumed_optimizer,
+            tokenizer,
+            expected_data_manifest=stage_manifest,
+            expected_config=config,
+        )
         losses_second, _, cursor_resumed = train_steps(resumed, batches, config, total - split, resumed_optimizer, start_cursor=restored_cursor)
         integrity_hash = written["sha256"]
     passed = step == split and cursor_whole == cursor_resumed and losses_whole == losses_first + losses_second and whole_hash == parameter_fingerprint(resumed)
@@ -109,7 +117,7 @@ def run_all(output_dir: str | Path = "results/p1") -> Dict[str, Any]:
     directory = Path(output_dir)
     directory.mkdir(parents=True, exist_ok=True)
     (directory / "latest.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    Path("Stages/P1_TRAINING_SYSTEM_HARDENING_REPORT.md").write_text(render(report), encoding="utf-8")
+    (directory / "REPORT.md").write_text(render(report), encoding="utf-8")
     return report
 
 

@@ -288,33 +288,85 @@ def _restore_random_state(payload: Mapping[str, Any]) -> None:
     torch.set_rng_state(payload["torch"])
 
 
-def checkpoint_payload(model: nn.Module, optimizer: torch.optim.Optimizer, tokenizer: EthioBBPETokenizer, data_manifest: Mapping[str, Any], config: StageDConfig, step: int, cursor: int) -> Dict[str, Any]:
-    topology_fingerprint = None
+def _mapping_fingerprint(payload: Mapping[str, Any]) -> str:
+    return sha256(json.dumps(dict(payload), sort_keys=True, separators=(",", ":"), default=str).encode("utf-8")).hexdigest()
+
+
+def _manifest_fingerprint(manifest: Mapping[str, Any]) -> str:
+    normalized = dict(manifest)
+    declared = normalized.pop("fingerprint", None)
+    computed = _mapping_fingerprint(normalized)
+    if declared is not None and (not isinstance(declared, str) or declared != computed):
+        raise ValueError("Data manifest fingerprint does not match its contents.")
+    return computed
+
+
+def _topology_fingerprint(model: nn.Module) -> str | None:
     if isinstance(model, DCSSLanguageModel):
-        topology_fingerprint = model.ssm.cell.topology.fingerprint()
+        return model.ssm.cell.topology.fingerprint()
+    return None
+
+
+def checkpoint_payload(model: nn.Module, optimizer: torch.optim.Optimizer, tokenizer: EthioBBPETokenizer, data_manifest: Mapping[str, Any], config: StageDConfig, step: int, cursor: int) -> Dict[str, Any]:
+    saved_config = config.as_dict()
+    saved_manifest = dict(data_manifest)
     return {
-        "format": "dcss-cdi-stage-d-checkpoint-v1",
+        "format": "dcss-cdi-stage-d-checkpoint-v2",
         "model_state": model.state_dict(),
+        "model_fingerprint": parameter_fingerprint(model),
         "optimizer_state": optimizer.state_dict(),
         "tokenizer_artifact": tokenizer.artifact(),
         "tokenizer_fingerprint": tokenizer.fingerprint,
-        "data_manifest": dict(data_manifest),
-        "config": config.as_dict(),
+        "data_manifest": saved_manifest,
+        "data_manifest_fingerprint": _manifest_fingerprint(saved_manifest),
+        "config": saved_config,
+        "config_fingerprint": _mapping_fingerprint(saved_config),
         "global_step": step,
         "cursor": cursor,
         "random_state": _random_state_payload(),
-        "topology_fingerprint": topology_fingerprint,
+        "topology_fingerprint": _topology_fingerprint(model),
         "hardware": {"device": config.device, "dtype": config.dtype_str, "torch": torch.__version__},
     }
 
 
-def restore_checkpoint(payload: Mapping[str, Any], model: nn.Module, optimizer: torch.optim.Optimizer, tokenizer: EthioBBPETokenizer, *, allow_tokenizer_conversion: bool = False) -> Tuple[int, int]:
-    if payload.get("format") != "dcss-cdi-stage-d-checkpoint-v1":
-        raise ValueError("Unsupported Stage D checkpoint format.")
+def restore_checkpoint(
+    payload: Mapping[str, Any],
+    model: nn.Module,
+    optimizer: torch.optim.Optimizer,
+    tokenizer: EthioBBPETokenizer,
+    *,
+    expected_data_manifest: Mapping[str, Any],
+    expected_config: StageDConfig,
+    allow_tokenizer_conversion: bool = False,
+) -> Tuple[int, int]:
+    """Restore only a checkpoint bound to this exact model/data/config contract."""
+    if payload.get("format") != "dcss-cdi-stage-d-checkpoint-v2":
+        raise ValueError("Unsupported or unbound Stage D checkpoint format.")
     if payload.get("tokenizer_fingerprint") != tokenizer.fingerprint and not allow_tokenizer_conversion:
         raise ValueError("Tokenizer fingerprint mismatch; explicit conversion is required.")
-    model.load_state_dict(payload["model_state"])
-    optimizer.load_state_dict(payload["optimizer_state"])
+    saved_config = payload.get("config")
+    saved_manifest = payload.get("data_manifest")
+    if not isinstance(saved_config, Mapping) or not isinstance(saved_manifest, Mapping):
+        raise ValueError("Checkpoint lacks bound configuration or data manifest.")
+    if payload.get("config_fingerprint") != _mapping_fingerprint(saved_config):
+        raise ValueError("Checkpoint configuration fingerprint is invalid.")
+    if payload.get("data_manifest_fingerprint") != _manifest_fingerprint(saved_manifest):
+        raise ValueError("Checkpoint data-manifest fingerprint is invalid.")
+    if _mapping_fingerprint(expected_config.as_dict()) != payload["config_fingerprint"]:
+        raise ValueError("Checkpoint configuration does not match the requested resume configuration.")
+    if _manifest_fingerprint(expected_data_manifest) != payload["data_manifest_fingerprint"]:
+        raise ValueError("Checkpoint data manifest does not match the requested resume corpus.")
+    expected_topology = _topology_fingerprint(model)
+    if payload.get("topology_fingerprint") != expected_topology:
+        raise ValueError("Checkpoint topology does not match the requested resume model.")
+    if not isinstance(payload.get("model_state"), Mapping) or not isinstance(payload.get("optimizer_state"), Mapping):
+        raise ValueError("Checkpoint lacks model or optimizer state.")
+    if not isinstance(payload.get("random_state"), Mapping):
+        raise ValueError("Checkpoint lacks random-state payload.")
+    model.load_state_dict(dict(payload["model_state"]), strict=True)
+    if payload.get("model_fingerprint") != parameter_fingerprint(model):
+        raise ValueError("Checkpoint model fingerprint does not match restored parameters.")
+    optimizer.load_state_dict(dict(payload["optimizer_state"]))
     _restore_random_state(payload["random_state"])
     return int(payload["global_step"]), int(payload["cursor"])
 

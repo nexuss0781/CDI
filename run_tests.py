@@ -3,13 +3,11 @@
 CDI v2.0 Test Orchestrator
 ============================
 
-Single entry point for ALL CDI tests.
+Legacy support test orchestrator.
 
-Phases:
-  1. Syntax validation  — every .py file in cdi/ and tests/ compiles clean
-  2. v2.0 Fix checks    — four architectural fixes verified without pytest
-  3. Integration tests  — forward / backward / loss with a real engine
-  4. Pytest suite       — test_core, test_operators, test_dynamics, test_extended
+The authoritative complete regression command is ``pytest -q``. This helper
+keeps the older v2 smoke phases available and recursively collects every
+``tests/test_*.py`` regression module in its pytest phase.
 
 Usage:
     python run_tests.py                      # full suite (all phases)
@@ -375,7 +373,7 @@ def phase_pytest() -> Tuple[bool, List]:
 
     # Build ordered list: preferred files first, then any extras discovered
     discovered = sorted(
-        p for p in tests_dir.glob("test_*.py")
+        p for p in tests_dir.rglob("test_*.py")
         if p.name != "__init__.py"
     )
     ordered_paths: List[Path] = []
@@ -455,8 +453,8 @@ def main() -> int:
     # Header
     print(f"\n{C.W}")
     print("╔" + "═" * 68 + "╗")
-    print("║" + "  CDI v2.0 — Test Orchestrator".center(68) + "║")
-    print("║" + "  test_core · test_operators · test_dynamics · test_extended".center(68) + "║")
+    print("║" + "  CDI — Legacy Smoke and Complete Regression Orchestrator".center(68) + "║")
+    print("║" + "  pytest phase recursively collects all tests/test_*.py modules".center(68) + "║")
     print("╚" + "═" * 68 + "╝")
     print(f"{C.E}")
 
@@ -484,10 +482,11 @@ def main() -> int:
 
     print()
     if all_ok:
-        print(f"{C.G}{C.W}  ✓  All checks passed — CDI v2.0 is healthy{C.E}")
-        print(f"\n  Ready to train:")
-        print(f"    python train.py --config tiny  --laps 3  --lap-epochs 5")
-        print(f"    python train.py --config small --laps 5  --lap-epochs 15")
+        print(f"{C.G}{C.W}  ✓  All requested checks passed{C.E}")
+        print("\n  CCT execution remains gate-controlled:")
+        print("    pytest -q")
+        print("    ./run.sh status")
+        print("    consult Todo.md before any experiment")
     else:
         failed_phases = [_PHASE_MAP[k][0] for k, v in results.items() if not v]
         print(f"{C.R}{C.W}  ✗  Failed: {', '.join(failed_phases)}{C.E}")

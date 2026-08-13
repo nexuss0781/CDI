@@ -170,7 +170,7 @@ def run_all(output_dir: Path | str = Path("results/stage_f")) -> Dict[str, Any]:
     payload = json.dumps(report, indent=2, sort_keys=True, default=str) + "\n"
     (output_dir / "latest.json").write_text(payload, encoding="utf-8")
     (output_dir / "capability_manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    Path("Stages/STAGE_F_GATE_REPORT.md").write_text(render_report(report), encoding="utf-8")
+    (output_dir / "REPORT.md").write_text(render_report(report), encoding="utf-8")
     return report
 
 

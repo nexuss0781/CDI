@@ -168,7 +168,14 @@ def resume_gate(seed: int = 42, steps: int = 50, interrupt_at: int = 25) -> Dict
     payload = checkpoint_payload(interrupted, optimizer, tokenizer, manifest, config, step=interrupt_at, cursor=cursor)
     resumed = build_model("dcss_cdi", tokenizer, config)
     resumed_optimizer = optimizer_for(resumed, config)
-    restored_step, restored_cursor = restore_checkpoint(payload, resumed, resumed_optimizer, tokenizer)
+    restored_step, restored_cursor = restore_checkpoint(
+        payload,
+        resumed,
+        resumed_optimizer,
+        tokenizer,
+        expected_data_manifest=manifest,
+        expected_config=config,
+    )
     second_losses, _, _ = train_steps(resumed, train_batches, config, steps=steps - interrupt_at, optimizer=resumed_optimizer, start_cursor=restored_cursor)
     resumed_logits, _ = resumed.forward_chunk(probe["input_ids"], attention_mask=probe["attention_mask"])
     parameter_errors = [_error(left, right)["max_abs"] for left, right in zip(uninterrupted.parameters(), resumed.parameters())]
@@ -237,7 +244,7 @@ def render_report(report: Mapping[str, Any]) -> str:
 
 ## Result
 
-**Status:** `{report['status']}`. Stage D provides a versioned pure-Python Unicode character tokenizer, audited repository-local synthetic corpus, token-level DCSS causal language model, deterministic checkpoint/resume, and a matched small synthetic baseline protocol. The run is explicitly **not** a real-corpus language-quality claim.
+**Status:** `{report['status']}`. Stage D provides an EthioBBPE-backed tokenizer contract, an audited repository-local synthetic corpus, token-level DCSS causal language model, deterministic checkpoint/resume, and a matched small synthetic baseline protocol. The run is explicitly **not** a real-corpus language-quality claim.
 
 | Gate | Status | Evidence summary |
 |---|---:|---|
@@ -287,7 +294,8 @@ def run_all(seed: int = 42, output_dir: Path | str = Path("results/stage_d")) ->
     manifest_json = json.dumps(manifest, indent=2, sort_keys=True) + "\n"
     (output_dir / "transition_manifest.json").write_text(manifest_json, encoding="utf-8")
     (run_directory / "transition_manifest.json").write_text(manifest_json, encoding="utf-8")
-    Path("Stages/STAGE_D_GATE_REPORT.md").write_text(render_report(report), encoding="utf-8")
+    (output_dir / "REPORT.md").write_text(render_report(report), encoding="utf-8")
+    (run_directory / "REPORT.md").write_text(render_report(report), encoding="utf-8")
     return report
 
 

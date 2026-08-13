@@ -1,7 +1,10 @@
-"""DCSS-CDI v3 sparse, factorized operator substrate.
+"""Active CCT v3 DCSS-CDI implementation.
 
-Stage B contains no selective recurrence or language-model training path. Its
-public objects are CPU-safe matrix-free building blocks for later approved work.
+This namespace contains the EthioBBPE tokenizer adapter, sparse matrix-free
+operator substrate, selective recurrent state-space model, causal language
+model, matched baselines, training utilities, and verified checkpoint
+interfaces. Optional legacy and experimental objects remain explicitly bounded
+by their own modules and are not active CCT evidence paths.
 """
 from .cochain import SparseCochainMap
 from .config import DCSSConfig, load_config

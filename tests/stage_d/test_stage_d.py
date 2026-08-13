@@ -144,7 +144,14 @@ def test_checkpoint_resume_matches_uninterrupted():
     payload = checkpoint_payload(partial, optimizer, tokenizer, manifest, config, step=6, cursor=cursor)
     resumed = build_model("dcss_cdi", tokenizer, config)
     resumed_optimizer = optimizer_for(resumed, config)
-    step, restored_cursor = restore_checkpoint(payload, resumed, resumed_optimizer, tokenizer)
+    step, restored_cursor = restore_checkpoint(
+        payload,
+        resumed,
+        resumed_optimizer,
+        tokenizer,
+        expected_data_manifest=manifest,
+        expected_config=config,
+    )
     second_losses, _, _ = train_steps(resumed, batches, config, steps=6, optimizer=resumed_optimizer, start_cursor=restored_cursor)
     resumed_logits, _ = resumed.forward_chunk(probe["input_ids"], attention_mask=probe["attention_mask"])
     assert step == 6
