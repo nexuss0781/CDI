@@ -51,20 +51,22 @@ Before marking any sprint complete, confirm all applicable artifacts exist in on
 - [x] Run the CDI regression suite after the dependency repair; baseline evidence is **246 passing tests**.
 - [ ] In every new runtime, delete stale local checkouts before cloning.
 - [ ] In every new runtime, clone `master` only and record `git rev-parse HEAD`.
-- [ ] Install dependencies with `python -m pip install -r requirements.txt` before importing CCT.
-- [ ] Confirm `import ethiobbpe` and record the module path.
-- [ ] Record Python version, PyTorch version, operating system, CPU/GPU availability, precision, and package versions.
-- [ ] Run the complete regression suite before starting any new training sprint.
-- [ ] Save terminal output and environment versions under the sprint result directory.
+- [x] Install dependencies with `python -m pip install -r requirements.txt` before importing CCT; validated at `a038147`.
+- [x] Confirm `import ethiobbpe` and record the module path; validated at `a038147`.
+- [x] Record Python version, PyTorch version, operating system, CPU/GPU availability, precision, and package versions; see `docs/CCT_G0_READINESS.md`.
+- [x] Run the complete regression suite before starting any new training sprint; validated at `a038147` with `246 passed`.
+- [x] Save terminal output and environment versions under the sprint result directory; see `results/cct_g0/a038147/` from the validation run.
 
 ### G0 Transition Gate
 
-- [ ] Regression suite passes in the target runtime.
-- [ ] EthioBBPE import succeeds in the target runtime.
-- [ ] The target checkout is `master` at a recorded commit.
-- [ ] The working tree is clean.
+- [x] Regression suite passes in the target runtime; `246 passed` at `a038147`.
+- [x] EthioBBPE import succeeds in the target runtime; `EthioBBPE==2.0.0` at `a038147`.
+- [x] The target checkout is `master` at a recorded commit; `a03814705a73a3cd36658e3d0780a982593070f9`.
+- [x] The working tree is clean after the dependency and regression validation.
 
 **If the gate fails:** repair the checkout, dependency constraint, import, or environment contract. Do **not** change CCT model parameters.
+
+**CCT-G0 status:** `READY_FOR_NEXT_GOAL`. The committed evidence record is `docs/CCT_G0_READINESS.md` and the reusable verifier is `scripts/run_cct_g0.sh`.
 
 ---
 
@@ -407,7 +409,7 @@ Run one rung at a time. Every rung requires three seeds, the same evidence field
 |---|---|
 | Active CCT Goal | **CCT-G2 — Real-Data Scale Survival** |
 | Active sprint | **CCT-G2.1 — Full-corpus 1,000-step diagnostic** |
-| Completed foundation | Bounded three-seed learning proof, matched baseline comparison, independent CPU reproduction, governed split checks, EthioBBPE contract, hardened shuffle/evaluation controls, and repository regression suite. |
+| Completed foundation | CCT-G0 readiness validation at `a038147` (installed dependency contract, EthioBBPE import, clean working tree, and 246 passing tests), plus bounded three-seed learning proof, matched baseline comparison, independent CPU reproduction, governed split checks, EthioBBPE contract, and hardened shuffle/evaluation controls. |
 | Required next evidence | Final verdict line, `REPORT.md`, and `latest.json` from the exact CCT-G2.1 run. |
 | Not yet approved | Larger uncontrolled corpus training, fluency claims, speed claims, broad instruction training, or any work outside this Todo. |
 
