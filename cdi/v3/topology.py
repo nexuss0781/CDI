@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import cached_property
 import hashlib
 import json
 from typing import Any, Dict, Iterable, Tuple
@@ -62,12 +63,12 @@ class SparseTopology:
     def n_faces(self) -> int:
         return len(self.faces)
 
-    @property
+    @cached_property
     def edge_index(self) -> torch.Tensor:
         """Return the canonical ``(2, n_edges)`` edge index on the topology device."""
         return torch.tensor(self.edges, dtype=torch.long, device=self._device).t().contiguous()
 
-    @property
+    @cached_property
     def incidence(self) -> torch.Tensor:
         """Return signed vertex-edge incidence in sparse COO form."""
         row, col, values = [], [], []
@@ -81,12 +82,12 @@ class SparseTopology:
             indices, data, (self.n_vertices, self.n_edges), device=self._device, check_invariants=True
         ).coalesce()
 
-    @property
+    @cached_property
     def boundary_one(self) -> torch.Tensor:
         """Return sparse boundary ``∂₁: C₁ -> C₀`` with shape (vertices, edges)."""
         return self.incidence
 
-    @property
+    @cached_property
     def boundary_two(self) -> torch.Tensor:
         """Return sparse oriented face boundary ``∂₂: C₂ -> C₁``."""
         if not self.faces:

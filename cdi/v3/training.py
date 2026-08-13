@@ -30,8 +30,6 @@ class StageDConfig:
     learning_rate: float = 0.05
     weight_decay: float = 0.0
     gradient_clip_norm: float = 1.0
-    gradient_accumulation: int = 1
-    warmup_steps: int = 0
     overfit_steps: int = 100
     resume_steps: int = 50
     resume_interrupt_at: int = 25
@@ -235,13 +233,16 @@ def train_steps(
     optimizer = optimizer or optimizer_for(model, config)
     losses: List[float] = []
     cursor = start_cursor
+    epoch_orders: Dict[int, List[int]] = {}
     for _ in range(steps):
         optimizer.zero_grad(set_to_none=True)
         if shuffle_each_epoch:
             epoch = cursor // len(batches)
-            order = list(range(len(batches)))
-            random.Random(config.seed + epoch).shuffle(order)
-            batch = batches[order[cursor % len(batches)]]
+            if epoch not in epoch_orders:
+                order = list(range(len(batches)))
+                random.Random(config.seed + epoch).shuffle(order)
+                epoch_orders[epoch] = order
+            batch = batches[epoch_orders[epoch][cursor % len(batches)]]
         else:
             batch = batches[cursor % len(batches)]
         report = model_loss(model, batch)
@@ -264,17 +265,23 @@ def train_steps(
 
 
 def evaluate(model: nn.Module, batches: Sequence[Mapping[str, Any]]) -> Dict[str, float]:
+    """Compute corpus cross-entropy weighted by active causal-token count."""
     was_training = model.training
     model.eval()
-    losses, tokens = [], 0
+    loss_times_tokens = 0.0
+    tokens = 0
     with torch.no_grad():
         for batch in batches:
             report = model_loss(model, batch)
-            losses.append(float(report.loss.cpu()))
+            if report.token_count <= 0:
+                continue
+            loss_times_tokens += float(report.loss.cpu()) * report.token_count
             tokens += report.token_count
     if was_training:
         model.train()
-    mean_loss = sum(losses) / max(len(losses), 1)
+    if tokens <= 0:
+        raise ValueError("evaluate requires at least one active causal target token.")
+    mean_loss = loss_times_tokens / tokens
     return {"loss": mean_loss, "perplexity": float(torch.exp(torch.tensor(mean_loss))), "token_count": tokens}
 
 
@@ -307,9 +314,16 @@ def _topology_fingerprint(model: nn.Module) -> str | None:
     return None
 
 
+def _stage_c_config_payload(model: nn.Module) -> Dict[str, Any] | None:
+    if isinstance(model, DCSSLanguageModel):
+        return model.ssm.cell.config.as_dict()
+    return None
+
+
 def checkpoint_payload(model: nn.Module, optimizer: torch.optim.Optimizer, tokenizer: EthioBBPETokenizer, data_manifest: Mapping[str, Any], config: StageDConfig, step: int, cursor: int) -> Dict[str, Any]:
     saved_config = config.as_dict()
     saved_manifest = dict(data_manifest)
+    saved_stage_c_config = _stage_c_config_payload(model)
     return {
         "format": "dcss-cdi-stage-d-checkpoint-v2",
         "model_state": model.state_dict(),
@@ -321,6 +335,8 @@ def checkpoint_payload(model: nn.Module, optimizer: torch.optim.Optimizer, token
         "data_manifest_fingerprint": _manifest_fingerprint(saved_manifest),
         "config": saved_config,
         "config_fingerprint": _mapping_fingerprint(saved_config),
+        "stage_c_config": saved_stage_c_config,
+        "stage_c_config_fingerprint": _mapping_fingerprint(saved_stage_c_config) if saved_stage_c_config is not None else None,
         "global_step": step,
         "cursor": cursor,
         "random_state": _random_state_payload(),
@@ -359,6 +375,18 @@ def restore_checkpoint(
     expected_topology = _topology_fingerprint(model)
     if payload.get("topology_fingerprint") != expected_topology:
         raise ValueError("Checkpoint topology does not match the requested resume model.")
+    saved_stage_c_config = payload.get("stage_c_config")
+    expected_stage_c_config = _stage_c_config_payload(model)
+    if expected_stage_c_config is None:
+        if saved_stage_c_config is not None:
+            raise ValueError("Checkpoint dynamics configuration does not match the requested resume model.")
+    else:
+        if not isinstance(saved_stage_c_config, Mapping):
+            raise ValueError("Checkpoint lacks the Stage C dynamics configuration.")
+        if payload.get("stage_c_config_fingerprint") != _mapping_fingerprint(saved_stage_c_config):
+            raise ValueError("Checkpoint Stage C dynamics configuration fingerprint is invalid.")
+        if _mapping_fingerprint(expected_stage_c_config) != payload["stage_c_config_fingerprint"]:
+            raise ValueError("Checkpoint dynamics configuration does not match the requested resume model.")
     if not isinstance(payload.get("model_state"), Mapping) or not isinstance(payload.get("optimizer_state"), Mapping):
         raise ValueError("Checkpoint lacks model or optimizer state.")
     if not isinstance(payload.get("random_state"), Mapping):

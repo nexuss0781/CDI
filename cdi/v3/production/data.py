@@ -86,7 +86,7 @@ class DataManifest:
             hash_to_id[document.content_hash] = document.identifier
         expected_splits = {"train", "validation", "test"}
         if set(splits) != expected_splits:
-            raise ValueError("P1 manifests require exactly train, validation, and test splits.")
+            raise ValueError("Governed manifests require exactly train, validation, and test splits.")
         seen = set()
         normalized_splits: Dict[str, Tuple[str, ...]] = {}
         for name in sorted(expected_splits):
@@ -115,7 +115,7 @@ class DataManifest:
             }
             for identifier, document in sorted(by_id.items())
         }
-        raw = {"format": "dcss-cdi-p1-data-manifest-v1", "policy": asdict(policy), "documents": document_payload, "splits": normalized_splits}
+        raw = {"format": "dcss-cdi-governed-data-manifest-v2", "policy": asdict(policy), "documents": document_payload, "splits": normalized_splits}
         digest = sha256(json.dumps(raw, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
         return cls(fingerprint=digest, **raw)
 

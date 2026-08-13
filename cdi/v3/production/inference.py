@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import argparse
 from dataclasses import dataclass, replace
+from hashlib import sha256
+import json
 from pathlib import Path
 from typing import Any, Literal, Mapping, Sequence
 
@@ -181,11 +183,20 @@ class DCSSInferenceEngine:
         if tuple(output_bias.shape) != (self.tokenizer.vocab_size,):
             raise ValueError("Checkpoint output bias shape does not match tokenizer vocabulary.")
 
-        config_data = payload.get("config", {})
-        if not isinstance(config_data, Mapping):
-            raise ValueError("Checkpoint training configuration is invalid.")
-        seed = int(config_data.get("seed", 42))
-        self.stage_c_config = _reconstruct_stage_c_config(model_state, seed=seed, device=self.device)
+        stage_c_data = payload.get("stage_c_config")
+        if not isinstance(stage_c_data, Mapping):
+            raise ValueError("Checkpoint lacks the complete Stage C dynamics configuration.")
+        canonical_stage_c = json.dumps(dict(stage_c_data), sort_keys=True, separators=(",", ":"), default=str)
+        expected_stage_c_fingerprint = sha256(canonical_stage_c.encode("utf-8")).hexdigest()
+        if payload.get("stage_c_config_fingerprint") != expected_stage_c_fingerprint:
+            raise ValueError("Checkpoint Stage C dynamics configuration fingerprint is invalid.")
+        try:
+            saved_stage_c_config = StageCConfig(**dict(stage_c_data))
+            saved_stage_c_config.validate()
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"Checkpoint Stage C dynamics configuration is unsupported: {exc}") from exc
+        self.stage_c_config = replace(saved_stage_c_config, device=self.device)
+        self.stage_c_config.validate()
         self.model = DCSSLanguageModel(self.tokenizer, self.stage_c_config).to(self.device)
         try:
             self.model.load_state_dict(dict(model_state), strict=True)
@@ -288,10 +299,12 @@ class DCSSInferenceEngine:
 
     @torch.inference_mode()
     def complete(self, prompt: str, config: GenerationConfig | None = None) -> str:
-        """Generate only the continuation, excluding the normalized prompt prefix."""
-        output = self.generate(prompt, config)
-        normalized = self.tokenizer.normalize(prompt)
-        return output[len(normalized):] if output.startswith(normalized) else output
+        """Generate only continuation tokens, excluding the exact encoded prompt prefix."""
+        generation = config or GenerationConfig()
+        generation.validate()
+        prefix_length = int(self._prepare_prompt(prompt, generation.max_prompt_tokens).shape[1])
+        token_ids = self.generate_ids(prompt, generation)
+        return self.tokenizer.decode(token_ids[prefix_length:])
 
 
 def interactive_chat(checkpoint_path: str | Path, device: str | None = None) -> None:
