@@ -44,6 +44,8 @@ class StageCConfig:
     geometry_ablation: bool = False
     contrast_readout_ablation: bool = False
     harmonic_ablation: bool = False
+    token_residual_enabled: bool = False
+    token_residual_ablation: bool = False
     dt: float = 0.10
     geometry_step_cap: float = 0.02
     max_geometry_edge_weight: float = 2.0
@@ -75,6 +77,8 @@ class StageCConfig:
         return self.n_vertices * self.band_width
 
     def validate(self) -> None:
+        if self.token_residual_ablation and not self.token_residual_enabled:
+            raise ValueError("token_residual_ablation requires token_residual_enabled.")
         if self.name != "nano":
             raise ValueError("Stage C currently exposes only the CPU-safe 'nano' tier.")
         if self.n_vertices < 3:
@@ -122,12 +126,18 @@ class StageCConfig:
         geometry_ablation: bool = False,
         contrast_readout_ablation: bool = False,
         harmonic_ablation: bool = False,
+        token_residual_enabled: bool = False,
+        token_residual_ablation: bool = False,
     ) -> "StageCConfig":
+        if token_residual_ablation and not token_residual_enabled:
+            raise ValueError("token_residual_ablation requires token_residual_enabled.")
         config = cls(
             seed=seed,
             geometry_ablation=geometry_ablation,
             contrast_readout_ablation=contrast_readout_ablation,
             harmonic_ablation=harmonic_ablation,
+            token_residual_enabled=token_residual_enabled,
+            token_residual_ablation=token_residual_ablation,
         )
         config.validate()
         return config

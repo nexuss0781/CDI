@@ -252,6 +252,13 @@ def build_model(name: str, tokenizer: EthioBBPETokenizer, seed: int) -> torch.nn
         return DCSSLanguageModel(tokenizer, StageCConfig.nano(seed=seed, contrast_readout_ablation=True))
     if name == "dcss_harmonic_disabled":
         return DCSSLanguageModel(tokenizer, StageCConfig.nano(seed=seed, harmonic_ablation=True))
+    if name == "dcss_residual_cdi":
+        return DCSSLanguageModel(tokenizer, StageCConfig.nano(seed=seed, token_residual_enabled=True))
+    if name == "dcss_residual_control":
+        return DCSSLanguageModel(
+            tokenizer,
+            StageCConfig.nano(seed=seed, token_residual_enabled=True, token_residual_ablation=True),
+        )
     if name == "gru_baseline":
         return LegacyCDIV2Adapter(tokenizer, width=tokenizer.config.embedding_dim, dtype=torch.float32)
     if name == "transformer":
