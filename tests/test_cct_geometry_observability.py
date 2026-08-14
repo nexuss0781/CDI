@@ -5,6 +5,7 @@ import torch
 from cdi.v3.language_model import DCSSLanguageModel
 from cdi.v3.ssm import StageCConfig
 from cdi.v3.tokenizer import EthioBBPETokenizer, TokenizerConfig
+from cdi.v3.training import StageDConfig, train_steps
 
 
 LOGIT_EFFECT_EPS = 1e-8
@@ -43,6 +44,16 @@ def test_geometry_reaches_causal_logits_loss_and_gradient() -> None:
     assert gradient is not None
     assert bool(torch.isfinite(gradient).all())
     assert float(torch.linalg.vector_norm(gradient)) > GRADIENT_EPS
+
+
+def test_geometry_free_ablation_allows_only_declared_inactive_edge_parameter() -> None:
+    _, _, disabled, ids = _models_and_ids()
+    batch = {"input_ids": ids, "attention_mask": torch.ones_like(ids, dtype=torch.bool)}
+    config = StageDConfig(seed=11, chunk_length=ids.shape[1], batch_size=1, learning_rate=0.01)
+    losses, _, _ = train_steps(disabled, [batch], config, steps=1)
+    assert len(losses) == 1
+    assert disabled.expected_inactive_trainable_parameters() == frozenset({"ssm.cell.geometry.edge_log_weights"})
+    assert disabled.ssm.cell.geometry.edge_log_weights.grad is None
 
 
 def test_geometry_ablation_is_exact_and_capacity_matched() -> None:

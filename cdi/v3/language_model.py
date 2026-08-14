@@ -47,6 +47,13 @@ class DCSSLanguageModel(nn.Module):
     def vocab_size(self) -> int:
         return self.tokenizer.vocab_size
 
+    def expected_inactive_trainable_parameters(self) -> frozenset[str]:
+        """Return the sole parameter intentionally disconnected by an exact ablation."""
+
+        if self.config.geometry_ablation:
+            return frozenset({"ssm.cell.geometry.edge_log_weights"})
+        return frozenset()
+
     def _select_state(self, old: CohomodynamicState, new: CohomodynamicState, active: torch.Tensor) -> CohomodynamicState:
         selector = active.unsqueeze(-1).unsqueeze(-1)
         return CohomodynamicState(*(torch.where(selector, new_tensor, old_tensor) for old_tensor, new_tensor in zip(old.tensors(), new.tensors())))

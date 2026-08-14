@@ -252,10 +252,17 @@ def train_steps(
         if not torch.isfinite(report.loss):
             raise FloatingPointError("Encountered a non-finite Stage D causal loss.")
         report.loss.backward()
+        declared_inactive = getattr(model, "expected_inactive_trainable_parameters", lambda: frozenset())()
+        if not isinstance(declared_inactive, frozenset) or not all(isinstance(name, str) for name in declared_inactive):
+            raise TypeError("expected_inactive_trainable_parameters must return frozenset[str].")
+        named_parameters = dict(model.named_parameters())
+        unknown_inactive = declared_inactive.difference(named_parameters)
+        if unknown_inactive:
+            raise ValueError(f"Model declared unknown inactive trainable parameters: {sorted(unknown_inactive)}")
         gradients = [
             (name, parameter.grad)
-            for name, parameter in model.named_parameters()
-            if parameter.requires_grad and not name.endswith("learned_initial_state")
+            for name, parameter in named_parameters.items()
+            if parameter.requires_grad and not name.endswith("learned_initial_state") and name not in declared_inactive
         ]
         invalid_gradients = [name for name, gradient in gradients if gradient is None or not bool(torch.isfinite(gradient).all().item())]
         if invalid_gradients:

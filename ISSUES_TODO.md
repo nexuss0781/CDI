@@ -1,6 +1,6 @@
 # CCT/CDI Engineering Issues and Remediation Backlog
 
-> **Review basis:** fresh inspection of the reviewed master revision, two focused non-mutating geometry probes, the submitted CCT-G2.1 artifacts, the cumulative remediation regression run, and the subsequent CCT-G3.1 host-memory guard regression run of **270 passing tests**. This file records engineering facts and required work. It does not authorize a training-scale increase or change the CCT decision recorded in `Todo.md`.
+> **Review basis:** fresh inspection of the reviewed master revision, two focused non-mutating geometry probes, the submitted CCT-G2.1 artifacts, the cumulative remediation regression run, the subsequent CCT-G3.1 host-memory guard regression, and the exact-ablation gradient-contract regression run of **271 passing tests**. This file records engineering facts and required work. It does not authorize a training-scale increase or change the CCT decision recorded in `Todo.md`.
 
 ## Severity and Execution Rules
 
