@@ -266,6 +266,14 @@ Run one rung at a time. Every rung requires three seeds, the same evidence field
 - [x] Record held-out loss, test loss, token accuracy, throughput, host memory, and parameter counts; see `docs/CCT_G3_4_DECISION.md`.
 - [x] Apply the material-advantage gate: candidate beat GRU in all three seeds and earned `QUALITY_RECOVERY_PARTIAL`, but its 6.743546 mean validation loss was above the required 6.664364 2% target. Retain the token residual; no CCT-G2.2 proposal is authorized.
 
+## G3.5 — State-Conditioned Token-Residual Fusion
+
+- [x] Pre-register one bounded state-conditioned fusion gate over the retained CCT-G3.4 token residual and exact parameter-aware fusion-one control; see `docs/CCT_G3_5_PREREGISTRATION.md`.
+- [x] Verify causal source-token/state dependence, retained DCSS state trajectory and residual values, narrow inactive-gradient contract, stability, parameter equality, and five-model harness locally before training; 27 focused CCT-G3 control/harness tests and the full 294-test regression suite passed, and a non-evidentiary `/tmp` smoke run passed the 11 GiB guard.
+- [ ] Run fused residual CDI, exact fusion control, CCT-G3.4 residual CDI, GRU, and Transformer across the frozen three-seed, 1,000-step contract.
+- [ ] Record held-out loss, test loss, token accuracy, throughput, host memory, and parameter counts.
+- [ ] Apply the 2% material-quality gate: fused candidate must beat GRU in every seed and reach mean validation loss at or below 6.664364 before any CCT-G2.2 proposal can be reviewed.
+
 ---
 
 # CCT-G4 — Language Quality and Context Readiness

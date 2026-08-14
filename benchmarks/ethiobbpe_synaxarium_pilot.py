@@ -259,6 +259,21 @@ def build_model(name: str, tokenizer: EthioBBPETokenizer, seed: int) -> torch.nn
             tokenizer,
             StageCConfig.nano(seed=seed, token_residual_enabled=True, token_residual_ablation=True),
         )
+    if name == "dcss_fused_residual_cdi":
+        return DCSSLanguageModel(
+            tokenizer,
+            StageCConfig.nano(seed=seed, token_residual_enabled=True, residual_fusion_enabled=True),
+        )
+    if name == "dcss_fusion_control":
+        return DCSSLanguageModel(
+            tokenizer,
+            StageCConfig.nano(
+                seed=seed,
+                token_residual_enabled=True,
+                residual_fusion_enabled=True,
+                residual_fusion_ablation=True,
+            ),
+        )
     if name == "gru_baseline":
         return LegacyCDIV2Adapter(tokenizer, width=tokenizer.config.embedding_dim, dtype=torch.float32)
     if name == "transformer":
@@ -412,6 +427,7 @@ def architecture_decision(
     records: Sequence[Mapping[str, Any]],
     *,
     required_models: Sequence[str] = MODEL_NAMES,
+    primary_model_name: str = "dcss_cdi",
 ) -> Dict[str, Any]:
     """Apply the complete CCT transition gate to the seed-level pilot evidence.
 
@@ -419,7 +435,9 @@ def architecture_decision(
     finite values, stay within the declared mean Transformer-loss tolerance,
     and match or beat GRU validation loss in every declared seed.
     """
-    dcss = summary["dcss_cdi"]
+    if primary_model_name not in summary:
+        raise ValueError(f"Primary CDI model is absent from summary: {primary_model_name}")
+    dcss = summary[primary_model_name]
     transformer = summary["transformer"]
     gru = summary["gru_baseline"]
     transformer_gap = (dcss["mean_validation_loss"] / transformer["mean_validation_loss"]) - 1.0
@@ -434,15 +452,16 @@ def architecture_decision(
     expected_seeds = set(config.seeds)
     complete_seed_matrix = set(by_seed) == expected_seeds and all(set(rows) == required_models for rows in by_seed.values())
     finite = complete_seed_matrix and all(_record_values_are_finite(record) for rows in by_seed.values() for record in rows.values())
-    learning = finite and all(bool(by_seed[seed]["dcss_cdi"].get("train_loss_decreased")) for seed in config.seeds)
+    learning = finite and all(bool(by_seed[seed][primary_model_name].get("train_loss_decreased")) for seed in config.seeds)
     transformer_tolerance = finite and transformer_gap <= config.relative_loss_tolerance
     per_seed_gru = {
-        str(seed): float(by_seed[seed]["dcss_cdi"]["validation"]["loss"]) <= float(by_seed[seed]["gru_baseline"]["validation"]["loss"])
+        str(seed): float(by_seed[seed][primary_model_name]["validation"]["loss"]) <= float(by_seed[seed]["gru_baseline"]["validation"]["loss"])
         for seed in config.seeds
     } if finite else {}
     gru_gate = finite and bool(per_seed_gru) and all(per_seed_gru.values())
     passed = learning and transformer_tolerance and gru_gate
     return {
+        "primary_model_name": primary_model_name,
         "finite_values_gate": finite,
         "complete_seed_matrix_gate": complete_seed_matrix,
         "learning_gate": learning,
@@ -523,6 +542,7 @@ def run(
     config: PilotConfig,
     *,
     model_names: Sequence[str] = MODEL_NAMES,
+    primary_model_name: str = "dcss_cdi",
     post_training_diagnostics: Callable[[torch.nn.Module, Mapping[str, torch.Tensor], Callable[[str], int] | None], Dict[str, Any]] | None = None,
 ) -> Dict[str, Any]:
     config.validate()
@@ -570,7 +590,13 @@ def run(
         "packed_example_counts": {name: len(examples) for name, examples in packed.items()},
         "records": records,
         "summary": summary,
-        "decision": architecture_decision(summary, config, records, required_models=model_names),
+        "decision": architecture_decision(
+            summary,
+            config,
+            records,
+            required_models=model_names,
+            primary_model_name=primary_model_name,
+        ),
         "code_revision": _git_revision(),
         "environment": {"python": platform.python_version(), "torch": torch.__version__, "device": "cpu"},
         "host_memory": memory_monitor.as_dict(),
