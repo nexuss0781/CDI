@@ -254,8 +254,8 @@ Run one rung at a time. Every rung requires three seeds, the same evidence field
 
 - [x] Pre-register an exact harmonic-disabled parameter-aware control without changing the selected full CDI architecture, corpus, tokenizer, steps, context, optimizer, seeds, precision, all-held-out evaluation, or 11 GiB memory ceiling; see `docs/CCT_G3_3_PREREGISTRATION.md`.
 - [x] Verify its causal shape, harmonic inactive-gradient contract, state stability, parameter equality, and five-model harness locally before training; 15 focused CCT-G3 control/harness tests and the full 282-test regression suite passed, and a non-evidentiary `/tmp` smoke run passed the 11 GiB guard.
-- [ ] Run full CDI, harmonic-disabled CDI, geometry-free CDI, GRU, and Transformer across the frozen three-seed, 1,000-step contract.
-- [ ] Record held-out loss, test loss, token accuracy, state/gradient diagnostics, throughput, host memory, and parameter counts.
+- [ ] **In progress — user Colab:** Run full CDI, harmonic-disabled CDI, geometry-free CDI, GRU, and Transformer across the frozen three-seed, 1,000-step contract. Do not mark complete until submitted `REPORT.md` and `latest.json` are reviewed.
+- [ ] Record held-out loss, test loss, token accuracy, state/gradient diagnostics, throughput, host memory, and parameter counts from the submitted formal run.
 - [ ] Decide whether the harmonic 16–64 time-constant band adds or subtracts value before any quality rerun.
 
 ---
