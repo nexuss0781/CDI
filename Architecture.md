@@ -23,8 +23,8 @@ flowchart LR
     C --> D[4-D token embedding]
     D --> E[Selective three-band DCSS update]
     E --> F[Vertex-resolved state]
-    F --> G[Mean across four vertices per band]
-    G --> H[12-to-4 readout]
+    F --> G[Per-band mean plus zero-sum contrasts]
+    G --> H[48-to-4 readout]
     H --> I[Tied 16,000-token projection]
     I --> J[Causal cross-entropy]
 
@@ -33,7 +33,7 @@ flowchart LR
     L --> E
 ```
 
-The diagram shows the actual computational order. The topology acts on the vertex-resolved state **after** a band update and **before** the readout. The readout currently consumes only the mean of each band over vertices. This placement is mathematically important and is analyzed below. [2] [4]
+The diagram shows the actual computational order. The topology acts on the vertex-resolved state **after** a band update and **before** the readout. The current readout consumes each band mean and fixed zero-sum vertex contrasts; this repaired placement permits geometry to reach causal token loss. [2] [4]
 
 ## End-to-End Execution Path
 
@@ -44,8 +44,8 @@ The active pilot begins by downloading the configured Synaxarium dataset, constr
 | Corpus admission | Exact-content deduplication and document-level split isolation occur before tokenization. | Near-duplicate or semantic overlap is not detected. |
 | Tokenization | The adapter requires contiguous vocabulary IDs and special tokens; checkpoints contain the tokenizer JSON snapshot and artifact fingerprint. | It uses the published tokenizer artifact rather than training a tokenizer on the pilot corpus. |
 | Chunking | Each document is split independently into fixed chunks; no chunk crosses a document boundary. | The recurrent state resets for each chunk, so the active pilot does not measure dependencies longer than the configured chunk length. |
-| Training | AdamW training performs causal loss, finite-loss checks, finite/nonmissing gradient checks, clipping, and deterministic batch order when enabled. | The declared `warmup_steps` and `gradient_accumulation` settings are not used by the active loop. |
-| Evaluation | The CCT pilot harness aggregates loss by active causal token count and can evaluate every held-out batch. | The generic helper in `training.py` averages batch loss rather than token-weighting it; the pilot does not use that helper. |
+| Training | AdamW training performs causal loss, finite-loss checks, strict active-gradient checks, clipping, cached deterministic epoch shuffles, and an optional host-memory guard. | The exact geometry-free ablation declares its intentionally disconnected edge parameter; all other active parameters remain checked. |
+| Evaluation | Both the CCT pilot and generic helper aggregate loss by active causal token count and can evaluate every held-out batch. | The active evidence remains short-context because state resets between document-local chunks. |
 | Evidence | `latest.json` stores configuration, manifest, tokenizer fingerprint, seed-level records, result fingerprint, revision, and environment summary. | A final CCT decision must still apply the stricter Todo gate, not merely the harness verdict. |
 
 ## Token and Causal-Loss Contract
@@ -100,7 +100,7 @@ This is a strong design choice for the present nano model: it supplies a direct 
 
 \[
 L=S^{\top}WS,
-\qquad W=\operatorname{diag}(\operatorname{softplus}(\theta_e)+10^{-6}),
+\qquad W=\operatorname{diag}(w_{\max}\,\sigma(\theta_e)),
 \]
 
 which is symmetric positive semidefinite. It is applied channelwise without materializing the full state operator. The correction in each active band is
@@ -133,13 +133,13 @@ The historical mean-only readout created a decisive invariant. Because \(L=S^{\t
 
 The recurrent generator and selective gates are shared across vertices and depend on the token embedding rather than on vertex-specific state. Therefore the historical vertex-mean trajectory was invariant to the Laplacian correction while the correction changed only discarded contrast. The pre-repair probe measured maximum logit difference `2.95585778076e-12`, causal-loss difference `0`, and geometry-gradient L2 norm `0`; it established a **state-to-readout observability** defect rather than a missing Laplacian computation. [2] [4]
 
-> **Current engineering state:** CCT-G3.1 makes that contrast observable through the fixed basis above. Local regression gates now require full versus geometry-disabled logit/loss differences and a finite, nonzero causal-loss geometry gradient. The remaining question is empirical: the full model must show repeated held-out value against its exact geometry-disabled counterpart before any scale decision.
+> **Current engineering state:** CCT-G3.1 established repeated held-out geometry value: full CDI beat its exact geometry-disabled counterpart in all three frozen-protocol seeds, with a 0.014489 mean validation-loss improvement. The mechanism is retained. Full CDI nevertheless remained above GRU in all three seeds, so this result does not authorize scaling, context expansion, capacity changes, or speed claims; the next required diagnostic isolates the contrast-readout contribution.
 
 ## Baselines and Parameter Matching
 
 The CCT pilot uses two baselines sharing the tokenizer, causal loss, padding behavior, optimizer family, chunk length, batch size, seed list, and batch schedule. The GRU baseline uses a width-four `GRUCell`; the Transformer baseline uses one causal encoder layer with width four, one head, feedforward width eight, and no dropout. All models use tied output projection and a vocabulary bias. The current counts are 80,510 for full CDI and geometry-free CDI, 80,120 for GRU, and 80,172 for Transformer: a maximum relative spread of 0.49%. [3] [4]
 
-This compact fairness design leaves a very small recurrent-core budget. The 48-state CDI structure is now exposed through fixed contrasts rather than discarded by mean-only compression, but its empirical contribution remains a CCT-G3.1 question rather than an assumed advantage. [2] [4]
+This compact fairness design leaves a very small recurrent-core budget. The 48-state CDI structure is exposed through fixed contrasts rather than discarded by mean-only compression, and sparse geometry has bounded three-seed evidence of contribution. The separate readout contribution and CDI-versus-GRU quality relation remain open CCT questions. [2] [4]
 
 ## Stability and Reproducibility Strengths
 
@@ -156,7 +156,7 @@ The active implementation has several strong foundations that should be preserve
 
 ## Boundaries of the Current Evidence
 
-CCT-G1 established that the repaired active language path can reduce loss on a bounded real-data task. CCT-G2.1 showed stable learning on the full deduplicated pilot corpus and remained within the declared Transformer tolerance, but CDI was above GRU validation loss in all three seeds. The governing decision is therefore `REDESIGN_BEFORE_SCALE`; the 3,000-step rung is not authorized. [8] [9]
+CCT-G1 established that the repaired active language path can reduce loss on a bounded real-data task. CCT-G2.1 showed stable learning on the full deduplicated pilot corpus and remained within the declared Transformer tolerance, but CDI was above GRU validation loss in all three seeds. CCT-G3.1 then showed that sparse geometry improves full CDI against its exact geometry-free counterpart in all three seeds, but full CDI remained above GRU. The governing quality decision therefore remains `REDESIGN_BEFORE_SCALE`; the 3,000-step rung is not authorized. [8] [9]
 
 The implementation does **not** yet support a claim that CDI is faster than a Transformer. Its token loop remains Python-serial, although immutable topology tensors are now cached; CCT-G2.1 measured lower throughput than both baselines. It also does not yet support a long-context claim because training packs fixed, independent chunks and resets state for each chunk. [3] [9]
 
