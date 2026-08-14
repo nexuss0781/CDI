@@ -43,6 +43,7 @@ class StageCConfig:
     device: str = "cpu"
     geometry_ablation: bool = False
     contrast_readout_ablation: bool = False
+    harmonic_ablation: bool = False
     dt: float = 0.10
     geometry_step_cap: float = 0.02
     max_geometry_edge_weight: float = 2.0
@@ -120,11 +121,13 @@ class StageCConfig:
         seed: int = 42,
         geometry_ablation: bool = False,
         contrast_readout_ablation: bool = False,
+        harmonic_ablation: bool = False,
     ) -> "StageCConfig":
         config = cls(
             seed=seed,
             geometry_ablation=geometry_ablation,
             contrast_readout_ablation=contrast_readout_ablation,
+            harmonic_ablation=harmonic_ablation,
         )
         config.validate()
         return config
@@ -476,8 +479,9 @@ class CohomodynamicCell(nn.Module):
         )
         nn.init.xavier_uniform_(self.readout.weight, gain=0.5)
         nn.init.zeros_(self.readout.bias)
-        # Stage E ablation hooks are inert in the frozen full model.
-        self.disable_harmonic = False
+        # ``harmonic_ablation`` is the serialized CCT-G3.3 control. The mutable
+        # alias remains solely for the isolated legacy Stage E diagnostic helper.
+        self.disable_harmonic = bool(config.harmonic_ablation)
         self.register_parameter("unconstrained_cochain", None)
         self._last_parameters: Dict[str, GeneratorParameters] = {}
 
@@ -509,7 +513,9 @@ class CohomodynamicCell(nn.Module):
             raise ValueError("Initial state mode must be 'zero' or 'learned'.")
         tensors = []
         for index, name in enumerate(BAND_NAMES):
-            if mode == "zero":
+            if self.disable_harmonic and name == "harmonic":
+                tensor = self.bands[name].reset(batch_shape, device=self.readout.weight.device, dtype=self.readout.weight.dtype)
+            elif mode == "zero":
                 tensor = self.bands[name].reset(batch_shape, device=self.readout.weight.device, dtype=self.readout.weight.dtype)
             else:
                 base = self.learned_initial_state[index]
@@ -577,6 +583,9 @@ class CohomodynamicCell(nn.Module):
                 ),
                 "feature_dim": self.readout.in_features,
                 "contrast_basis_shape": list(self.vertex_contrast_basis.shape),
+                "harmonic_feature_values": "deterministically zeroed by harmonic_ablation"
+                if self.config.harmonic_ablation
+                else "active",
             },
         }
 

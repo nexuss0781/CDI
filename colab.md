@@ -64,7 +64,7 @@ Run this first in a fresh Colab notebook. This stage does not train a model. It 
 !python -m pytest -q
 ```
 
-**Expected evidence:** `246 passed`, the branch `master`, the current commit, and a printed EthioBBPE installation path. If this setup cell fails, stop immediately; send the full error output rather than changing model hyperparameters.
+**Expected evidence:** `282 passed`, the branch `master`, the current commit, and a printed EthioBBPE installation path. If this setup cell fails, stop immediately; send the full error output rather than changing model hyperparameters.
 
 ## 5. Stage 1 — reproduce the completed 300-step real-data pilot
 
@@ -149,7 +149,28 @@ This does **not** authorize scaling. Full CDI remained above GRU validation loss
 
 ### Stage 3.3 — Controlled Harmonic-Memory-Band Ablation
 
-The only permitted next work is pre-registration of an exact harmonic-disabled control. It must preserve the same parameter inventory, tokenizer, governed manifest, 1,000-step budget, seeds, context, optimizer, precision, all-held-out evaluation, and 11 GiB memory ceiling. No Colab command is approved until that pre-registration and its local causal/state/gradient gates are committed.
+CCT-G3.3 is pre-registered and locally validated. It compares full CDI with a parameter-preserving harmonic-disabled CDI control, while retaining the geometry-free CDI, GRU, and Transformer references. The control deterministically zeros only the harmonic 16–64 time-constant state path, retains every harmonic parameter and readout slot, and declares exactly the disconnected harmonic-band parameters inactive to the strict trainer. The run records fixed-held-out state-norm and gradient-L2 diagnostics in addition to the ordinary metrics.
+
+```bash
+%cd /content/CDI
+!PYTHONPATH=. python benchmarks/cct_g3_3_harmonic_ablation.py \
+  --steps 1000 \
+  --document-limit 321 \
+  --chunks-per-document 32 \
+  --chunk-length 16 \
+  --batch-size 2 \
+  --eval-batches 0 \
+  --shuffle-training-batches \
+  --learning-rate 0.01 \
+  --relative-loss-tolerance 0.05 \
+  --parameter-relative-tolerance 0.01 \
+  --max-host-memory-gb 11 \
+  --output-dir results/colab_cct_g3_3_harmonic
+!cat results/colab_cct_g3_3_harmonic/REPORT.md
+!cat results/colab_cct_g3_3_harmonic/latest.json
+```
+
+**Decision rule:** full CDI must have lower held-out validation loss than harmonic-disabled CDI in every seed to earn `EARNED_HARMONIC_EVIDENCE`. If harmonic-disabled CDI wins every seed, the run records `HARMONIC_NEGATIVE_EVIDENCE`; otherwise it records `NO_HARMONIC_EVIDENCE`. No outcome authorizes scaling. Send both generated files for gate review.
 
 ## 8. Stage 4 — context ladder and retention test
 
@@ -222,7 +243,7 @@ I will keep the workflow bounded and visible. I will review the code and config 
 
 ## 13. First action for you to check
 
-CCT-G0, CCT-G1, CCT-G2.1, CCT-G3.1, and CCT-G3.2 are complete. CCT-G3.1 is recorded as `EARNED_GEOMETRY_EVIDENCE` and CCT-G3.2 as `EARNED_READOUT_EVIDENCE`, but the global quality decision remains `REDESIGN_BEFORE_SCALE`; therefore, do **not** rerun Stage 2A with a larger budget or begin Stage 2B. The next permitted action is CCT-G3.3 pre-registration for a controlled harmonic-memory-band ablation. Its exact command must be reviewed before execution.
+CCT-G0, CCT-G1, CCT-G2.1, CCT-G3.1, and CCT-G3.2 are complete. CCT-G3.1 is recorded as `EARNED_GEOMETRY_EVIDENCE` and CCT-G3.2 as `EARNED_READOUT_EVIDENCE`, but the global quality decision remains `REDESIGN_BEFORE_SCALE`; therefore, do **not** rerun Stage 2A with a larger budget or begin Stage 2B. The next permitted action is the pre-registered CCT-G3.3 harmonic-memory-band command above. Do not change its declared budget, model matrix, tokenization, seeds, optimizer, evaluation scope, or 11 GiB memory ceiling.
 
 If Colab has a GPU, record its name with:
 
@@ -231,7 +252,7 @@ If Colab has a GPU, record its name with:
 !python -c "import torch; print(torch.__version__); print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')"
 ```
 
-We will review the pre-registered CCT-G3.3 harmonic-band evidence before any quality rerun, 3,000-step, context, capacity, corpus, or optimization work.
+We will review the submitted CCT-G3.3 report and JSON before any quality rerun, 3,000-step, context, capacity, corpus, or optimization work.
 
 ## References
 

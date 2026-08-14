@@ -15,8 +15,10 @@ The active language-engine path is **`cdi.v3`**. It uses the EthioBBPE tokenizer
 | [`docs/CCT_G2_1_DECISION.md`](docs/CCT_G2_1_DECISION.md) | Recorded G2.1 decision: `REDESIGN_BEFORE_SCALE`. |
 | [`docs/CCT_G3_1_DECISION.md`](docs/CCT_G3_1_DECISION.md) | Recorded G3.1 result: `EARNED_GEOMETRY_EVIDENCE`; global quality remains `REDESIGN_BEFORE_SCALE`. |
 | [`docs/CCT_G3_2_DECISION.md`](docs/CCT_G3_2_DECISION.md) | Recorded G3.2 result: `EARNED_READOUT_EVIDENCE`; geometry re-confirmed; global quality remains `REDESIGN_BEFORE_SCALE`. |
+| [`docs/CCT_G3_3_PREREGISTRATION.md`](docs/CCT_G3_3_PREREGISTRATION.md) | Approved G3.3 harmonic-memory-band control, local gates, five-model matrix, and non-scaling decision rules. |
+| [`benchmarks/cct_g3_3_harmonic_ablation.py`](benchmarks/cct_g3_3_harmonic_ablation.py) | CPU-safe executable G3.3 harness with 11 GiB guard and fixed-held-out state/gradient diagnostics. |
 
-CCT-G3.1 established repeated sparse-geometry value, and CCT-G3.2 established repeated contrast-readout value under a capacity-matched five-model comparison. Full CDI nevertheless remained above GRU in all three seeds. The current active work is **CCT-G3.3**, a pre-registered harmonic-memory-band diagnostic. The CCT-G2.2 scale ladder remains blocked.
+CCT-G3.1 established repeated sparse-geometry value, and CCT-G3.2 established repeated contrast-readout value under a capacity-matched five-model comparison. Full CDI nevertheless remained above GRU in all three seeds. The current active work is **CCT-G3.3**, a pre-registered and locally validated harmonic-memory-band diagnostic whose formal three-seed result is pending. The CCT-G2.2 scale ladder remains blocked.
 
 ## Safe Setup and Validation
 
