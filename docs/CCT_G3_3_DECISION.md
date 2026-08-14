@@ -73,9 +73,9 @@ The matched GRU remains the binding quality reference. Full CDI is 0.6928% above
 
 ## Boundary and Next Action
 
-CCT-G3 now has repeated held-out evidence for the three tested CDI-specific components: fixed contrast readout, sparse geometry, and the harmonic memory band. The current full configuration must retain those components for any later reviewed comparison.
+CCT-G3.4 subsequently added repeated held-out evidence for a fourth CDI-specific component: the bounded selective token residual. The selected residual configuration retains the fixed contrast readout, sparse geometry, harmonic memory band, and token residual for any later reviewed comparison; see `docs/CCT_G3_4_DECISION.md`.
 
-However, the full CDI configuration still fails the pre-existing GRU quality relation in every seed. The 3,000-step ladder, larger corpus, context ladder, capacity changes, speed work, and production or fluency claims remain blocked. **No new experiment is authorized automatically by this decision.** The next action is a user-reviewed, separately pre-registered architecture-selection or quality-recovery proposal that preserves the established component evidence and directly addresses the GRU gap.
+CCT-G3.4 cleared the per-seed GRU relation but did not reach its separately pre-registered 2% material-quality margin. The 3,000-step ladder, larger corpus, context ladder, capacity changes, speed work, and production or fluency claims remain blocked. **No new experiment is authorized automatically by this decision.** The next action is a user-reviewed, separately pre-registered quality-recovery proposal that preserves all four established components and targets the material-quality gap.
 
 ## References
 
