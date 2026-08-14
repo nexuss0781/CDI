@@ -9,12 +9,13 @@ The active language-engine path is **`cdi.v3`**. It uses the EthioBBPE tokenizer
 | Document | Purpose |
 |---|---|
 | [`Architecture.md`](Architecture.md) | Source-grounded description of the active CCT implementation, its mathematical structure, strengths, and current boundaries. |
-| [`ISSUES_TODO.md`](ISSUES_TODO.md) | Prioritized engineering backlog, root causes, acceptance tests, and CCT-G3.1 recovery requirements. |
+| [`ISSUES_TODO.md`](ISSUES_TODO.md) | Prioritized engineering backlog, root causes, acceptance tests, and bounded remediation status. |
 | [`Todo.md`](Todo.md) | Authoritative gated CCT checklist. |
 | [`colab.md`](colab.md) | CPU-safe Colab workflow for an approved CCT experiment. |
 | [`docs/CCT_G2_1_DECISION.md`](docs/CCT_G2_1_DECISION.md) | Recorded G2.1 decision: `REDESIGN_BEFORE_SCALE`. |
+| [`docs/CCT_G3_1_DECISION.md`](docs/CCT_G3_1_DECISION.md) | Recorded G3.1 result: `EARNED_GEOMETRY_EVIDENCE`; global quality remains `REDESIGN_BEFORE_SCALE`. |
 
-The current active work is **CCT-G3.1**: one pre-registered mechanism-level diagnostic. The CCT-G2.2 scale ladder is blocked until that gate passes.
+CCT-G3.1 established repeated sparse-geometry value against an exact geometry-free CDI control, but full CDI remained above GRU in all three seeds. The current active work is **CCT-G3.2**, a pre-registered readout-contribution diagnostic. The CCT-G2.2 scale ladder remains blocked.
 
 ## Safe Setup and Validation
 

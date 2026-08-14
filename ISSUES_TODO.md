@@ -48,7 +48,7 @@ The following restrictions are active until a later gate explicitly changes them
 
 | ID | Current status | Resolution evidence or remaining boundary |
 |---|---|---|
-| CCT-ARCH-001 | **Implementation resolved; empirical gate pending** | Fixed zero-sum contrast readout, exact geometry-free counterpart, pre-registration, signal tests, and G3.1 harness are complete. The three-seed held-out value test is not yet run. |
+| CCT-ARCH-001 | **Geometry evidence earned; readout contribution pending** | Full CDI beat exact geometry-free CDI in all three G3.1 seeds with a 0.014489 mean validation-loss improvement. CCT-G3.2 must still isolate the contrast-readout contribution before any quality-rung return. |
 | CCT-EMP-002 | **Resolved** | Executable verdict now requires finite complete records, learning, Transformer tolerance, and per-seed CDI-versus-GRU relation. |
 | CCT-RUN-003 | **Contained** | `run.sh` is safe readiness/status only and rejects legacy/production commands. |
 | CCT-DATA-004 | **Contained** | The split-leaking production trainer is fail-closed; no metric can be produced from that path. A future replacement requires a reviewed data contract. |
@@ -63,7 +63,7 @@ The following restrictions are active until a later gate explicitly changes them
 | CCT-EVAL-013 | **Resolved** | Generic evaluation is causal-token-weighted and covered by unequal-token-count test. |
 | CCT-TRAIN-014 | **Resolved** | Unimplemented warmup/accumulation fields were removed; deterministic epoch permutations are cached. |
 | CCT-INF-015 | **Resolved** | Checkpoints serialize/fingerprint complete Stage C dynamics; inference validates it and slices completion by token prefix. |
-| CCT-PERF-016 | **Partially resolved; empirical optimization deferred** | Immutable topology tensors are cached exactly. Python-token-serial execution remains, and throughput optimization is blocked until G3.1 produces a mechanism result. |
+| CCT-PERF-016 | **Partially resolved; empirical optimization deferred** | Immutable topology tensors are cached exactly. Python-token-serial execution remains; G3.1 does not authorize performance work because full CDI still loses to GRU and CCT-G3.2 is pending. |
 | CCT-CFG-017 | **Resolved** | Strict offline CPU schema records EthioBBPE 2.0.0, rejects unknown fields, and cannot authorize production training. |
 | CCT-API-018 | **Resolved** | Top-level v2 compatibility and active `cdi.v3` roles are explicitly separated. |
 | CCT-DATA-019 | **Resolved** | Governed manifest format is neutral `dcss-cdi-governed-data-manifest-v2`. |
@@ -278,9 +278,9 @@ Both language-model and SSM chunks execute token-by-token Python loops. Topology
 | Separate legacy, active CCT, and optional experimental namespaces in import/documentation surfaces. | Each documented import maps to one declared execution role. |
 | Use a neutral or phase-specific manifest format version. | P1/P2 manifest formats and fingerprints are unambiguous. |
 
-## Required CCT-G3.1 Pre-Registration Before Any Code Change
+## Completed CCT-G3.1 Pre-Registration and Result
 
-CCT-G2.1 failure does not authorize uncontrolled redesign. The first permitted experiment must isolate the observed state-to-readout mechanism. The following items are mandatory before implementation or Colab execution.
+CCT-G2.1 failure did not authorize uncontrolled redesign. CCT-G3.1 isolated the observed state-to-readout mechanism under the following pre-registered controls and produced the decision recorded in `docs/CCT_G3_1_DECISION.md`.
 
 | Pre-registration field | Required content |
 |---|---|
@@ -295,13 +295,13 @@ CCT-G2.1 failure does not authorize uncontrolled redesign. The first permitted e
 ## Completion Checklist for This Backlog
 
 - [x] CCT-G2.1 decision is recorded as `REDESIGN_BEFORE_SCALE`.
-- [x] CCT-ARCH-001 has a reviewed, pre-registered CCT-G3.1 design and local observability gates; empirical value evidence remains pending.
+- [x] CCT-ARCH-001 has CCT-G3.1 three-seed geometry evidence; the next CCT-G3.2 readout-control diagnostic remains pending.
 - [x] CCT-EMP-002 is encoded in the executable decision report.
 - [x] CCT-RUN-003, CCT-DATA-004, and CCT-DATA-005 are contained before any production/legacy convenience route is used.
 - [x] CCT-TEST-006 adds language-model-level geometry reachability coverage.
 - [x] CCT-ART-008 removes generated writes to tracked `Stages/` files.
 - [x] CCT-DOC-009 makes active versus legacy execution paths unambiguous.
-- [x] Non-scaling P2/P3 repairs are completed; long-context and throughput-optimization work remains explicitly gated on CCT-G3.1 evidence.
+- [x] Non-scaling P2/P3 repairs are completed; long-context and throughput-optimization work remains explicitly gated on CCT-G3.2 and the unresolved GRU quality relation.
 
 ## Source References
 

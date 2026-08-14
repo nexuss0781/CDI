@@ -207,11 +207,11 @@ Run one rung at a time. Every rung requires three seeds, the same evidence field
 - [x] Keep embeddings, tokenizer, output vocabulary, training budget, optimizer, data split, context, precision, and seed list fixed in the CCT-G3.1 harness; only the pre-registered readout access and exact geometry-disabled counterpart differ.
 - [x] Change exactly one mechanism in the selected variant: expose vertex contrasts to the existing output-width readout without changing recurrence or tokenizer.
 - [x] Record parameter-count differences: full CDI 80,510; geometry-free CDI 80,510; GRU 80,120; Transformer 80,172; 0.49% maximum relative spread.
-- [ ] Run Full CCT as the reference model.
-- [ ] Run the selected CCT ablation variant.
-- [ ] Run GRU baseline.
-- [ ] Run Transformer baseline.
-- [ ] Run every variant across three seeds.
+- [x] Run Full CCT as the reference model.
+- [x] Run the selected CCT geometry-free ablation variant.
+- [x] Run GRU baseline.
+- [x] Run Transformer baseline.
+- [x] Run every variant across three seeds.
 
 ### Ablation A — State/geometry contribution
 
@@ -219,8 +219,9 @@ Run one rung at a time. Every rung requires three seeds, the same evidence field
 
 - [x] Define the exact state/geometry element changed or disabled; see `docs/CCT_G3_1_PREREGISTRATION.md`.
 - [x] Verify the variant remains causal and numerically stable through the local geometry-observability and Stage C regression gates.
-- [ ] Compare held-out loss, test loss, token accuracy, gradient/state norms, throughput, and memory.
-- [ ] Record whether the element improves a predeclared metric repeatedly across seeds.
+- [x] Compare held-out loss, test loss, token accuracy, throughput, and memory; see `docs/CCT_G3_1_DECISION.md`.
+- [x] Record whether the geometry element improves a predeclared metric repeatedly across seeds; full CDI wins against geometry-free CDI in seeds 11, 29, and 47.
+- [ ] Record gradient/state norms as dedicated empirical time-series evidence in the next controlled ablation.
 
 ### Ablation B — Recurrence/readout contribution
 
@@ -231,12 +232,22 @@ Run one rung at a time. Every rung requires three seeds, the same evidence field
 
 ### G3 Transition Gate
 
-- [ ] At least one CCT-specific mechanism shows repeated predeclared value in held-out loss, stability, long-context retention, or end-to-end efficiency.
-- [ ] The value survives three-seed comparison and does not depend on hidden budget changes.
+- [x] At least one CCT-specific mechanism shows repeated predeclared value in held-out loss: sparse geometry improved held-out validation loss against the exact geometry-free counterpart in all three seeds.
+- [x] The geometry value survives three-seed comparison and does not depend on hidden budget changes; parameter spread was 0.49% and the protocol was frozen.
 
-**If the gate passes:** retain the contributing mechanism and return to the appropriate G2/G4 rung.
+**CCT-G3.1 status:** `EARNED_GEOMETRY_EVIDENCE`; see `docs/CCT_G3_1_DECISION.md`. The base quality decision remains `REDESIGN_BEFORE_SCALE` because full CDI remained above GRU in all three seeds.
+
+**If the gate passes:** retain the contributing mechanism and return to the appropriate G2/G4 rung only after the required controlled readout-contribution diagnostic.
 
 **If the gate fails:** remove or simplify the non-contributing mechanism, then rerun the affected G1/G2 protocol. Do not retain complexity without evidence.
+
+## G3.2 — Controlled Readout-Contribution Ablation
+
+- [ ] Pre-register an exact parameter-aware contrast-readout control without changing corpus, tokenizer, steps, context, optimizer, seeds, precision, or the 11 GiB memory ceiling.
+- [ ] Verify its causal output shape, gradient contract, and full-versus-control semantics locally before training.
+- [ ] Run full CDI, the pre-registered readout control, geometry-free CDI, GRU, and Transformer across the frozen three-seed, 1,000-step contract.
+- [ ] Record held-out loss, test loss, token accuracy, state/gradient diagnostics, throughput, host memory, and parameter counts.
+- [ ] Decide whether the readout contribution justifies retaining the selected corrected CCT configuration before any G2 quality rerun.
 
 ---
 
@@ -414,23 +425,20 @@ Run one rung at a time. Every rung requires three seeds, the same evidence field
 | Field | Status |
 |---|---|
 | Active CCT Goal | **CCT-G3 — Architecture Value** |
-| Active sprint | **CCT-G3.1 — One controlled mechanism ablation** |
-| Completed foundation | CCT-G0 readiness validation at `a038147`, bounded three-seed learning proof, CCT-G2.1 full-corpus diagnostic at `d5a2180`, CCT-G3.1 pre-registration and geometry-observability implementation at `0a853c4`, runtime/evaluation remediation at `5b17d95`, smooth bounded-geometry repair at `4eac88f`, an 11 GiB host-memory guard, and an exact-ablation inactive-gradient contract with 271 passing tests. |
-| Required next evidence | One pre-registered, parameter-aware CCT-G3.1 ablation report under the failed CCT-G2.1 comparison contract. |
+| Active sprint | **CCT-G3.2 — Controlled readout-contribution ablation** |
+| Completed foundation | CCT-G0 readiness validation at `a038147`, bounded three-seed learning proof, CCT-G2.1 full-corpus diagnostic at `d5a2180`, and CCT-G3.1 geometry evidence at `646c272` under 11 GiB guarded execution; the full suite had 271 passing tests before the empirical run. |
+| Required next evidence | A pre-registered, parameter-aware CCT-G3.2 readout-control report under the frozen CCT-G3 contract. |
 | Not yet approved | CCT-G2.2 (3,000 steps), larger corpus training, context/capacity changes, speed claims, fluency claims, broad instruction training, or any work outside this Todo. |
 
 ## Immediate Next Checklist
 
-- [x] Review and record the CCT-G2.1 decision as `REDESIGN_BEFORE_SCALE`; see `docs/CCT_G2_1_DECISION.md`.
-- [x] Select exactly one CCT mechanism for CCT-G3.1 and write its pre-run hypothesis before training; see `docs/CCT_G3_1_PREREGISTRATION.md`.
-- [x] Keep the CCT-G2.1 tokenizer, governed corpus split, causal-token budget, optimizer, context, precision, batch size, and seed list fixed in the dedicated G3.1 harness.
-- [x] Verify the selected ablation is causal, numerically stable, parameter-aware, and covered by regression tests; the full suite currently has 271 passing tests.
-- [x] Preserve the pre-registration, Amendment A smooth-cap repair, implementation diff, dedicated harness, local geometry-signal tests, 11 GiB host-memory guard, and remediation evidence on `master`.
-- [x] Enforce the requested 11 GiB process/container memory ceiling before and after every training step, evaluation batch, and model/seed release; see `colab.md`.
-- [x] Allow only the exact geometry-free ablation's declared disconnected edge parameter to have no gradient; retain strict finite-gradient checks for every active trainable parameter.
-- [ ] Run full CDI, the selected CCT ablation, GRU, and Transformer under the same controlled protocol.
-- [ ] Save the empirical verdict line, `REPORT.md`, and `latest.json` from the CCT-G3.1 run.
-- [ ] Review the CCT-G3.1 evidence before checking any CCT-G2.2, context, capacity, corpus, or optimization task.
+- [x] Record the CCT-G3.1 empirical result as `EARNED_GEOMETRY_EVIDENCE`; see `docs/CCT_G3_1_DECISION.md`.
+- [x] Preserve the submitted CCT-G3.1 report/JSON identifiers, 11 GiB memory evidence, and strict base `REDESIGN_BEFORE_SCALE` quality decision.
+- [x] Retain sparse geometry because it supplied repeated held-out value against the exact geometry-free CDI control.
+- [ ] Pre-register the exact CCT-G3.2 contrast-readout control and its parameter-aware fairness rule.
+- [ ] Verify CCT-G3.2 local causal, gradient, and numerical gates before training.
+- [ ] Run the CCT-G3.2 five-model, three-seed controlled comparison.
+- [ ] Review CCT-G3.2 before any CCT-G2.1 quality rerun; CCT-G2.2, context, capacity, corpus, and performance work remain blocked.
 
 ## Stage Discipline
 

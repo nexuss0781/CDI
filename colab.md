@@ -133,42 +133,17 @@ Do not begin Stage 2B (3,000 steps) until Stage 2A is reviewed. The completed St
 
 **Stage 2 pass rule:** CDI must be within **5%** of the Transformer’s mean validation cross-entropy across three seeds, and it must consistently match or beat the GRU. A result that gets worse as the token budget grows means the current CDI capacity, optimization, or readout needs redesign before larger pretraining.
 
-## 7. Stage 3 — prove whether the CDI geometry adds value
+## 7. Stage 3 — Architecture-Value Evidence
 
-A custom architecture is worthwhile only if its distinctive mechanism helps. The source review found that the former mean-only readout canceled the zero-sum Laplacian correction before causal token loss. CCT-G3.1 therefore changes **one pre-registered mechanism only**: the readout now exposes fixed zero-sum vertex contrasts alongside the existing per-band mean. Full CDI and its geometry-free counterpart share the same contrast readout and parameter count.
+### Stage 3.1 — Completed Geometry-Observability Ablation
 
-| Variant | What changes | What it tests |
-|---|---|---|
-| Full DCSS/CDI | Sparse topology, geometry correction, and mean-plus-contrast readout | Whether geometry reaches and improves causal language loss |
-| Geometry-free DCSS | Disable only the geometry correction; retain the same contrast readout | Whether the geometry correction itself contributes value |
-| GRU baseline | Standard recurrence | Whether CDI exceeds ordinary recurrence |
-| Transformer baseline | Causal attention | Conventional quality/throughput reference |
+CCT-G3.1 is complete. Under the frozen 321-document, three-seed, 1,000-step contract, full CDI had lower held-out validation loss than its exact geometry-free counterpart in all three seeds. The mean improvement was `0.014489`, the parameter spread was 0.49%, and the 11 GiB host-memory guard recorded 1.8596 GiB peak memory. The mechanism decision is `EARNED_GEOMETRY_EVIDENCE`.
 
-The local pre-flight gates are already covered by regression tests: full and geometry-free models have different logits/losses under identical initialization, full geometry receives a finite nonzero causal-loss gradient, and the exact ablation remains capacity-matched. The empirical CCT-G3.1 result is still required before any scale decision.
+This does **not** authorize scaling. Full CDI remained above GRU validation loss in all three seeds, so the global quality decision remains `REDESIGN_BEFORE_SCALE`. See `docs/CCT_G3_1_DECISION.md`. Do not rerun G3.1 or begin the 3,000-step, context, capacity, corpus, or performance ladders.
 
-### Stage 3.1 — CPU-safe geometry-observability ablation
+### Stage 3.2 — Controlled Readout-Contribution Ablation
 
-```bash
-%cd /content/CDI
-!PYTHONPATH=. python benchmarks/cct_g3_1_geometry_ablation.py \
-  --steps 1000 \
-  --document-limit 321 \
-  --chunks-per-document 32 \
-  --chunk-length 16 \
-  --batch-size 2 \
-  --eval-batches 0 \
-  --shuffle-training-batches \
-  --learning-rate 0.01 \
-  --relative-loss-tolerance 0.05 \
-  --parameter-relative-tolerance 0.01 \
-  --max-host-memory-gb 11 \
-  --output-dir results/colab_cct_g3_1_geometry
-!cat results/colab_cct_g3_1_geometry/REPORT.md
-```
-
-The harness checks conservative process/container resident memory before and after every training step, evaluation batch, and model/seed release. `--max-host-memory-gb 11` makes it stop cleanly with a stage-specific error before the observed memory reaches the requested threshold. The completed artifact records the configured, final, and peak GiB values. If the guard stops the run, do not increase the threshold or reduce an experimental control silently; send the stop message for a bounded execution review.
-
-Send `results/colab_cct_g3_1_geometry/REPORT.md` and `results/colab_cct_g3_1_geometry/latest.json` for gate review. **Stage 3 pass rule:** full CDI must have lower validation loss than geometry-free CDI in every seed under the frozen contract, with matched parameter count. A null or negative geometry effect is `NO_GEOMETRY_EVIDENCE`, not permission to scale.
+The only permitted next work is pre-registration of a parameter-aware readout control. It must distinguish the contribution of the fixed zero-sum contrast readout from the sparse geometry correction while retaining the same EthioBBPE artifact, governed manifest, seeds, 1,000 steps, 16-token context, optimizer, precision, all-held-out evaluation, and 11 GiB memory ceiling. No Colab command is approved until that pre-registration and its local causal/gradient checks are committed.
 
 ## 8. Stage 4 — context ladder and retention test
 
@@ -241,7 +216,7 @@ I will keep the workflow bounded and visible. I will review the code and config 
 
 ## 13. First action for you to check
 
-CCT-G0, CCT-G1, and CCT-G2.1 are complete. CCT-G2.1 is recorded as `REDESIGN_BEFORE_SCALE`; therefore, do **not** rerun Stage 2A with a larger budget or begin Stage 2B. The next permitted action is a single pre-registered CCT-G3.1 mechanism ablation with the CCT-G2.1 comparison contract frozen. Its exact command must be reviewed before execution.
+CCT-G0, CCT-G1, CCT-G2.1, and CCT-G3.1 are complete. CCT-G3.1 is recorded as `EARNED_GEOMETRY_EVIDENCE`, but the global quality decision remains `REDESIGN_BEFORE_SCALE`; therefore, do **not** rerun Stage 2A with a larger budget or begin Stage 2B. The next permitted action is CCT-G3.2 pre-registration for a controlled readout-contribution ablation. Its exact command must be reviewed before execution.
 
 If Colab has a GPU, record its name with:
 
@@ -250,7 +225,7 @@ If Colab has a GPU, record its name with:
 !python -c "import torch; print(torch.__version__); print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')"
 ```
 
-We will review the pre-registered CCT-G3.1 ablation evidence before any 3,000-step, context, capacity, corpus, or optimization work.
+We will review the pre-registered CCT-G3.2 readout-control evidence before any corrected G2.1 quality rerun, 3,000-step, context, capacity, corpus, or optimization work.
 
 ## References
 
