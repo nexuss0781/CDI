@@ -47,3 +47,9 @@ The repair retains the same maximum edge-weight bound and explicit-step spectral
 ## CCT-G3.1 Colab host-memory safety threshold
 
 The user reported that Colab repeatedly suspended the long CPU CCT-G3.1 job, with no reliable opportunity to recover an artifact after the runtime stopped. The pilot contract now supports a configurable process/container resident-memory monitor. The dedicated G3.1 command defaults to `--max-host-memory-gb 11`; it checks before and after every training step, every evaluation batch, and every model/seed release. It records configured, final, and peak GiB in completed artifacts and raises a stage-specific fail-closed error at the threshold. This is an execution-safety control only: it does not alter model dimensions, tokenizer, data split, context, seeds, optimizer, or token budget.
+
+## CCT-G3.1 geometry-free inactive-gradient contract
+
+The guarded CCT-G3.1 Colab run advanced past setup and the smooth edge-weight repair but stopped at the exact geometry-free CDI variant. The generic training loop correctly rejected `ssm.cell.geometry.edge_log_weights` because it had no gradient; however, that parameter is intentionally disconnected when the pre-registered ablation disables only the Laplacian correction. Treating it as an active parameter made the required control untrainable.
+
+The repair adds an explicit `expected_inactive_trainable_parameters()` declaration to the geometry-free DCSS language model and permits only its named geometry edge parameter to have no gradient. The trainer verifies every declared name exists and retains finite-gradient checks for all other trainable parameters. A regression trains the geometry-free variant for one step and confirms that the declared edge gradient alone is absent. The full suite passed 271 tests after the change.
