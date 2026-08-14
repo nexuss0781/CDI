@@ -147,30 +147,13 @@ CCT-G3.2 is complete. Full CDI beat the capacity-matched mean-readout control in
 
 This does **not** authorize scaling. Full CDI remained above GRU validation loss in all three seeds, so the global quality decision remains `REDESIGN_BEFORE_SCALE`. See `docs/CCT_G3_2_DECISION.md`.
 
-### Stage 3.3 — Controlled Harmonic-Memory-Band Ablation
+### Stage 3.3 — Completed Harmonic-Memory-Band Ablation
 
-CCT-G3.3 is pre-registered and locally validated. It compares full CDI with a parameter-preserving harmonic-disabled CDI control, while retaining the geometry-free CDI, GRU, and Transformer references. The control deterministically zeros only the harmonic 16–64 time-constant state path, retains every harmonic parameter and readout slot, and declares exactly the disconnected harmonic-band parameters inactive to the strict trainer. The run records fixed-held-out state-norm and gradient-L2 diagnostics in addition to the ordinary metrics.
+CCT-G3.3 is complete. Full CDI had lower held-out validation loss than the exact parameter-preserving harmonic-disabled control in all three seeds, with a **0.031414** mean validation-loss improvement. The control's harmonic state, energy, and harmonic gradient were zero in the submitted fixed-held-out diagnostics, while full CDI retained finite active harmonic dynamics. Sparse geometry was independently re-confirmed against geometry-free CDI. The mechanism decision is `EARNED_HARMONIC_EVIDENCE`.
 
-```bash
-%cd /content/CDI
-!PYTHONPATH=. python benchmarks/cct_g3_3_harmonic_ablation.py \
-  --steps 1000 \
-  --document-limit 321 \
-  --chunks-per-document 32 \
-  --chunk-length 16 \
-  --batch-size 2 \
-  --eval-batches 0 \
-  --shuffle-training-batches \
-  --learning-rate 0.01 \
-  --relative-loss-tolerance 0.05 \
-  --parameter-relative-tolerance 0.01 \
-  --max-host-memory-gb 11 \
-  --output-dir results/colab_cct_g3_3_harmonic
-!cat results/colab_cct_g3_3_harmonic/REPORT.md
-!cat results/colab_cct_g3_3_harmonic/latest.json
-```
+This does **not** authorize scaling. Full CDI remained above GRU validation loss in all three seeds, with a 0.6928% mean gap. The global quality decision remains `REDESIGN_BEFORE_SCALE`; do not rerun G3.3, begin the 3,000-step ladder, expand context or corpus, change capacity, or begin speed work. See `docs/CCT_G3_3_DECISION.md`.
 
-**Decision rule:** full CDI must have lower held-out validation loss than harmonic-disabled CDI in every seed to earn `EARNED_HARMONIC_EVIDENCE`. If harmonic-disabled CDI wins every seed, the run records `HARMONIC_NEGATIVE_EVIDENCE`; otherwise it records `NO_HARMONIC_EVIDENCE`. No outcome authorizes scaling. Send both generated files for gate review.
+The next action is not an automatic experiment. Any architecture-selection or quality-recovery proposal must be separately pre-registered and directly address the per-seed GRU gap while retaining the CCT-G3 evidence contract.
 
 ## 8. Stage 4 — context ladder and retention test
 
@@ -243,7 +226,7 @@ I will keep the workflow bounded and visible. I will review the code and config 
 
 ## 13. First action for you to check
 
-CCT-G0, CCT-G1, CCT-G2.1, CCT-G3.1, and CCT-G3.2 are complete. CCT-G3.1 is recorded as `EARNED_GEOMETRY_EVIDENCE` and CCT-G3.2 as `EARNED_READOUT_EVIDENCE`, but the global quality decision remains `REDESIGN_BEFORE_SCALE`; therefore, do **not** rerun Stage 2A with a larger budget or begin Stage 2B. The next permitted action is the pre-registered CCT-G3.3 harmonic-memory-band command above. Do not change its declared budget, model matrix, tokenization, seeds, optimizer, evaluation scope, or 11 GiB memory ceiling.
+CCT-G0, CCT-G1, CCT-G2.1, CCT-G3.1, CCT-G3.2, and CCT-G3.3 are complete. CCT-G3.1 is recorded as `EARNED_GEOMETRY_EVIDENCE`, CCT-G3.2 as `EARNED_READOUT_EVIDENCE`, and CCT-G3.3 as `EARNED_HARMONIC_EVIDENCE`; however, the global quality decision remains `REDESIGN_BEFORE_SCALE` because CDI lost to GRU in every seed. Do **not** rerun Stage 2A with a larger budget or begin Stage 2B. The next permitted action is a user-approved, separately pre-registered architecture-selection or quality-recovery proposal.
 
 If Colab has a GPU, record its name with:
 
@@ -252,7 +235,7 @@ If Colab has a GPU, record its name with:
 !python -c "import torch; print(torch.__version__); print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')"
 ```
 
-We will review the submitted CCT-G3.3 report and JSON before any quality rerun, 3,000-step, context, capacity, corpus, or optimization work.
+We will review a separately pre-registered architecture-selection or quality-recovery proposal before any quality rerun, 3,000-step, context, capacity, corpus, or optimization work.
 
 ## References
 
