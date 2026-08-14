@@ -17,7 +17,7 @@ The CCT-G1 revision is an ancestor of current `master`. Its result supports only
 
 | CCT goal | Required input before a decision | Do not proceed to |
 |---|---|---|
-| CCT-G3.2 — Controlled Readout-Contribution Ablation | A pre-registered parameter-aware contrast-readout control, local causal/gradient gates, exact configuration, `REPORT.md`, and `latest.json` under the frozen CCT-G3 comparison contract | CCT-G2.1 quality rerun, CCT-G2.2, context work, capacity changes, corpus expansion, or optimization work |
+| CCT-G3.2 — Controlled Readout-Contribution Ablation | Submitted five-model, three-seed `REPORT.md` and `latest.json` from `benchmarks/cct_g3_2_readout_ablation.py`; pre-registration and local causal/gradient/parameter gates are complete | CCT-G2.1 quality rerun, CCT-G2.2, context work, capacity changes, corpus expansion, or optimization work |
 
 ## Evidence Handling Rule
 

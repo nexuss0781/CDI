@@ -248,6 +248,8 @@ def build_model(name: str, tokenizer: EthioBBPETokenizer, seed: int) -> torch.nn
         return DCSSLanguageModel(tokenizer, StageCConfig.nano(seed=seed))
     if name == "dcss_geometry_free":
         return DCSSLanguageModel(tokenizer, StageCConfig.nano(seed=seed, geometry_ablation=True))
+    if name == "dcss_mean_readout_control":
+        return DCSSLanguageModel(tokenizer, StageCConfig.nano(seed=seed, contrast_readout_ablation=True))
     if name == "gru_baseline":
         return LegacyCDIV2Adapter(tokenizer, width=tokenizer.config.embedding_dim, dtype=torch.float32)
     if name == "transformer":

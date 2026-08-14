@@ -143,7 +143,28 @@ This does **not** authorize scaling. Full CDI remained above GRU validation loss
 
 ### Stage 3.2 — Controlled Readout-Contribution Ablation
 
-The only permitted next work is pre-registration of a parameter-aware readout control. It must distinguish the contribution of the fixed zero-sum contrast readout from the sparse geometry correction while retaining the same EthioBBPE artifact, governed manifest, seeds, 1,000 steps, 16-token context, optimizer, precision, all-held-out evaluation, and 11 GiB memory ceiling. No Colab command is approved until that pre-registration and its local causal/gradient checks are committed.
+CCT-G3.2 is pre-registered and locally validated. It distinguishes the contribution of the fixed zero-sum contrast readout from sparse geometry correction while retaining the same EthioBBPE artifact, governed manifest, seeds, 1,000 steps, 16-token context, optimizer, precision, all-held-out evaluation, and 11 GiB memory ceiling.
+
+```bash
+%cd /content/CDI
+!PYTHONPATH=. python benchmarks/cct_g3_2_readout_ablation.py \
+  --steps 1000 \
+  --document-limit 321 \
+  --chunks-per-document 32 \
+  --chunk-length 16 \
+  --batch-size 2 \
+  --eval-batches 0 \
+  --shuffle-training-batches \
+  --learning-rate 0.01 \
+  --relative-loss-tolerance 0.05 \
+  --parameter-relative-tolerance 0.01 \
+  --max-host-memory-gb 11 \
+  --output-dir results/colab_cct_g3_2_readout
+!cat results/colab_cct_g3_2_readout/REPORT.md
+!cat results/colab_cct_g3_2_readout/latest.json
+```
+
+The five-model matrix contains full CDI, the capacity-matched mean-readout control, geometry-free CDI, GRU, and Transformer. **G3.2 pass rule:** full CDI must have lower validation loss than the mean-readout control in every seed; geometry must also be re-confirmed against geometry-free CDI. Regardless of outcome, the run does not authorize scale. Send the report and JSON for gate review.
 
 ## 8. Stage 4 — context ladder and retention test
 

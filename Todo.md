@@ -243,9 +243,9 @@ Run one rung at a time. Every rung requires three seeds, the same evidence field
 
 ## G3.2 — Controlled Readout-Contribution Ablation
 
-- [ ] Pre-register an exact parameter-aware contrast-readout control without changing corpus, tokenizer, steps, context, optimizer, seeds, precision, or the 11 GiB memory ceiling.
-- [ ] Verify its causal output shape, gradient contract, and full-versus-control semantics locally before training.
-- [ ] Run full CDI, the pre-registered readout control, geometry-free CDI, GRU, and Transformer across the frozen three-seed, 1,000-step contract.
+- [x] Pre-register an exact parameter-aware contrast-readout control without changing corpus, tokenizer, steps, context, optimizer, seeds, precision, or the 11 GiB memory ceiling; see `docs/CCT_G3_2_PREREGISTRATION.md`.
+- [x] Verify its causal output shape, gradient contract, and full-versus-control semantics locally before training; the full suite has 276 passing tests.
+- [x] Implement the dedicated five-model CCT-G3.2 harness and its pass/fail decision gates; the empirical run remains pending.
 - [ ] Record held-out loss, test loss, token accuracy, state/gradient diagnostics, throughput, host memory, and parameter counts.
 - [ ] Decide whether the readout contribution justifies retaining the selected corrected CCT configuration before any G2 quality rerun.
 
@@ -426,7 +426,7 @@ Run one rung at a time. Every rung requires three seeds, the same evidence field
 |---|---|
 | Active CCT Goal | **CCT-G3 — Architecture Value** |
 | Active sprint | **CCT-G3.2 — Controlled readout-contribution ablation** |
-| Completed foundation | CCT-G0 readiness validation at `a038147`, bounded three-seed learning proof, CCT-G2.1 full-corpus diagnostic at `d5a2180`, and CCT-G3.1 geometry evidence at `646c272` under 11 GiB guarded execution; the full suite had 271 passing tests before the empirical run. |
+| Completed foundation | CCT-G0 readiness validation at `a038147`, bounded three-seed learning proof, CCT-G2.1 full-corpus diagnostic at `d5a2180`, CCT-G3.1 geometry evidence at `646c272` under 11 GiB guarded execution, and CCT-G3.2 pre-registration plus local control validation with 276 passing tests. |
 | Required next evidence | A pre-registered, parameter-aware CCT-G3.2 readout-control report under the frozen CCT-G3 contract. |
 | Not yet approved | CCT-G2.2 (3,000 steps), larger corpus training, context/capacity changes, speed claims, fluency claims, broad instruction training, or any work outside this Todo. |
 
@@ -435,8 +435,8 @@ Run one rung at a time. Every rung requires three seeds, the same evidence field
 - [x] Record the CCT-G3.1 empirical result as `EARNED_GEOMETRY_EVIDENCE`; see `docs/CCT_G3_1_DECISION.md`.
 - [x] Preserve the submitted CCT-G3.1 report/JSON identifiers, 11 GiB memory evidence, and strict base `REDESIGN_BEFORE_SCALE` quality decision.
 - [x] Retain sparse geometry because it supplied repeated held-out value against the exact geometry-free CDI control.
-- [ ] Pre-register the exact CCT-G3.2 contrast-readout control and its parameter-aware fairness rule.
-- [ ] Verify CCT-G3.2 local causal, gradient, and numerical gates before training.
+- [x] Pre-register the exact CCT-G3.2 contrast-readout control and its parameter-aware fairness rule; see `docs/CCT_G3_2_PREREGISTRATION.md`.
+- [x] Verify CCT-G3.2 local causal, gradient, numerical, harness, and parameter-fairness gates; the full suite has 276 passing tests.
 - [ ] Run the CCT-G3.2 five-model, three-seed controlled comparison.
 - [ ] Review CCT-G3.2 before any CCT-G2.1 quality rerun; CCT-G2.2, context, capacity, corpus, and performance work remain blocked.
 
