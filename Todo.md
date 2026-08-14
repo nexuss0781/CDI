@@ -227,15 +227,16 @@ Run one rung at a time. Every rung requires three seeds, the same evidence field
 
 - [x] Define the exact readout element: concatenate deterministic zero-sum vertex contrasts with the existing per-band mean; recurrence unchanged.
 - [x] Verify output shape, causal target alignment, and geometry-gradient reachability through `tests/test_cct_geometry_observability.py`.
-- [ ] Compare held-out loss, retention/context behavior, stability, and throughput.
-- [ ] Record whether the element improves a predeclared metric repeatedly across seeds.
+- [x] Compare held-out loss, test loss, token accuracy, throughput, and host memory against the capacity-matched mean-readout control; see `docs/CCT_G3_2_DECISION.md`.
+- [x] Record repeated readout value: full CDI beats the mean-readout control in seeds 11, 29, and 47, with a 0.057296 mean validation-loss improvement.
+- [ ] Record retention/context behavior and dedicated state/gradient time-series under a later separately pre-registered protocol.
 
 ### G3 Transition Gate
 
 - [x] At least one CCT-specific mechanism shows repeated predeclared value in held-out loss: sparse geometry improved held-out validation loss against the exact geometry-free counterpart in all three seeds.
 - [x] The geometry value survives three-seed comparison and does not depend on hidden budget changes; parameter spread was 0.49% and the protocol was frozen.
 
-**CCT-G3.1 status:** `EARNED_GEOMETRY_EVIDENCE`; see `docs/CCT_G3_1_DECISION.md`. The base quality decision remains `REDESIGN_BEFORE_SCALE` because full CDI remained above GRU in all three seeds.
+**CCT-G3.2 status:** `EARNED_READOUT_EVIDENCE` with re-confirmed `EARNED_GEOMETRY_EVIDENCE`; see `docs/CCT_G3_2_DECISION.md`. The base quality decision remains `REDESIGN_BEFORE_SCALE` because full CDI remained above GRU in all three seeds.
 
 **If the gate passes:** retain the contributing mechanism and return to the appropriate G2/G4 rung only after the required controlled readout-contribution diagnostic.
 
@@ -244,10 +245,18 @@ Run one rung at a time. Every rung requires three seeds, the same evidence field
 ## G3.2 — Controlled Readout-Contribution Ablation
 
 - [x] Pre-register an exact parameter-aware contrast-readout control without changing corpus, tokenizer, steps, context, optimizer, seeds, precision, or the 11 GiB memory ceiling; see `docs/CCT_G3_2_PREREGISTRATION.md`.
-- [x] Verify its causal output shape, gradient contract, and full-versus-control semantics locally before training; the full suite has 276 passing tests.
-- [x] Implement the dedicated five-model CCT-G3.2 harness and its pass/fail decision gates; the empirical run remains pending.
+- [x] Verify its causal output shape, gradient contract, and full-versus-control semantics locally before training; the full suite had 276 passing tests before the empirical run.
+- [x] Implement and run the dedicated five-model CCT-G3.2 harness across three seeds.
+- [x] Record held-out loss, test loss, token accuracy, throughput, host memory, and parameter counts; see `docs/CCT_G3_2_DECISION.md`.
+- [x] Retain the fixed contrast readout and sparse geometry because both supplied repeated held-out value; the global quality decision remains `REDESIGN_BEFORE_SCALE` because full CDI lost to GRU in every seed.
+
+## G3.3 — Controlled Harmonic-Memory-Band Contribution Ablation
+
+- [ ] Pre-register an exact harmonic-disabled parameter-aware control without changing the selected full CDI architecture, corpus, tokenizer, steps, context, optimizer, seeds, precision, all-held-out evaluation, or 11 GiB memory ceiling.
+- [ ] Verify its causal shape, harmonic inactive-gradient contract, state stability, and parameter equality locally before training.
+- [ ] Run full CDI, harmonic-disabled CDI, geometry-free CDI, GRU, and Transformer across the frozen three-seed, 1,000-step contract.
 - [ ] Record held-out loss, test loss, token accuracy, state/gradient diagnostics, throughput, host memory, and parameter counts.
-- [ ] Decide whether the readout contribution justifies retaining the selected corrected CCT configuration before any G2 quality rerun.
+- [ ] Decide whether the harmonic 16–64 time-constant band adds or subtracts value before any quality rerun.
 
 ---
 
@@ -425,9 +434,9 @@ Run one rung at a time. Every rung requires three seeds, the same evidence field
 | Field | Status |
 |---|---|
 | Active CCT Goal | **CCT-G3 — Architecture Value** |
-| Active sprint | **CCT-G3.2 — Controlled readout-contribution ablation** |
-| Completed foundation | CCT-G0 readiness validation at `a038147`, bounded three-seed learning proof, CCT-G2.1 full-corpus diagnostic at `d5a2180`, CCT-G3.1 geometry evidence at `646c272` under 11 GiB guarded execution, and CCT-G3.2 pre-registration plus local control validation with 276 passing tests. |
-| Required next evidence | A pre-registered, parameter-aware CCT-G3.2 readout-control report under the frozen CCT-G3 contract. |
+| Active sprint | **CCT-G3.3 — Controlled harmonic-memory-band contribution ablation** |
+| Completed foundation | CCT-G0 readiness validation at `a038147`, bounded three-seed learning proof, CCT-G2.1 full-corpus diagnostic at `d5a2180`, CCT-G3.1 geometry evidence at `646c272`, and CCT-G3.2 readout evidence at `fb50b57` under 11 GiB guarded execution. |
+| Required next evidence | A pre-registered, parameter-aware CCT-G3.3 harmonic-band control report under the frozen CCT-G3 contract. |
 | Not yet approved | CCT-G2.2 (3,000 steps), larger corpus training, context/capacity changes, speed claims, fluency claims, broad instruction training, or any work outside this Todo. |
 
 ## Immediate Next Checklist
@@ -435,10 +444,12 @@ Run one rung at a time. Every rung requires three seeds, the same evidence field
 - [x] Record the CCT-G3.1 empirical result as `EARNED_GEOMETRY_EVIDENCE`; see `docs/CCT_G3_1_DECISION.md`.
 - [x] Preserve the submitted CCT-G3.1 report/JSON identifiers, 11 GiB memory evidence, and strict base `REDESIGN_BEFORE_SCALE` quality decision.
 - [x] Retain sparse geometry because it supplied repeated held-out value against the exact geometry-free CDI control.
-- [x] Pre-register the exact CCT-G3.2 contrast-readout control and its parameter-aware fairness rule; see `docs/CCT_G3_2_PREREGISTRATION.md`.
-- [x] Verify CCT-G3.2 local causal, gradient, numerical, harness, and parameter-fairness gates; the full suite has 276 passing tests.
-- [ ] Run the CCT-G3.2 five-model, three-seed controlled comparison.
-- [ ] Review CCT-G3.2 before any CCT-G2.1 quality rerun; CCT-G2.2, context, capacity, corpus, and performance work remain blocked.
+- [x] Record CCT-G3.2 as `EARNED_READOUT_EVIDENCE` and re-confirm CCT-G3.1 geometry evidence; see `docs/CCT_G3_2_DECISION.md`.
+- [x] Preserve the submitted five-model artifact identifiers, three-seed gates, and 11 GiB host-memory evidence.
+- [x] Retain the contrast readout and sparse geometry; neither result unlocks scale because CDI remains above GRU in every seed.
+- [ ] Pre-register the exact CCT-G3.3 harmonic-band control and its parameter-aware fairness rule.
+- [ ] Verify CCT-G3.3 local causal, gradient, numerical, harness, and parameter-fairness gates.
+- [ ] Run and review CCT-G3.3 before any quality rerun; CCT-G2.2, context, capacity, corpus, and performance work remain blocked.
 
 ## Stage Discipline
 

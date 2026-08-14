@@ -133,13 +133,13 @@ The historical mean-only readout created a decisive invariant. Because \(L=S^{\t
 
 The recurrent generator and selective gates are shared across vertices and depend on the token embedding rather than on vertex-specific state. Therefore the historical vertex-mean trajectory was invariant to the Laplacian correction while the correction changed only discarded contrast. The pre-repair probe measured maximum logit difference `2.95585778076e-12`, causal-loss difference `0`, and geometry-gradient L2 norm `0`; it established a **state-to-readout observability** defect rather than a missing Laplacian computation. [2] [4]
 
-> **Current engineering state:** CCT-G3.1 established repeated held-out geometry value: full CDI beat its exact geometry-disabled counterpart in all three frozen-protocol seeds, with a 0.014489 mean validation-loss improvement. The mechanism is retained. Full CDI nevertheless remained above GRU in all three seeds, so this result does not authorize scaling, context expansion, capacity changes, or speed claims; the next required diagnostic isolates the contrast-readout contribution.
+> **Current engineering state:** CCT-G3.1 established repeated held-out geometry value, and CCT-G3.2 established repeated contrast-readout value: full CDI beat the capacity-matched mean-readout control in all three frozen-protocol seeds, with a 0.057296 mean validation-loss improvement. Both mechanisms are retained. Full CDI nevertheless remained above GRU in all three seeds, so neither result authorizes scaling, context expansion, capacity changes, or speed claims; the next required diagnostic isolates the harmonic memory-band contribution.
 
 ## Baselines and Parameter Matching
 
 The CCT pilot uses two baselines sharing the tokenizer, causal loss, padding behavior, optimizer family, chunk length, batch size, seed list, and batch schedule. The GRU baseline uses a width-four `GRUCell`; the Transformer baseline uses one causal encoder layer with width four, one head, feedforward width eight, and no dropout. All models use tied output projection and a vocabulary bias. The current counts are 80,510 for full CDI and geometry-free CDI, 80,120 for GRU, and 80,172 for Transformer: a maximum relative spread of 0.49%. [3] [4]
 
-This compact fairness design leaves a very small recurrent-core budget. The 48-state CDI structure is exposed through fixed contrasts rather than discarded by mean-only compression, and sparse geometry has bounded three-seed evidence of contribution. The separate readout contribution and CDI-versus-GRU quality relation remain open CCT questions. [2] [4]
+This compact fairness design leaves a very small recurrent-core budget. The 48-state CDI structure is exposed through fixed contrasts rather than discarded by mean-only compression, and both the fixed contrast readout and sparse geometry have bounded three-seed evidence of contribution. The harmonic-band contribution and CDI-versus-GRU quality relation remain open CCT questions. [2] [4]
 
 ## Stability and Reproducibility Strengths
 
@@ -156,7 +156,7 @@ The active implementation has several strong foundations that should be preserve
 
 ## Boundaries of the Current Evidence
 
-CCT-G1 established that the repaired active language path can reduce loss on a bounded real-data task. CCT-G2.1 showed stable learning on the full deduplicated pilot corpus and remained within the declared Transformer tolerance, but CDI was above GRU validation loss in all three seeds. CCT-G3.1 then showed that sparse geometry improves full CDI against its exact geometry-free counterpart in all three seeds, but full CDI remained above GRU. The governing quality decision therefore remains `REDESIGN_BEFORE_SCALE`; the 3,000-step rung is not authorized. [8] [9]
+CCT-G1 established that the repaired active language path can reduce loss on a bounded real-data task. CCT-G2.1 showed stable learning on the full deduplicated pilot corpus and remained within the declared Transformer tolerance, but CDI was above GRU validation loss in all three seeds. CCT-G3.1 showed that sparse geometry improves full CDI against its exact geometry-free counterpart in all three seeds, and CCT-G3.2 showed that fixed contrast features improve full CDI against a capacity-matched mean-readout control in all three seeds. Full CDI remained above GRU. The governing quality decision therefore remains `REDESIGN_BEFORE_SCALE`; the 3,000-step rung is not authorized. [8] [9]
 
 The implementation does **not** yet support a claim that CDI is faster than a Transformer. Its token loop remains Python-serial, although immutable topology tensors are now cached; CCT-G2.1 measured lower throughput than both baselines. It also does not yet support a long-context claim because training packs fixed, independent chunks and resets state for each chunk. [3] [9]
 

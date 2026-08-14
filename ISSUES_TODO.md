@@ -48,7 +48,7 @@ The following restrictions are active until a later gate explicitly changes them
 
 | ID | Current status | Resolution evidence or remaining boundary |
 |---|---|---|
-| CCT-ARCH-001 | **Geometry evidence earned; readout contribution pending** | Full CDI beat exact geometry-free CDI in all three G3.1 seeds with a 0.014489 mean validation-loss improvement. CCT-G3.2 must still isolate the contrast-readout contribution before any quality-rung return. |
+| CCT-ARCH-001 | **Geometry and readout evidence earned; harmonic contribution pending** | Full CDI beat exact geometry-free CDI in all three G3.1/G3.2 seeds with a 0.014489 mean validation-loss improvement, and beat the capacity-matched mean-readout control in all three G3.2 seeds with a 0.057296 improvement. CCT-G3.3 must isolate the harmonic-band contribution before any quality-rung return. |
 | CCT-EMP-002 | **Resolved** | Executable verdict now requires finite complete records, learning, Transformer tolerance, and per-seed CDI-versus-GRU relation. |
 | CCT-RUN-003 | **Contained** | `run.sh` is safe readiness/status only and rejects legacy/production commands. |
 | CCT-DATA-004 | **Contained** | The split-leaking production trainer is fail-closed; no metric can be produced from that path. A future replacement requires a reviewed data contract. |
@@ -295,13 +295,13 @@ CCT-G2.1 failure did not authorize uncontrolled redesign. CCT-G3.1 isolated the 
 ## Completion Checklist for This Backlog
 
 - [x] CCT-G2.1 decision is recorded as `REDESIGN_BEFORE_SCALE`.
-- [x] CCT-ARCH-001 has CCT-G3.1 three-seed geometry evidence; the next CCT-G3.2 readout-control diagnostic remains pending.
+- [x] CCT-ARCH-001 has CCT-G3.1 geometry and CCT-G3.2 readout three-seed evidence; the next CCT-G3.3 harmonic-band diagnostic remains pending.
 - [x] CCT-EMP-002 is encoded in the executable decision report.
 - [x] CCT-RUN-003, CCT-DATA-004, and CCT-DATA-005 are contained before any production/legacy convenience route is used.
 - [x] CCT-TEST-006 adds language-model-level geometry reachability coverage.
 - [x] CCT-ART-008 removes generated writes to tracked `Stages/` files.
 - [x] CCT-DOC-009 makes active versus legacy execution paths unambiguous.
-- [x] Non-scaling P2/P3 repairs are completed; long-context and throughput-optimization work remains explicitly gated on CCT-G3.2 and the unresolved GRU quality relation.
+- [x] Non-scaling P2/P3 repairs are completed; long-context and throughput-optimization work remains explicitly gated on CCT-G3.3 and the unresolved GRU quality relation.
 
 ## Source References
 
