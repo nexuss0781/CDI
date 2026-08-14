@@ -259,6 +259,16 @@ def train_steps(
         unknown_inactive = declared_inactive.difference(named_parameters)
         if unknown_inactive:
             raise ValueError(f"Model declared unknown inactive trainable parameters: {sorted(unknown_inactive)}")
+        inactive_with_signal = [
+            name
+            for name in declared_inactive
+            if named_parameters[name].grad is not None
+            and not bool(torch.equal(named_parameters[name].grad, torch.zeros_like(named_parameters[name].grad)))
+        ]
+        if inactive_with_signal:
+            raise FloatingPointError(
+                f"Declared inactive parameters received a nonzero gradient: {sorted(inactive_with_signal)}"
+            )
         gradients = [
             (name, parameter.grad)
             for name, parameter in named_parameters.items()

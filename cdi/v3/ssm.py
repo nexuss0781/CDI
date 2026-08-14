@@ -42,6 +42,7 @@ class StageCConfig:
     dtype_str: str = "float32"
     device: str = "cpu"
     geometry_ablation: bool = False
+    contrast_readout_ablation: bool = False
     dt: float = 0.10
     geometry_step_cap: float = 0.02
     max_geometry_edge_weight: float = 2.0
@@ -114,8 +115,17 @@ class StageCConfig:
         return asdict(self)
 
     @classmethod
-    def nano(cls, seed: int = 42, geometry_ablation: bool = False) -> "StageCConfig":
-        config = cls(seed=seed, geometry_ablation=geometry_ablation)
+    def nano(
+        cls,
+        seed: int = 42,
+        geometry_ablation: bool = False,
+        contrast_readout_ablation: bool = False,
+    ) -> "StageCConfig":
+        config = cls(
+            seed=seed,
+            geometry_ablation=geometry_ablation,
+            contrast_readout_ablation=contrast_readout_ablation,
+        )
         config.validate()
         return config
 
@@ -489,6 +499,8 @@ class CohomodynamicCell(nn.Module):
             mean = band.mean(dim=-2)
             contrast = torch.einsum("vi,...vw->...iw", self.vertex_contrast_basis, band)
             contrast = contrast.reshape(*band.shape[:-2], -1)
+            if self.config.contrast_readout_ablation:
+                contrast = torch.zeros_like(contrast)
             features.extend((mean, contrast))
         return torch.cat(features, dim=-1)
 
@@ -558,7 +570,11 @@ class CohomodynamicCell(nn.Module):
             "geometry": self.geometry.production_metadata(),
             "state_layout": "CohomodynamicState(fast, middle, harmonic), each (..., vertices, width)",
             "readout": {
-                "feature_layout": "per-band mean plus fixed zero-sum vertex contrasts",
+                "feature_layout": (
+                    "per-band mean with zeroed fixed contrast feature slots"
+                    if self.config.contrast_readout_ablation
+                    else "per-band mean plus fixed zero-sum vertex contrasts"
+                ),
                 "feature_dim": self.readout.in_features,
                 "contrast_basis_shape": list(self.vertex_contrast_basis.shape),
             },

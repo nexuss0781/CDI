@@ -50,7 +50,7 @@ class DCSSLanguageModel(nn.Module):
     def expected_inactive_trainable_parameters(self) -> frozenset[str]:
         """Return the sole parameter intentionally disconnected by an exact ablation."""
 
-        if self.config.geometry_ablation:
+        if self.config.geometry_ablation or self.config.contrast_readout_ablation:
             return frozenset({"ssm.cell.geometry.edge_log_weights"})
         return frozenset()
 
