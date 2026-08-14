@@ -46,6 +46,8 @@ class StageCConfig:
     harmonic_ablation: bool = False
     token_residual_enabled: bool = False
     token_residual_ablation: bool = False
+    residual_fusion_enabled: bool = False
+    residual_fusion_ablation: bool = False
     dt: float = 0.10
     geometry_step_cap: float = 0.02
     max_geometry_edge_weight: float = 2.0
@@ -79,6 +81,10 @@ class StageCConfig:
     def validate(self) -> None:
         if self.token_residual_ablation and not self.token_residual_enabled:
             raise ValueError("token_residual_ablation requires token_residual_enabled.")
+        if self.residual_fusion_enabled and not self.token_residual_enabled:
+            raise ValueError("residual_fusion_enabled requires token_residual_enabled.")
+        if self.residual_fusion_ablation and not self.residual_fusion_enabled:
+            raise ValueError("residual_fusion_ablation requires residual_fusion_enabled.")
         if self.name != "nano":
             raise ValueError("Stage C currently exposes only the CPU-safe 'nano' tier.")
         if self.n_vertices < 3:
@@ -128,9 +134,15 @@ class StageCConfig:
         harmonic_ablation: bool = False,
         token_residual_enabled: bool = False,
         token_residual_ablation: bool = False,
+        residual_fusion_enabled: bool = False,
+        residual_fusion_ablation: bool = False,
     ) -> "StageCConfig":
         if token_residual_ablation and not token_residual_enabled:
             raise ValueError("token_residual_ablation requires token_residual_enabled.")
+        if residual_fusion_enabled and not token_residual_enabled:
+            raise ValueError("residual_fusion_enabled requires token_residual_enabled.")
+        if residual_fusion_ablation and not residual_fusion_enabled:
+            raise ValueError("residual_fusion_ablation requires residual_fusion_enabled.")
         config = cls(
             seed=seed,
             geometry_ablation=geometry_ablation,
@@ -138,6 +150,8 @@ class StageCConfig:
             harmonic_ablation=harmonic_ablation,
             token_residual_enabled=token_residual_enabled,
             token_residual_ablation=token_residual_ablation,
+            residual_fusion_enabled=residual_fusion_enabled,
+            residual_fusion_ablation=residual_fusion_ablation,
         )
         config.validate()
         return config

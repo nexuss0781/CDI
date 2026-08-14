@@ -38,6 +38,23 @@ class SelectiveTokenResidual(nn.Module):
         return torch.sigmoid(self.gate_projection(source_embedding)) * torch.tanh(self.value_projection(source_embedding))
 
 
+class StateConditionedResidualFusion(nn.Module):
+    """Bounded causal fusion of the DCSS readout and CCT-G3.4 token residual."""
+
+    def __init__(self, width: int, *, dtype: torch.dtype, device: str) -> None:
+        super().__init__()
+        self.gate_projection = nn.Linear(width * 2, width, dtype=dtype, device=device)
+        nn.init.xavier_uniform_(self.gate_projection.weight, gain=0.25)
+        nn.init.constant_(self.gate_projection.bias, 2.0)
+
+    def forward(self, state_readout: torch.Tensor, token_residual: torch.Tensor, *, ablated: bool) -> torch.Tensor:
+        if ablated:
+            gate = torch.ones_like(state_readout)
+        else:
+            gate = torch.sigmoid(self.gate_projection(torch.cat((state_readout, token_residual), dim=-1)))
+        return state_readout + gate * token_residual
+
+
 class DCSSLanguageModel(nn.Module):
     """Causal token-level adapter around :class:`SelectiveCohomodynamicSSM`.
 
@@ -63,6 +80,11 @@ class DCSSLanguageModel(nn.Module):
             if self.config.token_residual_enabled
             else None
         )
+        self.residual_fusion = (
+            StateConditionedResidualFusion(self.config.input_width, dtype=self.config.dtype, device=self.config.device)
+            if self.config.residual_fusion_enabled
+            else None
+        )
         self.output_bias = nn.Parameter(torch.zeros(tokenizer.vocab_size, dtype=self.config.dtype, device=self.config.device))
 
     @property
@@ -86,6 +108,12 @@ class DCSSLanguageModel(nn.Module):
                 name
                 for name, parameter in self.named_parameters()
                 if name.startswith("token_residual.") and parameter.requires_grad
+            )
+        if self.config.residual_fusion_ablation:
+            inactive.update(
+                name
+                for name, parameter in self.named_parameters()
+                if name.startswith("residual_fusion.") and parameter.requires_grad
             )
         return frozenset(inactive)
 
@@ -120,7 +148,11 @@ class DCSSLanguageModel(nn.Module):
             source_embedding = embeddings[:, index]
             hidden, candidate = self.ssm.step(source_embedding, current)
             if self.token_residual is not None:
-                hidden = hidden + self.token_residual(source_embedding, ablated=self.config.token_residual_ablation)
+                residual = self.token_residual(source_embedding, ablated=self.config.token_residual_ablation)
+                if self.residual_fusion is not None:
+                    hidden = self.residual_fusion(hidden, residual, ablated=self.config.residual_fusion_ablation)
+                else:
+                    hidden = hidden + residual
             active = attention_mask[:, index]
             current = self._select_state(current, candidate, active)
             hidden_steps.append(hidden * active.unsqueeze(-1).to(dtype=hidden.dtype))
@@ -176,11 +208,13 @@ class DCSSLanguageModel(nn.Module):
         return torch.tensor(generated, dtype=torch.long, device=prefix.device)
 
     def parameter_inventory(self) -> Dict[str, Any]:
-        groups: Dict[str, int] = {"token_embeddings": 0, "output_projection_tied": 0, "gates": 0, "generators": 0, "memory_bands": 0, "initial_state_optional": 0, "sparse_geometry": 0, "cochain_maps": 0, "normalization_readout": 0, "selective_token_residual": 0}
+        groups: Dict[str, int] = {"token_embeddings": 0, "output_projection_tied": 0, "gates": 0, "generators": 0, "memory_bands": 0, "initial_state_optional": 0, "sparse_geometry": 0, "cochain_maps": 0, "normalization_readout": 0, "selective_token_residual": 0, "state_conditioned_fusion": 0}
         entries = []
         for name, parameter in self.named_parameters():
             count = parameter.numel()
-            if name.startswith("token_residual."):
+            if name.startswith("residual_fusion."):
+                group = "state_conditioned_fusion"
+            elif name.startswith("token_residual."):
                 group = "selective_token_residual"
             elif name.startswith("embedding"):
                 group = "token_embeddings"
