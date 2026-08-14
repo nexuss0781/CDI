@@ -23,6 +23,7 @@ from benchmarks.ethiobbpe_synaxarium_pilot import (
 
 G3_MODEL_NAMES = ("dcss_cdi", "dcss_geometry_free", *MODEL_NAMES[1:])
 DEFAULT_PARAMETER_TOLERANCE = 0.01
+DEFAULT_MAX_HOST_MEMORY_GB = 11.0
 
 
 def _by_seed(records: Sequence[Mapping[str, Any]]) -> Dict[int, Dict[str, Mapping[str, Any]]]:
@@ -119,6 +120,7 @@ The mean full-CDI validation-loss improvement over geometry-free CDI is `{decisi
 | Steps per model/seed | `{report['config']['steps']}` |
 | Training batch order | `{report['records'][0]['training_batch_order']}` |
 | Evaluation scope | `{report['records'][0]['evaluation_scope']}` |
+| Host-memory guard | `{report['host_memory']}` |
 
 ## References
 
@@ -156,6 +158,7 @@ def main() -> int:
     parser.add_argument("--learning-rate", type=float, default=0.01)
     parser.add_argument("--relative-loss-tolerance", type=float, default=0.05)
     parser.add_argument("--parameter-relative-tolerance", type=float, default=DEFAULT_PARAMETER_TOLERANCE)
+    parser.add_argument("--max-host-memory-gb", type=float, default=DEFAULT_MAX_HOST_MEMORY_GB, help="Fail-closed process/container RSS limit in GiB; default: 11.")
     parser.add_argument("--output-dir", default="results/colab_cct_g3_1_geometry")
     args = parser.parse_args()
     config = PilotConfig(
@@ -169,6 +172,7 @@ def main() -> int:
         shuffle_training_batches=args.shuffle_training_batches,
         learning_rate=args.learning_rate,
         relative_loss_tolerance=args.relative_loss_tolerance,
+        max_host_memory_gb=args.max_host_memory_gb,
         output_dir=args.output_dir,
     )
     report = run_g3(config, parameter_tolerance=args.parameter_relative_tolerance)

@@ -8,6 +8,7 @@ budget.  It is not a claim of production language-model quality.
 from __future__ import annotations
 
 import argparse
+import gc
 from dataclasses import asdict, dataclass
 from hashlib import sha256
 import json
@@ -16,7 +17,7 @@ from pathlib import Path
 import platform
 from statistics import mean
 import time
-from typing import Any, Dict, Iterable, Mapping, Sequence
+from typing import Any, Callable, Dict, Iterable, Mapping, Sequence
 
 import torch
 from datasets import load_dataset
@@ -59,6 +60,8 @@ class PilotConfig:
     shuffle_training_batches: bool = False
     learning_rate: float = 0.01
     relative_loss_tolerance: float = 0.10
+    # None disables host-RSS enforcement. A positive value is interpreted as GiB.
+    max_host_memory_gb: float | None = None
     output_dir: str = "results/ethiobbpe_synaxarium_pilot"
 
     def validate(self) -> None:
@@ -70,9 +73,71 @@ class PilotConfig:
             raise ValueError("Pilot chunk_length and batch_size must be positive; eval_batches must be zero or positive.")
         if not 0.0 < self.relative_loss_tolerance < 1.0:
             raise ValueError("relative_loss_tolerance must lie in (0, 1).")
+        if self.max_host_memory_gb is not None and not self.max_host_memory_gb > 0.0:
+            raise ValueError("max_host_memory_gb must be positive when set.")
 
     def as_dict(self) -> Dict[str, Any]:
         return {**asdict(self), "seeds": list(self.seeds)}
+
+
+
+class HostMemoryLimitExceeded(RuntimeError):
+    """Raised before a configured host-RSS budget can end a Colab runtime."""
+
+
+def host_resident_memory_bytes() -> int:
+    """Return the conservative process/container resident-memory estimate in bytes."""
+
+    process_rss = 0
+    status = Path("/proc/self/status")
+    if status.exists():
+        for line in status.read_text(encoding="utf-8").splitlines():
+            if line.startswith("VmRSS:"):
+                fields = line.split()
+                if len(fields) >= 2:
+                    process_rss = int(fields[1]) * 1024
+                    break
+    cgroup_current = Path("/sys/fs/cgroup/memory.current")
+    if cgroup_current.exists():
+        try:
+            return max(process_rss, int(cgroup_current.read_text(encoding="utf-8").strip()))
+        except ValueError:
+            pass
+    if process_rss:
+        return process_rss
+    import resource
+
+    # Linux reports KiB; macOS reports bytes. This fallback is a high-water mark,
+    # which is intentionally conservative for a fail-closed safety threshold.
+    value = int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    return value * 1024 if platform.system() != "Darwin" else value
+
+
+class HostMemoryMonitor:
+    """Measure and enforce an optional host-resident-memory limit in GiB."""
+
+    def __init__(self, maximum_gb: float | None) -> None:
+        self.maximum_bytes = None if maximum_gb is None else int(maximum_gb * (1024 ** 3))
+        self.peak_bytes = 0
+        self.last_bytes = 0
+
+    def check(self, stage: str) -> int:
+        current = host_resident_memory_bytes()
+        self.last_bytes = current
+        self.peak_bytes = max(self.peak_bytes, current)
+        if self.maximum_bytes is not None and current >= self.maximum_bytes:
+            raise HostMemoryLimitExceeded(
+                f"Host RSS reached {current / (1024 ** 3):.3f} GiB at {stage}; "
+                f"configured CCT limit is {self.maximum_bytes / (1024 ** 3):.3f} GiB."
+            )
+        return current
+
+    def as_dict(self) -> Dict[str, float | None]:
+        return {
+            "maximum_gb": None if self.maximum_bytes is None else self.maximum_bytes / (1024 ** 3),
+            "last_gb": self.last_bytes / (1024 ** 3),
+            "peak_gb": self.peak_bytes / (1024 ** 3),
+        }
 
 
 def _canonical_digest(payload: Mapping[str, Any]) -> str:
@@ -194,7 +259,13 @@ def parameter_count(model: torch.nn.Module) -> int:
     return sum(parameter.numel() for parameter in model.parameters())
 
 
-def evaluate_model(model: torch.nn.Module, batches: Sequence[Mapping[str, torch.Tensor]], maximum_batches: int) -> Dict[str, float]:
+def evaluate_model(
+    model: torch.nn.Module,
+    batches: Sequence[Mapping[str, torch.Tensor]],
+    maximum_batches: int,
+    *,
+    memory_check: Callable[[str], int] | None = None,
+) -> Dict[str, float]:
     """Return token-weighted causal metrics over a fixed held-out batch budget."""
 
     previous_mode = model.training
@@ -203,13 +274,17 @@ def evaluate_model(model: torch.nn.Module, batches: Sequence[Mapping[str, torch.
     correct = 0
     tokens = 0
     with torch.no_grad():
-        for batch in batches[: len(batches) if maximum_batches == 0 else min(maximum_batches, len(batches))]:
+        for batch_index, batch in enumerate(batches[: len(batches) if maximum_batches == 0 else min(maximum_batches, len(batches))]):
+            if memory_check is not None:
+                memory_check(f"evaluation_batch_{batch_index}_before")
             report = model.causal_loss(batch["input_ids"], batch["attention_mask"])
             token_count = int(report.token_count)
             loss_total += float(report.loss.detach().cpu()) * token_count
             predictions = report.logits.argmax(dim=-1)
             correct += int(((predictions == report.targets) & report.loss_mask).sum().item())
             tokens += token_count
+            if memory_check is not None:
+                memory_check(f"evaluation_batch_{batch_index}_after")
     if previous_mode:
         model.train()
     if tokens <= 0:
@@ -223,7 +298,19 @@ def evaluate_model(model: torch.nn.Module, batches: Sequence[Mapping[str, torch.
     }
 
 
-def run_one(name: str, seed: int, tokenizer: EthioBBPETokenizer, train_batches: Sequence[Mapping[str, torch.Tensor]], validation_batches: Sequence[Mapping[str, torch.Tensor]], test_batches: Sequence[Mapping[str, torch.Tensor]], config: PilotConfig) -> Dict[str, Any]:
+def run_one(
+    name: str,
+    seed: int,
+    tokenizer: EthioBBPETokenizer,
+    train_batches: Sequence[Mapping[str, torch.Tensor]],
+    validation_batches: Sequence[Mapping[str, torch.Tensor]],
+    test_batches: Sequence[Mapping[str, torch.Tensor]],
+    config: PilotConfig,
+    *,
+    memory_monitor: HostMemoryMonitor | None = None,
+) -> Dict[str, Any]:
+    if memory_monitor is not None:
+        memory_monitor.check(f"{name}_seed_{seed}_before_model")
     seed_everything(seed)
     model = build_model(name, tokenizer, seed)
     train_config = StageDConfig(
@@ -233,7 +320,8 @@ def run_one(name: str, seed: int, tokenizer: EthioBBPETokenizer, train_batches: 
         learning_rate=config.learning_rate,
     )
     train_config.validate()
-    initial_validation = evaluate_model(model, validation_batches, config.eval_batches)
+    memory_check = None if memory_monitor is None else memory_monitor.check
+    initial_validation = evaluate_model(model, validation_batches, config.eval_batches, memory_check=memory_check)
     started = time.perf_counter()
     losses, _, _ = train_steps(
         model,
@@ -241,10 +329,11 @@ def run_one(name: str, seed: int, tokenizer: EthioBBPETokenizer, train_batches: 
         train_config,
         steps=config.steps,
         shuffle_each_epoch=config.shuffle_training_batches,
+        memory_check=memory_check,
     )
     elapsed_seconds = time.perf_counter() - started
-    final_validation = evaluate_model(model, validation_batches, config.eval_batches)
-    held_out_test = evaluate_model(model, test_batches, config.eval_batches)
+    final_validation = evaluate_model(model, validation_batches, config.eval_batches, memory_check=memory_check)
+    held_out_test = evaluate_model(model, test_batches, config.eval_batches, memory_check=memory_check)
     return {
         "seed": seed,
         "model": name,
@@ -259,6 +348,7 @@ def run_one(name: str, seed: int, tokenizer: EthioBBPETokenizer, train_batches: 
         "tokens_processed": config.steps * config.batch_size * (config.chunk_length - 1),
         "training_batch_order": "deterministic_per_epoch_shuffle" if config.shuffle_training_batches else "fixed_cyclic_order",
         "evaluation_scope": "all_held_out_batches" if config.eval_batches == 0 else f"first_{config.eval_batches}_held_out_batches",
+        "host_memory": None if memory_monitor is None else memory_monitor.as_dict(),
     }
 
 
@@ -413,6 +503,8 @@ If the verdict is `REDESIGN_BEFORE_SCALING`, do not solve the result by adding a
 
 def run(config: PilotConfig, *, model_names: Sequence[str] = MODEL_NAMES) -> Dict[str, Any]:
     config.validate()
+    memory_monitor = HostMemoryMonitor(config.max_host_memory_gb)
+    memory_monitor.check("before_corpus_load")
     documents, manifest = load_governed_synaxarium(config)
     partitions = _split_documents(documents, manifest)
     tokenizer = EthioBBPETokenizer.from_pretrained(
@@ -423,11 +515,24 @@ def run(config: PilotConfig, *, model_names: Sequence[str] = MODEL_NAMES) -> Dic
         for name, partition in partitions.items()
     }
     batches = {name: make_batches(examples, tokenizer, config) for name, examples in packed.items()}
-    records = [
-        run_one(name, seed, tokenizer, batches["train"], batches["validation"], batches["test"], config)
-        for seed in config.seeds
-        for name in model_names
-    ]
+    memory_monitor.check("after_data_preparation")
+    records: list[Dict[str, Any]] = []
+    for seed in config.seeds:
+        for name in model_names:
+            records.append(
+                run_one(
+                    name,
+                    seed,
+                    tokenizer,
+                    batches["train"],
+                    batches["validation"],
+                    batches["test"],
+                    config,
+                    memory_monitor=memory_monitor,
+                )
+            )
+            gc.collect()
+            memory_monitor.check(f"{name}_seed_{seed}_after_release")
     summary = aggregate(records)
     report: Dict[str, Any] = {
         "format": "dcss-cdi-ethiobbpe-synaxarium-pilot-v1",
@@ -444,6 +549,7 @@ def run(config: PilotConfig, *, model_names: Sequence[str] = MODEL_NAMES) -> Dic
         "decision": architecture_decision(summary, config, records, required_models=model_names),
         "code_revision": _git_revision(),
         "environment": {"python": platform.python_version(), "torch": torch.__version__, "device": "cpu"},
+        "host_memory": memory_monitor.as_dict(),
     }
     report["fingerprint"] = _canonical_digest(report)
     directory = Path(config.output_dir)
@@ -476,6 +582,7 @@ def main() -> int:
     parser.add_argument("--shuffle-training-batches", action="store_true", help="Use a deterministic per-epoch shuffled batch order.")
     parser.add_argument("--learning-rate", type=float, default=0.01)
     parser.add_argument("--relative-loss-tolerance", type=float, default=0.10)
+    parser.add_argument("--max-host-memory-gb", type=float, default=None, help="Optional fail-closed process/container RSS limit in GiB.")
     parser.add_argument("--output-dir", default="results/ethiobbpe_synaxarium_pilot")
     args = parser.parse_args()
     config = PilotConfig(
@@ -489,6 +596,7 @@ def main() -> int:
         shuffle_training_batches=args.shuffle_training_batches,
         learning_rate=args.learning_rate,
         relative_loss_tolerance=args.relative_loss_tolerance,
+        max_host_memory_gb=args.max_host_memory_gb,
         output_dir=args.output_dir,
     )
     report = run(config)

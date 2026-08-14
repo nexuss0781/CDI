@@ -161,9 +161,12 @@ The local pre-flight gates are already covered by regression tests: full and geo
   --learning-rate 0.01 \
   --relative-loss-tolerance 0.05 \
   --parameter-relative-tolerance 0.01 \
+  --max-host-memory-gb 11 \
   --output-dir results/colab_cct_g3_1_geometry
 !cat results/colab_cct_g3_1_geometry/REPORT.md
 ```
+
+The harness checks conservative process/container resident memory before and after every training step, evaluation batch, and model/seed release. `--max-host-memory-gb 11` makes it stop cleanly with a stage-specific error before the observed memory reaches the requested threshold. The completed artifact records the configured, final, and peak GiB values. If the guard stops the run, do not increase the threshold or reduce an experimental control silently; send the stop message for a bounded execution review.
 
 Send `results/colab_cct_g3_1_geometry/REPORT.md` and `results/colab_cct_g3_1_geometry/latest.json` for gate review. **Stage 3 pass rule:** full CDI must have lower validation loss than geometry-free CDI in every seed under the frozen contract, with matched parameter count. A null or negative geometry effect is `NO_GEOMETRY_EVIDENCE`, not permission to scale.
 
