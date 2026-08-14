@@ -19,7 +19,7 @@ The CCT-G1 revision is an ancestor of current `master`. Its result supports only
 
 | CCT goal | Required input before a decision | Do not proceed to |
 |---|---|---|
-| CCT-G3 post-evidence review | A user-approved, separately pre-registered architecture-selection or quality-recovery proposal that preserves all three retained CCT-G3 mechanisms and directly addresses the per-seed GRU gap | CCT-G2.1 quality rerun, CCT-G2.2, context work, capacity changes, corpus expansion, or optimization work |
+| CCT-G3.4 — Selective Token-Residual Quality Recovery | The committed pre-registration, local causal/state/gradient/parameter gates, and one submitted `REPORT.md` plus `latest.json` from the frozen 1,000-step, three-seed five-model contract | CCT-G2.1 quality rerun, CCT-G2.2, context work, capacity changes, corpus expansion, or optimization work |
 
 ## Evidence Handling Rule
 

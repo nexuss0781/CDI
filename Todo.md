@@ -258,6 +258,14 @@ Run one rung at a time. Every rung requires three seeds, the same evidence field
 - [x] Record held-out loss, test loss, token accuracy, state/gradient diagnostics, throughput, host memory, and parameter counts from the submitted formal run; see `docs/CCT_G3_3_DECISION.md`.
 - [x] Decide the harmonic 16–64 time-constant band adds repeated held-out value: full CDI beat harmonic-disabled CDI in seeds 11, 29, and 47, with a 0.031414 mean validation-loss improvement. Retain the band; global status remains `REDESIGN_BEFORE_SCALE` because CDI remained above GRU in every seed.
 
+## G3.4 — Selective Token-Residual Quality Recovery
+
+- [x] Pre-register one bounded selective token-residual readout mechanism and an exact parameter-aware zero-residual control; see `docs/CCT_G3_4_PREREGISTRATION.md`.
+- [x] Verify causal source-token dependence, retained recurrent state, narrow inactive-gradient contract, stability, parameter equality, and five-model harness locally before training; 21 focused CCT-G3 control/harness tests and the full 288-test regression suite passed, and a non-evidentiary `/tmp` smoke run passed the 11 GiB guard.
+- [ ] Run residual CDI, exact residual control, CCT-G3.3 full CDI, GRU, and Transformer across the frozen three-seed, 1,000-step contract.
+- [ ] Record held-out loss, test loss, token accuracy, throughput, host memory, and parameter counts.
+- [ ] Apply the material-advantage gate: full candidate must beat GRU in every seed and reach at least 2% lower mean validation loss before any CCT-G2.2 proposal can be reviewed.
+
 ---
 
 # CCT-G4 — Language Quality and Context Readiness

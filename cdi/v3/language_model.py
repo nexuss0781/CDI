@@ -21,6 +21,23 @@ class LossReport:
     loss_mask: torch.Tensor
 
 
+class SelectiveTokenResidual(nn.Module):
+    """Bounded causal source-token residual for the CCT-G3.4 readout candidate."""
+
+    def __init__(self, width: int, *, dtype: torch.dtype, device: str) -> None:
+        super().__init__()
+        self.value_projection = nn.Linear(width, width, dtype=dtype, device=device)
+        self.gate_projection = nn.Linear(width, width, dtype=dtype, device=device)
+        for layer in (self.value_projection, self.gate_projection):
+            nn.init.xavier_uniform_(layer.weight, gain=0.5)
+            nn.init.zeros_(layer.bias)
+
+    def forward(self, source_embedding: torch.Tensor, *, ablated: bool) -> torch.Tensor:
+        if ablated:
+            return torch.zeros_like(source_embedding)
+        return torch.sigmoid(self.gate_projection(source_embedding)) * torch.tanh(self.value_projection(source_embedding))
+
+
 class DCSSLanguageModel(nn.Module):
     """Causal token-level adapter around :class:`SelectiveCohomodynamicSSM`.
 
@@ -41,6 +58,11 @@ class DCSSLanguageModel(nn.Module):
         with torch.no_grad():
             self.embedding.weight[tokenizer.pad_id].zero_()
         self.ssm = SelectiveCohomodynamicSSM(self.config)
+        self.token_residual = (
+            SelectiveTokenResidual(self.config.input_width, dtype=self.config.dtype, device=self.config.device)
+            if self.config.token_residual_enabled
+            else None
+        )
         self.output_bias = nn.Parameter(torch.zeros(tokenizer.vocab_size, dtype=self.config.dtype, device=self.config.device))
 
     @property
@@ -58,6 +80,12 @@ class DCSSLanguageModel(nn.Module):
                 name
                 for name, parameter in self.named_parameters()
                 if name.startswith("ssm.cell.bands.harmonic.") and parameter.requires_grad
+            )
+        if self.config.token_residual_ablation:
+            inactive.update(
+                name
+                for name, parameter in self.named_parameters()
+                if name.startswith("token_residual.") and parameter.requires_grad
             )
         return frozenset(inactive)
 
@@ -89,7 +117,10 @@ class DCSSLanguageModel(nn.Module):
         embeddings = self.embedding(input_ids)
         hidden_steps = []
         for index in range(length):
-            hidden, candidate = self.ssm.step(embeddings[:, index], current)
+            source_embedding = embeddings[:, index]
+            hidden, candidate = self.ssm.step(source_embedding, current)
+            if self.token_residual is not None:
+                hidden = hidden + self.token_residual(source_embedding, ablated=self.config.token_residual_ablation)
             active = attention_mask[:, index]
             current = self._select_state(current, candidate, active)
             hidden_steps.append(hidden * active.unsqueeze(-1).to(dtype=hidden.dtype))
@@ -145,11 +176,13 @@ class DCSSLanguageModel(nn.Module):
         return torch.tensor(generated, dtype=torch.long, device=prefix.device)
 
     def parameter_inventory(self) -> Dict[str, Any]:
-        groups: Dict[str, int] = {"token_embeddings": 0, "output_projection_tied": 0, "gates": 0, "generators": 0, "memory_bands": 0, "initial_state_optional": 0, "sparse_geometry": 0, "cochain_maps": 0, "normalization_readout": 0}
+        groups: Dict[str, int] = {"token_embeddings": 0, "output_projection_tied": 0, "gates": 0, "generators": 0, "memory_bands": 0, "initial_state_optional": 0, "sparse_geometry": 0, "cochain_maps": 0, "normalization_readout": 0, "selective_token_residual": 0}
         entries = []
         for name, parameter in self.named_parameters():
             count = parameter.numel()
-            if name.startswith("embedding"):
+            if name.startswith("token_residual."):
+                group = "selective_token_residual"
+            elif name.startswith("embedding"):
                 group = "token_embeddings"
             elif name.endswith("learned_initial_state"):
                 group = "initial_state_optional"

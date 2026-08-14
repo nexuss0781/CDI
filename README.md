@@ -17,9 +17,11 @@ The active language-engine path is **`cdi.v3`**. It uses the EthioBBPE tokenizer
 | [`docs/CCT_G3_2_DECISION.md`](docs/CCT_G3_2_DECISION.md) | Recorded G3.2 result: `EARNED_READOUT_EVIDENCE`; geometry re-confirmed; global quality remains `REDESIGN_BEFORE_SCALE`. |
 | [`docs/CCT_G3_3_PREREGISTRATION.md`](docs/CCT_G3_3_PREREGISTRATION.md) | Approved G3.3 harmonic-memory-band control, local gates, five-model matrix, and non-scaling decision rules. |
 | [`docs/CCT_G3_3_DECISION.md`](docs/CCT_G3_3_DECISION.md) | Recorded G3.3 result: `EARNED_HARMONIC_EVIDENCE`; geometry re-confirmed; global quality remains `REDESIGN_BEFORE_SCALE`. |
+| [`docs/CCT_G3_4_PREREGISTRATION.md`](docs/CCT_G3_4_PREREGISTRATION.md) | Approved G3.4 bounded selective token-residual quality-recovery mechanism, exact control, and material-quality gate. |
 | [`benchmarks/cct_g3_3_harmonic_ablation.py`](benchmarks/cct_g3_3_harmonic_ablation.py) | CPU-safe executable G3.3 harness with 11 GiB guard and fixed-held-out state/gradient diagnostics. |
+| [`benchmarks/cct_g3_4_token_residual.py`](benchmarks/cct_g3_4_token_residual.py) | CPU-safe executable G3.4 five-model quality-recovery harness with a 2% material-GRU target. |
 
-CCT-G3.1 established repeated sparse-geometry value, CCT-G3.2 established repeated contrast-readout value, and CCT-G3.3 established repeated harmonic-memory-band value under capacity-matched three-seed comparisons. Full CDI nevertheless remained above GRU in all three seeds. Any architecture-selection or quality-recovery proposal must be separately pre-registered; the CCT-G2.2 scale ladder remains blocked.
+CCT-G3.1 established repeated sparse-geometry value, CCT-G3.2 established repeated contrast-readout value, and CCT-G3.3 established repeated harmonic-memory-band value under capacity-matched three-seed comparisons. Full CDI nevertheless remained above GRU in all three seeds. The only active work is **CCT-G3.4**, a pre-registered bounded token-residual quality-recovery evaluation; the CCT-G2.2 scale ladder remains blocked.
 
 ## Safe Setup and Validation
 
