@@ -6,7 +6,7 @@ from hashlib import sha256
 import json
 from pathlib import Path
 import random
-from typing import Any, Dict, Iterable, Iterator, List, Mapping, Sequence, Tuple
+from typing import Any, Callable, Dict, Iterable, Iterator, List, Mapping, Sequence, Tuple
 
 import numpy as np
 import torch
@@ -219,6 +219,7 @@ def train_steps(
     start_cursor: int = 0,
     *,
     shuffle_each_epoch: bool = False,
+    memory_check: Callable[[str], int] | None = None,
 ) -> Tuple[List[float], torch.optim.Optimizer, int]:
     """Train a fixed number of steps with reproducible fixed or shuffled batch order.
 
@@ -234,7 +235,9 @@ def train_steps(
     losses: List[float] = []
     cursor = start_cursor
     epoch_orders: Dict[int, List[int]] = {}
-    for _ in range(steps):
+    for step_index in range(steps):
+        if memory_check is not None:
+            memory_check(f"training_step_{step_index}_before")
         optimizer.zero_grad(set_to_none=True)
         if shuffle_each_epoch:
             epoch = cursor // len(batches)
@@ -259,6 +262,8 @@ def train_steps(
             raise FloatingPointError(f"Active trainable parameters have missing or non-finite gradients: {invalid_gradients}")
         torch.nn.utils.clip_grad_norm_(model.parameters(), config.gradient_clip_norm)
         optimizer.step()
+        if memory_check is not None:
+            memory_check(f"training_step_{step_index}_after")
         losses.append(float(report.loss.detach().cpu()))
         cursor += 1
     return losses, optimizer, cursor
