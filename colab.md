@@ -141,30 +141,15 @@ CCT-G3.1 is complete. Under the frozen 321-document, three-seed, 1,000-step cont
 
 This does **not** authorize scaling. Full CDI remained above GRU validation loss in all three seeds, so the global quality decision remains `REDESIGN_BEFORE_SCALE`. See `docs/CCT_G3_1_DECISION.md`. Do not rerun G3.1 or begin the 3,000-step, context, capacity, corpus, or performance ladders.
 
-### Stage 3.2 — Controlled Readout-Contribution Ablation
+### Stage 3.2 — Completed Readout-Contribution Ablation
 
-CCT-G3.2 is pre-registered and locally validated. It distinguishes the contribution of the fixed zero-sum contrast readout from sparse geometry correction while retaining the same EthioBBPE artifact, governed manifest, seeds, 1,000 steps, 16-token context, optimizer, precision, all-held-out evaluation, and 11 GiB memory ceiling.
+CCT-G3.2 is complete. Full CDI beat the capacity-matched mean-readout control in all three seeds, with a 0.057296 mean validation-loss improvement. It also re-confirmed the sparse-geometry improvement against the geometry-free control. The five-model matrix remained parameter-matched and peak guarded memory was 1.8634 GiB. The mechanism verdict is `EARNED_READOUT_EVIDENCE`.
 
-```bash
-%cd /content/CDI
-!PYTHONPATH=. python benchmarks/cct_g3_2_readout_ablation.py \
-  --steps 1000 \
-  --document-limit 321 \
-  --chunks-per-document 32 \
-  --chunk-length 16 \
-  --batch-size 2 \
-  --eval-batches 0 \
-  --shuffle-training-batches \
-  --learning-rate 0.01 \
-  --relative-loss-tolerance 0.05 \
-  --parameter-relative-tolerance 0.01 \
-  --max-host-memory-gb 11 \
-  --output-dir results/colab_cct_g3_2_readout
-!cat results/colab_cct_g3_2_readout/REPORT.md
-!cat results/colab_cct_g3_2_readout/latest.json
-```
+This does **not** authorize scaling. Full CDI remained above GRU validation loss in all three seeds, so the global quality decision remains `REDESIGN_BEFORE_SCALE`. See `docs/CCT_G3_2_DECISION.md`.
 
-The five-model matrix contains full CDI, the capacity-matched mean-readout control, geometry-free CDI, GRU, and Transformer. **G3.2 pass rule:** full CDI must have lower validation loss than the mean-readout control in every seed; geometry must also be re-confirmed against geometry-free CDI. Regardless of outcome, the run does not authorize scale. Send the report and JSON for gate review.
+### Stage 3.3 — Controlled Harmonic-Memory-Band Ablation
+
+The only permitted next work is pre-registration of an exact harmonic-disabled control. It must preserve the same parameter inventory, tokenizer, governed manifest, 1,000-step budget, seeds, context, optimizer, precision, all-held-out evaluation, and 11 GiB memory ceiling. No Colab command is approved until that pre-registration and its local causal/state/gradient gates are committed.
 
 ## 8. Stage 4 — context ladder and retention test
 
@@ -237,7 +222,7 @@ I will keep the workflow bounded and visible. I will review the code and config 
 
 ## 13. First action for you to check
 
-CCT-G0, CCT-G1, CCT-G2.1, and CCT-G3.1 are complete. CCT-G3.1 is recorded as `EARNED_GEOMETRY_EVIDENCE`, but the global quality decision remains `REDESIGN_BEFORE_SCALE`; therefore, do **not** rerun Stage 2A with a larger budget or begin Stage 2B. The next permitted action is CCT-G3.2 pre-registration for a controlled readout-contribution ablation. Its exact command must be reviewed before execution.
+CCT-G0, CCT-G1, CCT-G2.1, CCT-G3.1, and CCT-G3.2 are complete. CCT-G3.1 is recorded as `EARNED_GEOMETRY_EVIDENCE` and CCT-G3.2 as `EARNED_READOUT_EVIDENCE`, but the global quality decision remains `REDESIGN_BEFORE_SCALE`; therefore, do **not** rerun Stage 2A with a larger budget or begin Stage 2B. The next permitted action is CCT-G3.3 pre-registration for a controlled harmonic-memory-band ablation. Its exact command must be reviewed before execution.
 
 If Colab has a GPU, record its name with:
 
@@ -246,7 +231,7 @@ If Colab has a GPU, record its name with:
 !python -c "import torch; print(torch.__version__); print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')"
 ```
 
-We will review the pre-registered CCT-G3.2 readout-control evidence before any corrected G2.1 quality rerun, 3,000-step, context, capacity, corpus, or optimization work.
+We will review the pre-registered CCT-G3.3 harmonic-band evidence before any quality rerun, 3,000-step, context, capacity, corpus, or optimization work.
 
 ## References
 
