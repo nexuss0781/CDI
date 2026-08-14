@@ -236,9 +236,9 @@ Run one rung at a time. Every rung requires three seeds, the same evidence field
 - [x] At least one CCT-specific mechanism shows repeated predeclared value in held-out loss: sparse geometry improved held-out validation loss against the exact geometry-free counterpart in all three seeds.
 - [x] The geometry value survives three-seed comparison and does not depend on hidden budget changes; parameter spread was 0.49% and the protocol was frozen.
 
-**CCT-G3.2 status:** `EARNED_READOUT_EVIDENCE` with re-confirmed `EARNED_GEOMETRY_EVIDENCE`; see `docs/CCT_G3_2_DECISION.md`. The base quality decision remains `REDESIGN_BEFORE_SCALE` because full CDI remained above GRU in all three seeds.
+**CCT-G3 status:** `EARNED_GEOMETRY_EVIDENCE`, `EARNED_READOUT_EVIDENCE`, and `EARNED_HARMONIC_EVIDENCE`; see `docs/CCT_G3_1_DECISION.md`, `docs/CCT_G3_2_DECISION.md`, and `docs/CCT_G3_3_DECISION.md`. The base quality decision remains `REDESIGN_BEFORE_SCALE` because full CDI remained above GRU in all three seeds.
 
-**If the gate passes:** retain each contributing mechanism and return to an appropriate quality-rerun decision only after the required controlled harmonic-memory-band diagnostic.
+**If the gate passes:** retain each contributing mechanism. Any architecture-selection or quality-recovery proposal must be separately pre-registered and must preserve the frozen evidence contract.
 
 **If the gate fails:** remove or simplify the non-contributing mechanism, then rerun the affected G1/G2 protocol. Do not retain complexity without evidence.
 
@@ -254,9 +254,9 @@ Run one rung at a time. Every rung requires three seeds, the same evidence field
 
 - [x] Pre-register an exact harmonic-disabled parameter-aware control without changing the selected full CDI architecture, corpus, tokenizer, steps, context, optimizer, seeds, precision, all-held-out evaluation, or 11 GiB memory ceiling; see `docs/CCT_G3_3_PREREGISTRATION.md`.
 - [x] Verify its causal shape, harmonic inactive-gradient contract, state stability, parameter equality, and five-model harness locally before training; 15 focused CCT-G3 control/harness tests and the full 282-test regression suite passed, and a non-evidentiary `/tmp` smoke run passed the 11 GiB guard.
-- [ ] **In progress — user Colab:** Run full CDI, harmonic-disabled CDI, geometry-free CDI, GRU, and Transformer across the frozen three-seed, 1,000-step contract. Do not mark complete until submitted `REPORT.md` and `latest.json` are reviewed.
-- [ ] Record held-out loss, test loss, token accuracy, state/gradient diagnostics, throughput, host memory, and parameter counts from the submitted formal run.
-- [ ] Decide whether the harmonic 16–64 time-constant band adds or subtracts value before any quality rerun.
+- [x] Run full CDI, harmonic-disabled CDI, geometry-free CDI, GRU, and Transformer across the frozen three-seed, 1,000-step contract; the submitted formal artifact contains all 15 finite records.
+- [x] Record held-out loss, test loss, token accuracy, state/gradient diagnostics, throughput, host memory, and parameter counts from the submitted formal run; see `docs/CCT_G3_3_DECISION.md`.
+- [x] Decide the harmonic 16–64 time-constant band adds repeated held-out value: full CDI beat harmonic-disabled CDI in seeds 11, 29, and 47, with a 0.031414 mean validation-loss improvement. Retain the band; global status remains `REDESIGN_BEFORE_SCALE` because CDI remained above GRU in every seed.
 
 ---
 

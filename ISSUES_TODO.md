@@ -1,6 +1,6 @@
 # CCT/CDI Engineering Issues and Remediation Backlog
 
-> **Review basis:** fresh inspection of the reviewed master revision, two focused non-mutating geometry probes, the submitted CCT-G2.1 artifacts, the cumulative remediation regression run, the subsequent CCT-G3.1 host-memory guard regression, the exact-ablation gradient-contract regression, and the CCT-G3.2 local readout-control regression run of **276 passing tests**. This file records engineering facts and required work. It does not authorize a training-scale increase or change the CCT decision recorded in `Todo.md`.
+> **Review basis:** fresh inspection of the reviewed master revision, two focused non-mutating geometry probes, the submitted CCT-G2.1, CCT-G3.1, CCT-G3.2, and CCT-G3.3 artifacts, the cumulative remediation regression run, and the CCT-G3.3 local harmonic-control regression run of **282 passing tests**. This file records engineering facts and required work. It does not authorize a training-scale increase or change the CCT decision recorded in `Todo.md`.
 
 ## Severity and Execution Rules
 
@@ -48,7 +48,7 @@ The following restrictions are active until a later gate explicitly changes them
 
 | ID | Current status | Resolution evidence or remaining boundary |
 |---|---|---|
-| CCT-ARCH-001 | **Geometry and readout evidence earned; harmonic contribution pending** | Full CDI beat exact geometry-free CDI in all three G3.1/G3.2 seeds with a 0.014489 mean validation-loss improvement, and beat the capacity-matched mean-readout control in all three G3.2 seeds with a 0.057296 improvement. CCT-G3.3 must isolate the harmonic-band contribution before any quality-rung return. |
+| CCT-ARCH-001 | **Geometry, readout, and harmonic evidence earned; quality gap remains** | Full CDI beat exact geometry-free CDI in all three G3.1/G3.2/G3.3 seeds with a 0.014489 mean validation-loss improvement, beat the capacity-matched mean-readout control in all three G3.2 seeds with a 0.057296 improvement, and beat the parameter-preserving harmonic-disabled control in all three G3.3 seeds with a 0.031414 improvement. CDI remains above GRU in every seed; any quality-recovery proposal must be separately pre-registered. |
 | CCT-EMP-002 | **Resolved** | Executable verdict now requires finite complete records, learning, Transformer tolerance, and per-seed CDI-versus-GRU relation. |
 | CCT-RUN-003 | **Contained** | `run.sh` is safe readiness/status only and rejects legacy/production commands. |
 | CCT-DATA-004 | **Contained** | The split-leaking production trainer is fail-closed; no metric can be produced from that path. A future replacement requires a reviewed data contract. |
@@ -63,7 +63,7 @@ The following restrictions are active until a later gate explicitly changes them
 | CCT-EVAL-013 | **Resolved** | Generic evaluation is causal-token-weighted and covered by unequal-token-count test. |
 | CCT-TRAIN-014 | **Resolved** | Unimplemented warmup/accumulation fields were removed; deterministic epoch permutations are cached. |
 | CCT-INF-015 | **Resolved** | Checkpoints serialize/fingerprint complete Stage C dynamics; inference validates it and slices completion by token prefix. |
-| CCT-PERF-016 | **Partially resolved; empirical optimization deferred** | Immutable topology tensors are cached exactly. Python-token-serial execution remains; G3.1 does not authorize performance work because full CDI still loses to GRU and CCT-G3.2 is pending. |
+| CCT-PERF-016 | **Partially resolved; empirical optimization deferred** | Immutable topology tensors are cached exactly. Python-token-serial execution remains; CCT-G3 evidence does not authorize performance work because full CDI still loses to GRU in every seed. |
 | CCT-CFG-017 | **Resolved** | Strict offline CPU schema records EthioBBPE 2.0.0, rejects unknown fields, and cannot authorize production training. |
 | CCT-API-018 | **Resolved** | Top-level v2 compatibility and active `cdi.v3` roles are explicitly separated. |
 | CCT-DATA-019 | **Resolved** | Governed manifest format is neutral `dcss-cdi-governed-data-manifest-v2`. |
@@ -295,13 +295,13 @@ CCT-G2.1 failure did not authorize uncontrolled redesign. CCT-G3.1 isolated the 
 ## Completion Checklist for This Backlog
 
 - [x] CCT-G2.1 decision is recorded as `REDESIGN_BEFORE_SCALE`.
-- [x] CCT-ARCH-001 has CCT-G3.1 geometry and CCT-G3.2 readout three-seed evidence; the next CCT-G3.3 harmonic-band diagnostic remains pending.
+- [x] CCT-ARCH-001 has CCT-G3.1 geometry, CCT-G3.2 readout, and CCT-G3.3 harmonic three-seed evidence; the per-seed GRU quality gap remains the active boundary.
 - [x] CCT-EMP-002 is encoded in the executable decision report.
 - [x] CCT-RUN-003, CCT-DATA-004, and CCT-DATA-005 are contained before any production/legacy convenience route is used.
 - [x] CCT-TEST-006 adds language-model-level geometry reachability coverage.
 - [x] CCT-ART-008 removes generated writes to tracked `Stages/` files.
 - [x] CCT-DOC-009 makes active versus legacy execution paths unambiguous.
-- [x] Non-scaling P2/P3 repairs are completed; long-context and throughput-optimization work remains explicitly gated on CCT-G3.3 and the unresolved GRU quality relation.
+- [x] Non-scaling P2/P3 repairs are completed; long-context and throughput-optimization work remains explicitly gated on a separately pre-registered quality-recovery proposal and the unresolved GRU quality relation.
 
 ## Source References
 

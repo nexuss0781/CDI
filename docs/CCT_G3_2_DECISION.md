@@ -56,11 +56,11 @@ The G3.2 full CDI record is also a complete corrected 1,000-step quality compari
 
 > CCT-G3.2 validates two CDI-specific contributors, but it does not solve the model-quality relation to GRU. The appropriate action is another **single controlled architecture diagnostic**, not more data or a larger run.
 
-## Next Permitted Action
+## Subsequent Evidence and Active Boundary
 
-The next permitted action is **CCT-G3.3 — controlled harmonic-memory-band contribution ablation**. It must pre-register an exact harmonic-disabled control that retains the same parameter inventory, tokenizer, corpus manifest, steps, seed list, context, optimizer, precision, all-held-out evaluation, and 11 GiB memory ceiling. It must determine whether the 16–64 time-constant harmonic band adds or subtracts held-out value in the current 16-token reset protocol.
+CCT-G3.3 subsequently completed the controlled harmonic-memory-band contribution ablation with the required exact parameter-aware control, inactive-gradient contract, local gates, five-model matrix, and formal decision. Full CDI beat the harmonic-disabled control in every seed, earning `EARNED_HARMONIC_EVIDENCE`; see `docs/CCT_G3_3_DECISION.md`.
 
-The existing `disable_harmonic` cell hook must not be used as evidence until a dedicated parameter-aware control, inactive-gradient contract, local gates, five-model matrix, and decision rule are committed. No scale or context work is authorized while CCT-G3.3 is pending.
+No scale or context work is authorized because full CDI remains above GRU in every seed. The next permitted action is a user-approved, separately pre-registered architecture-selection or quality-recovery proposal that retains the readout, geometry, and harmonic mechanisms while directly addressing the GRU gap.
 
 ## References
 
