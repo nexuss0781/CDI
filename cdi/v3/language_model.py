@@ -48,11 +48,18 @@ class DCSSLanguageModel(nn.Module):
         return self.tokenizer.vocab_size
 
     def expected_inactive_trainable_parameters(self) -> frozenset[str]:
-        """Return the sole parameter intentionally disconnected by an exact ablation."""
+        """Return every parameter intentionally disconnected by an exact ablation."""
 
+        inactive: set[str] = set()
         if self.config.geometry_ablation or self.config.contrast_readout_ablation:
-            return frozenset({"ssm.cell.geometry.edge_log_weights"})
-        return frozenset()
+            inactive.add("ssm.cell.geometry.edge_log_weights")
+        if self.config.harmonic_ablation:
+            inactive.update(
+                name
+                for name, parameter in self.named_parameters()
+                if name.startswith("ssm.cell.bands.harmonic.") and parameter.requires_grad
+            )
+        return frozenset(inactive)
 
     def _select_state(self, old: CohomodynamicState, new: CohomodynamicState, active: torch.Tensor) -> CohomodynamicState:
         selector = active.unsqueeze(-1).unsqueeze(-1)

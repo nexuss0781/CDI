@@ -250,6 +250,8 @@ def build_model(name: str, tokenizer: EthioBBPETokenizer, seed: int) -> torch.nn
         return DCSSLanguageModel(tokenizer, StageCConfig.nano(seed=seed, geometry_ablation=True))
     if name == "dcss_mean_readout_control":
         return DCSSLanguageModel(tokenizer, StageCConfig.nano(seed=seed, contrast_readout_ablation=True))
+    if name == "dcss_harmonic_disabled":
+        return DCSSLanguageModel(tokenizer, StageCConfig.nano(seed=seed, harmonic_ablation=True))
     if name == "gru_baseline":
         return LegacyCDIV2Adapter(tokenizer, width=tokenizer.config.embedding_dim, dtype=torch.float32)
     if name == "transformer":
@@ -310,6 +312,7 @@ def run_one(
     config: PilotConfig,
     *,
     memory_monitor: HostMemoryMonitor | None = None,
+    post_training_diagnostics: Callable[[torch.nn.Module, Mapping[str, torch.Tensor], Callable[[str], int] | None], Dict[str, Any]] | None = None,
 ) -> Dict[str, Any]:
     if memory_monitor is not None:
         memory_monitor.check(f"{name}_seed_{seed}_before_model")
@@ -336,6 +339,11 @@ def run_one(
     elapsed_seconds = time.perf_counter() - started
     final_validation = evaluate_model(model, validation_batches, config.eval_batches, memory_check=memory_check)
     held_out_test = evaluate_model(model, test_batches, config.eval_batches, memory_check=memory_check)
+    diagnostics = None
+    if post_training_diagnostics is not None:
+        if not validation_batches:
+            raise ValueError("Post-training diagnostics require at least one held-out validation batch.")
+        diagnostics = post_training_diagnostics(model, validation_batches[0], memory_check)
     return {
         "seed": seed,
         "model": name,
@@ -351,6 +359,7 @@ def run_one(
         "training_batch_order": "deterministic_per_epoch_shuffle" if config.shuffle_training_batches else "fixed_cyclic_order",
         "evaluation_scope": "all_held_out_batches" if config.eval_batches == 0 else f"first_{config.eval_batches}_held_out_batches",
         "host_memory": None if memory_monitor is None else memory_monitor.as_dict(),
+        "post_training_diagnostics": diagnostics,
     }
 
 
@@ -503,7 +512,12 @@ If the verdict is `REDESIGN_BEFORE_SCALING`, do not solve the result by adding a
 """
 
 
-def run(config: PilotConfig, *, model_names: Sequence[str] = MODEL_NAMES) -> Dict[str, Any]:
+def run(
+    config: PilotConfig,
+    *,
+    model_names: Sequence[str] = MODEL_NAMES,
+    post_training_diagnostics: Callable[[torch.nn.Module, Mapping[str, torch.Tensor], Callable[[str], int] | None], Dict[str, Any]] | None = None,
+) -> Dict[str, Any]:
     config.validate()
     memory_monitor = HostMemoryMonitor(config.max_host_memory_gb)
     memory_monitor.check("before_corpus_load")
@@ -531,6 +545,7 @@ def run(config: PilotConfig, *, model_names: Sequence[str] = MODEL_NAMES) -> Dic
                     batches["test"],
                     config,
                     memory_monitor=memory_monitor,
+                    post_training_diagnostics=post_training_diagnostics,
                 )
             )
             gc.collect()

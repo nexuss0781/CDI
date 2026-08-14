@@ -238,7 +238,7 @@ Run one rung at a time. Every rung requires three seeds, the same evidence field
 
 **CCT-G3.2 status:** `EARNED_READOUT_EVIDENCE` with re-confirmed `EARNED_GEOMETRY_EVIDENCE`; see `docs/CCT_G3_2_DECISION.md`. The base quality decision remains `REDESIGN_BEFORE_SCALE` because full CDI remained above GRU in all three seeds.
 
-**If the gate passes:** retain the contributing mechanism and return to the appropriate G2/G4 rung only after the required controlled readout-contribution diagnostic.
+**If the gate passes:** retain each contributing mechanism and return to an appropriate quality-rerun decision only after the required controlled harmonic-memory-band diagnostic.
 
 **If the gate fails:** remove or simplify the non-contributing mechanism, then rerun the affected G1/G2 protocol. Do not retain complexity without evidence.
 
@@ -252,8 +252,8 @@ Run one rung at a time. Every rung requires three seeds, the same evidence field
 
 ## G3.3 — Controlled Harmonic-Memory-Band Contribution Ablation
 
-- [ ] Pre-register an exact harmonic-disabled parameter-aware control without changing the selected full CDI architecture, corpus, tokenizer, steps, context, optimizer, seeds, precision, all-held-out evaluation, or 11 GiB memory ceiling.
-- [ ] Verify its causal shape, harmonic inactive-gradient contract, state stability, and parameter equality locally before training.
+- [x] Pre-register an exact harmonic-disabled parameter-aware control without changing the selected full CDI architecture, corpus, tokenizer, steps, context, optimizer, seeds, precision, all-held-out evaluation, or 11 GiB memory ceiling; see `docs/CCT_G3_3_PREREGISTRATION.md`.
+- [x] Verify its causal shape, harmonic inactive-gradient contract, state stability, parameter equality, and five-model harness locally before training; 15 focused CCT-G3 control/harness tests and the full 282-test regression suite passed, and a non-evidentiary `/tmp` smoke run passed the 11 GiB guard.
 - [ ] Run full CDI, harmonic-disabled CDI, geometry-free CDI, GRU, and Transformer across the frozen three-seed, 1,000-step contract.
 - [ ] Record held-out loss, test loss, token accuracy, state/gradient diagnostics, throughput, host memory, and parameter counts.
 - [ ] Decide whether the harmonic 16–64 time-constant band adds or subtracts value before any quality rerun.
