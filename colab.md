@@ -153,33 +153,15 @@ CCT-G3.3 is complete. Full CDI had lower held-out validation loss than the exact
 
 This does **not** authorize scaling. Full CDI remained above GRU validation loss in all three seeds, with a 0.6928% mean gap. The global quality decision remains `REDESIGN_BEFORE_SCALE`; do not rerun G3.3, begin the 3,000-step ladder, expand context or corpus, change capacity, or begin speed work. See `docs/CCT_G3_3_DECISION.md`.
 
-The next action is not an automatic scale experiment. CCT-G3.4 is the separately pre-registered quality-recovery diagnostic below; it retains all CCT-G3 mechanisms and changes only the state-to-logit interface.
+The CCT-G3.4 quality-recovery diagnostic below subsequently completed without an automatic scale transition. It retained all CCT-G3 mechanisms and changed only the state-to-logit interface.
 
-### Stage 3.4 — Selective Token-Residual Quality Recovery
+### Stage 3.4 — Completed Selective Token-Residual Quality Recovery
 
-CCT-G3.4 is pre-registered and locally validated. It adds a bounded, input-conditioned four-dimensional residual to the existing 48-to-4 CDI state readout. It does **not** alter the recurrent state-space, contrast readout, geometry, harmonic memory, tokenizer, data, context, model width, optimizer, or seed protocol. The exact capacity-matched control retains the same 40 residual parameters but supplies deterministic zero residual values. The five-model matrix is residual CDI, zero-residual control, CCT-G3.3 full CDI, GRU, and Transformer.
+CCT-G3.4 is complete. The bounded four-dimensional token residual retained the recurrent state-space, contrast readout, geometry, harmonic memory, tokenizer, data, context, model width, optimizer, and seed protocol. It beat its exact zero-residual control, the CCT-G3.3 predecessor, and GRU in all three seeds. Its mean validation loss was **6.743546**, a 0.103941 improvement over the predecessor and a 0.8356% improvement over GRU.
 
-```bash
-%cd /content/CDI
-!git pull --ff-only origin master
-!PYTHONPATH=. python benchmarks/cct_g3_4_token_residual.py \
-  --steps 1000 \
-  --document-limit 321 \
-  --chunks-per-document 32 \
-  --chunk-length 16 \
-  --batch-size 2 \
-  --eval-batches 0 \
-  --shuffle-training-batches \
-  --learning-rate 0.01 \
-  --relative-loss-tolerance 0.05 \
-  --parameter-relative-tolerance 0.01 \
-  --max-host-memory-gb 11 \
-  --output-dir results/colab_cct_g3_4_token_residual
-!cat results/colab_cct_g3_4_token_residual/REPORT.md
-!cat results/colab_cct_g3_4_token_residual/latest.json
-```
+The pre-registered material-quality target was mean validation loss at or below **6.664364**—2% below the recorded GRU mean. The candidate missed that threshold by 0.079182. The formal decision is therefore `EARNED_TOKEN_RESIDUAL_EVIDENCE` and `QUALITY_RECOVERY_PARTIAL`, not a dominance result and not scale authorization. See `docs/CCT_G3_4_DECISION.md`.
 
-**Material-quality rule:** the candidate must beat both its exact zero-residual control and the CCT-G3.3 predecessor in every seed. To earn the material-quality target, it must also match or beat GRU in every seed and achieve mean validation loss at or below **6.664364**, which is 2% below the recorded matched-GRU mean of 6.800372. No result scales automatically; send both generated files for review.
+The next action is not automatic. Any further quality-recovery proposal must retain all four earned CCT-G3 mechanisms and be separately pre-registered before another run.
 
 ## 8. Stage 4 — context ladder and retention test
 
@@ -252,7 +234,7 @@ I will keep the workflow bounded and visible. I will review the code and config 
 
 ## 13. First action for you to check
 
-CCT-G0, CCT-G1, CCT-G2.1, CCT-G3.1, CCT-G3.2, and CCT-G3.3 are complete. CCT-G3.1 is recorded as `EARNED_GEOMETRY_EVIDENCE`, CCT-G3.2 as `EARNED_READOUT_EVIDENCE`, and CCT-G3.3 as `EARNED_HARMONIC_EVIDENCE`; however, the global quality decision remains `REDESIGN_BEFORE_SCALE` because CDI lost to GRU in every seed. Do **not** rerun Stage 2A with a larger budget or begin Stage 2B. The next permitted action is the frozen CCT-G3.4 quality-recovery command above.
+CCT-G0, CCT-G1, CCT-G2.1, CCT-G3.1, CCT-G3.2, CCT-G3.3, and CCT-G3.4 are complete. CCT-G3.1 is recorded as `EARNED_GEOMETRY_EVIDENCE`, CCT-G3.2 as `EARNED_READOUT_EVIDENCE`, CCT-G3.3 as `EARNED_HARMONIC_EVIDENCE`, and CCT-G3.4 as `EARNED_TOKEN_RESIDUAL_EVIDENCE` with `QUALITY_RECOVERY_PARTIAL`. The selected residual CDI beat GRU in every seed but missed the pre-registered 2% material margin. Do **not** rerun Stage 2A with a larger budget or begin Stage 2B. The next permitted action is a user-approved, separately pre-registered quality-recovery proposal.
 
 If Colab has a GPU, record its name with:
 
@@ -261,7 +243,7 @@ If Colab has a GPU, record its name with:
 !python -c "import torch; print(torch.__version__); print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')"
 ```
 
-We will review the submitted CCT-G3.4 report and JSON before any 3,000-step, context, capacity, corpus, or optimization work.
+We will review a separately pre-registered quality-recovery proposal before any 3,000-step, context, capacity, corpus, or optimization work.
 
 ## References
 

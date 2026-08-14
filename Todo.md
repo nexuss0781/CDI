@@ -236,7 +236,7 @@ Run one rung at a time. Every rung requires three seeds, the same evidence field
 - [x] At least one CCT-specific mechanism shows repeated predeclared value in held-out loss: sparse geometry improved held-out validation loss against the exact geometry-free counterpart in all three seeds.
 - [x] The geometry value survives three-seed comparison and does not depend on hidden budget changes; parameter spread was 0.49% and the protocol was frozen.
 
-**CCT-G3 status:** `EARNED_GEOMETRY_EVIDENCE`, `EARNED_READOUT_EVIDENCE`, and `EARNED_HARMONIC_EVIDENCE`; see `docs/CCT_G3_1_DECISION.md`, `docs/CCT_G3_2_DECISION.md`, and `docs/CCT_G3_3_DECISION.md`. The base quality decision remains `REDESIGN_BEFORE_SCALE` because full CDI remained above GRU in all three seeds.
+**CCT-G3 status:** `EARNED_GEOMETRY_EVIDENCE`, `EARNED_READOUT_EVIDENCE`, `EARNED_HARMONIC_EVIDENCE`, and `EARNED_TOKEN_RESIDUAL_EVIDENCE`; see `docs/CCT_G3_1_DECISION.md`, `docs/CCT_G3_2_DECISION.md`, `docs/CCT_G3_3_DECISION.md`, and `docs/CCT_G3_4_DECISION.md`. The selected residual CDI now beats GRU in all three seeds but remains `QUALITY_RECOVERY_PARTIAL`, not scale-authorized, because it did not reach the pre-registered 2% material-quality margin.
 
 **If the gate passes:** retain each contributing mechanism. Any architecture-selection or quality-recovery proposal must be separately pre-registered and must preserve the frozen evidence contract.
 
@@ -262,9 +262,9 @@ Run one rung at a time. Every rung requires three seeds, the same evidence field
 
 - [x] Pre-register one bounded selective token-residual readout mechanism and an exact parameter-aware zero-residual control; see `docs/CCT_G3_4_PREREGISTRATION.md`.
 - [x] Verify causal source-token dependence, retained recurrent state, narrow inactive-gradient contract, stability, parameter equality, and five-model harness locally before training; 21 focused CCT-G3 control/harness tests and the full 288-test regression suite passed, and a non-evidentiary `/tmp` smoke run passed the 11 GiB guard.
-- [ ] Run residual CDI, exact residual control, CCT-G3.3 full CDI, GRU, and Transformer across the frozen three-seed, 1,000-step contract.
-- [ ] Record held-out loss, test loss, token accuracy, throughput, host memory, and parameter counts.
-- [ ] Apply the material-advantage gate: full candidate must beat GRU in every seed and reach at least 2% lower mean validation loss before any CCT-G2.2 proposal can be reviewed.
+- [x] Run residual CDI, exact residual control, CCT-G3.3 full CDI, GRU, and Transformer across the frozen three-seed, 1,000-step contract; the submitted formal artifact contains all 15 finite records.
+- [x] Record held-out loss, test loss, token accuracy, throughput, host memory, and parameter counts; see `docs/CCT_G3_4_DECISION.md`.
+- [x] Apply the material-advantage gate: candidate beat GRU in all three seeds and earned `QUALITY_RECOVERY_PARTIAL`, but its 6.743546 mean validation loss was above the required 6.664364 2% target. Retain the token residual; no CCT-G2.2 proposal is authorized.
 
 ---
 
