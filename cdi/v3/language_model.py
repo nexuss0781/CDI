@@ -416,7 +416,7 @@ class DCSSLanguageModel(nn.Module):
             attention_mask=source_mask,
             return_state=True,
             return_logits=return_logits,
-            runtime_guard_mode="deferred",
+            runtime_guard_mode="python",
         )
         hidden_or_logits = forward_result[0]
         targets = input_ids[:, 1:].to(device=hidden_or_logits.device)
