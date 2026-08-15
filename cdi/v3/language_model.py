@@ -215,32 +215,58 @@ class DCSSLanguageModel(nn.Module):
                 device=embeddings.device,
             )
             stacked_current = torch.stack(current.tensors(), dim=-3)
-            state_steps = []
-            for index in range(embeddings.shape[1]):
-                step_result = self.ssm.cell.step_fused_stacked(
-                    forcing[:, index],
-                    input_gate[:, index],
-                    transport_gate[:, index],
-                    offsets[:, index],
-                    geometry[:, index],
+            use_scan = runtime_guard_mode in ("deferred", "disabled")
+            if use_scan:
+                stacked_current, trajectory_time_major = self.ssm.cell.scan_fused_stacked(
+                    forcing,
+                    input_gate,
+                    transport_gate,
+                    offsets,
+                    geometry,
                     stacked_current,
-                    runtime_guard_mode=runtime_guard_mode,
-                    return_runtime_metrics=deferred_guards,
-                    store_diagnostics=runtime_guard_mode in ("python", "tensor"),
                     kernel_tensors=kernel_tensors,
                     geometry_operator=geometry_operator,
-                    return_output=False,
                 )
+                stacked_trajectory = trajectory_time_major.transpose(0, 1)
                 if deferred_guards:
-                    _, stacked_current, step_metrics = step_result
-                    spectral_violation, geometry_energy, state_norm = step_metrics
+                    spectral_violation = (
+                        self.config.geometry_step_cap
+                        * geometry
+                        * (2.0 * (self.config.n_vertices - 1) * self.config.max_geometry_edge_weight)
+                        > 1.0
+                    ).any()
+                    trajectory_energy = self.ssm.cell.geometry.energy(trajectory_time_major)
+                    trajectory_norm = torch.linalg.vector_norm(trajectory_time_major, dim=(-2, -1))
                     max_spectral_violation = torch.logical_or(max_spectral_violation, spectral_violation)
-                    max_geometry_energy = torch.maximum(max_geometry_energy, geometry_energy.max())
-                    max_state_norm = torch.maximum(max_state_norm, state_norm.max())
-                else:
-                    _, stacked_current = step_result
-                state_steps.append(stacked_current)
-            stacked_trajectory = torch.stack(state_steps, dim=1)
+                    max_geometry_energy = torch.maximum(max_geometry_energy, trajectory_energy.max())
+                    max_state_norm = torch.maximum(max_state_norm, trajectory_norm.max())
+            else:
+                state_steps = []
+                for index in range(embeddings.shape[1]):
+                    step_result = self.ssm.cell.step_fused_stacked(
+                        forcing[:, index],
+                        input_gate[:, index],
+                        transport_gate[:, index],
+                        offsets[:, index],
+                        geometry[:, index],
+                        stacked_current,
+                        runtime_guard_mode=runtime_guard_mode,
+                        return_runtime_metrics=deferred_guards,
+                        store_diagnostics=runtime_guard_mode in ("python", "tensor"),
+                        kernel_tensors=kernel_tensors,
+                        geometry_operator=geometry_operator,
+                        return_output=False,
+                    )
+                    if deferred_guards:
+                        _, stacked_current, step_metrics = step_result
+                        spectral_violation, geometry_energy, state_norm = step_metrics
+                        max_spectral_violation = torch.logical_or(max_spectral_violation, spectral_violation)
+                        max_geometry_energy = torch.maximum(max_geometry_energy, geometry_energy.max())
+                        max_state_norm = torch.maximum(max_state_norm, state_norm.max())
+                    else:
+                        _, stacked_current = step_result
+                    state_steps.append(stacked_current)
+                stacked_trajectory = torch.stack(state_steps, dim=1)
             hidden_chunk = self.ssm.cell.readout(self.ssm.cell._readout_features_stacked(stacked_trajectory))
             if token_residual_sequence is not None:
                 if self.residual_fusion is not None:
