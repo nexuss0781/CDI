@@ -46,6 +46,8 @@ case "${1:-run}" in
     exec bash "$ROOT/bash.sh"
     ;;
   status)
+    echo "CCT safe entry point (CDI)."
+    echo "CCT-G3.1 compatibility route: CDI."
     echo "CDI entry point ready."
     echo "Repository: $ROOT"
     echo "Persistent root: $CDI_DRIVE_ROOT"
@@ -53,6 +55,7 @@ case "${1:-run}" in
     echo "       bash run.sh retrain # start a new isolated M1.1 session"
     ;;
   *)
+    echo "not an approved CCT command: ${1:-}" >&2
     echo "Usage: bash run.sh [run|retrain|status]" >&2
     exit 2
     ;;
