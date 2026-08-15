@@ -2,7 +2,7 @@
 
 ## Executive verdict
 
-The CDI repository now contains the validated performance-upgrade stack on the canonical `master` branch at commit `c80af57`. The work preserves the existing DCSS-CDI equations, factorized state layout, checkpoint contracts, Colab/Drive entry points, and model parameter count. The complete regression suite passes: **305 tests passed**.
+The CDI repository now contains the validated performance-upgrade stack on the canonical `master` branch at commit `315efd3`. The work preserves the existing DCSS-CDI equations, factorized state layout, checkpoint contracts, Colab/Drive entry points, and model parameter count. The complete regression suite passes: **305 tests passed**.
 
 The engineering and correctness gates pass, but the strict dominant-throughput gate does **not** yet pass on the eager CPU benchmark. Eager CDI improved from the recorded pre-upgrade baseline of approximately **3,273 / 2,788 / 2,547 token-positions per second** at lengths 16 / 64 / 256 to **3,924 / 3,547 / 3,348**, corresponding to approximately **1.20× / 1.27× / 1.31×** improvement. The acceptance target required at least 2× eager CDI and thresholds of 8,000 / 8,000 / 6,000 token-positions per second. Training should therefore remain blocked under the previously approved policy until the eager gate is revised or another kernel generation closes the remaining gap.
 
@@ -30,6 +30,22 @@ The canonical eager benchmark uses CPU float32, one thread, batch size two, 8 me
 | Eager CDI, upgraded | **3,924 tok/s** | **3,547 tok/s** | **3,348 tok/s** | **0.61 GiB** |
 | Compiled CDI, upgraded | **8,462 tok/s** | **8,216 tok/s** | **7,913 tok/s** | **0.66 GiB** |
 | Eager CDI, tiled vocabulary loss | 3,444 tok/s | 3,180 tok/s | 2,961 tok/s | 0.63 GiB high-water RSS |
+
+### Before and after alongside matched reference models
+
+The following table places the **pre-upgrade CDI** and **upgraded eager CDI** results beside the matched GRUCell, fused `torch.nn.GRU`, and Transformer reference measurements from the same CPU float32 matrix benchmark family. The reference rows are included for context; the upgrade decision remains based on CDI’s own before-versus-after gate.
+
+| Model or path | Length 16 | Length 64 | Length 256 |
+|---|---:|---:|---:|
+| CDI, pre-upgrade matched baseline | 2,913 tok/s | 2,786 tok/s | 2,361 tok/s |
+| **CDI, upgraded eager** | **3,924 tok/s** | **3,547 tok/s** | **3,348 tok/s** |
+| CDI eager improvement | **+34.7%** | **+27.3%** | **+41.8%** |
+| GRUCell adapter reference | 10,080 tok/s | 7,918 tok/s | 6,134 tok/s |
+| Fused `torch.nn.GRU` reference | 8,500 tok/s | 10,627 tok/s | 8,994 tok/s |
+| Transformer reference | 14,415 tok/s | 16,148 tok/s | 11,309 tok/s |
+| **CDI, upgraded compiled** | **8,462 tok/s** | **8,216 tok/s** | **7,913 tok/s** |
+
+The matched matrix artifact reports CDI-to-fused-GRU ratios of approximately **0.34× / 0.26× / 0.26×** before optimization and **0.46× / 0.33× / 0.37×** after optimization when comparing upgraded eager CDI against the saved fused-GRU reference rows. The compiled CDI path reaches approximately **0.996× / 0.773× / 0.880×** of those fused-GRU reference throughputs at lengths 16 / 64 / 256, respectively. These figures show substantial progress in compiled execution but confirm that eager CDI has not yet become dominant.
 
 The tiled path trades throughput for memory behavior because it performs multiple vocabulary projections. Its primary benefit is bounded vocabulary-logit workspace. At length 256, the full projection would represent 8.16 million float32 logits for batch two and 255 causal positions, approximately 32.6 MiB before autograd overhead. A 4,096-token tile represents approximately 2.09 million float32 logits, approximately 8.4 MiB, or about a **3.9× reduction in the vocabulary projection workspace**. The persistent CDI state remains only **192 bytes** in float32.
 
