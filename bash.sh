@@ -14,6 +14,8 @@ cd "$ROOT"
 # CDI_DRIVE_ROOT to a writable directory such as /tmp/cdi-drive.
 DRIVE_ROOT="${CDI_DRIVE_ROOT:-/content/drive/MyDrive/CDI}"
 STAGE="${CDI_STAGE:-m1.1}"
+PARENT_STAGE="${CDI_PARENT_STAGE:-}"
+PARENT_DATA_VARIANT="${CDI_PARENT_DATA_VARIANT:-base}"
 if [[ "$STAGE" == "m1.2" ]]; then
   BASE_ROOT="${DRIVE_ROOT}/module1/M1.2"
 else
@@ -50,6 +52,8 @@ fi
 export PYTHONPATH="$ROOT${PYTHONPATH:+:$PYTHONPATH}"
 export CDI_RUN_ROOT="$RUN_ROOT"
 export CDI_STAGE="$STAGE"
+export CDI_PARENT_STAGE="$PARENT_STAGE"
+export CDI_PARENT_DATA_VARIANT="$PARENT_DATA_VARIANT"
 export CDI_SESSION_ID="$SESSION_ID"
 export CDI_DATA_VARIANT="$DATA_VARIANT"
 export CDI_DATA_ROOT="$DATA_ROOT"
@@ -80,6 +84,8 @@ from cdi.v3 import DCSSLanguageModel, EthioBBPETokenizer, StageCConfig, Tokenize
 
 RUN_ROOT = Path(os.environ["CDI_RUN_ROOT"])
 STAGE = os.environ["CDI_STAGE"]
+PARENT_STAGE = os.environ["CDI_PARENT_STAGE"]
+PARENT_DATA_VARIANT = os.environ["CDI_PARENT_DATA_VARIANT"]
 SESSION_ID = os.environ["CDI_SESSION_ID"]
 DATA_VARIANT = os.environ["CDI_DATA_VARIANT"]
 SUBMODULE = "M1.2" if STAGE == "m1.2" else "M1.1"
@@ -264,10 +270,12 @@ def prepare_dataset() -> dict[str, Any]:
     validation_rows = text_rows(dataset["validation"])
     test_rows = text_rows(dataset["test"])
     seed = CONFIG["dataset"]["split_seed"]
-    if DATA_VARIANT == "r2":
-        previous_manifest_path = Path(os.environ["CDI_DRIVE_ROOT"]) / "module1" / "M1.2" / "dataset" / "manifest.json"
+    if DATA_VARIANT != "base":
+        previous_dataset_name = "dataset" if PARENT_DATA_VARIANT == "base" else f"dataset_{PARENT_DATA_VARIANT}"
+        parent_manifest_stage = PARENT_STAGE or ("M1.2" if STAGE == "m1.2" else "M1.1")
+        previous_manifest_path = Path(os.environ["CDI_DRIVE_ROOT"]) / "module1" / parent_manifest_stage / previous_dataset_name / "manifest.json"
         if not previous_manifest_path.is_file():
-            raise FileNotFoundError(f"M1.2 base manifest is required before creating {DATA_VARIANT}.")
+            raise FileNotFoundError(f"Parent dataset manifest is required before creating {DATA_VARIANT}: {previous_manifest_path}")
         previous_manifest = json.loads(previous_manifest_path.read_text(encoding="utf-8"))
         excluded_ids = {document_id for ids in previous_manifest.get("document_ids", {}).values() for document_id in ids}
         train_rows = [row for row in train_rows if row[0] not in excluded_ids]
@@ -548,8 +556,8 @@ def main() -> int:
     batch_size = 8 if device == "cuda" else 2
     model = build_model(tokenizer, device, CONFIG["optimization"]["seed"])
     parent_checkpoint = None
-    if STAGE == "m1.2":
-        parent_stage = "M1.2" if DATA_VARIANT == "r2" else "M1.1"
+    if STAGE != "m1.1":
+        parent_stage = PARENT_STAGE or ("M1.2" if STAGE == "m1.2" and DATA_VARIANT == "r2" else "M1.1")
         parent_checkpoint = load_parent_checkpoint(model, device, parent_stage)
     initial_validation_loss = loss_on(model, validation_rows, batch_size, device)
     pretrain_name = "m1_2_adaptation" if STAGE == "m1.2" else "pretrain"
@@ -573,6 +581,7 @@ def main() -> int:
         "submodule": SUBMODULE,
         "stage": STAGE,
         "session_id": SESSION_ID,
+        "parent_stage": parent_stage if parent_checkpoint else None,
         "parent_checkpoint": str(parent_checkpoint) if parent_checkpoint else None,
         "status": competency["status"],
         "device": device,
