@@ -569,33 +569,39 @@ class CohomodynamicCell(nn.Module):
         return CohomodynamicState(*tensors)
 
     def fused_gate_tensors(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Project all bands into stacked tensors for the sequence fast path."""
+        """Project all bands with one packed differentiable linear operation.
+
+        The packed rows preserve the historical band/projection ordering and
+        therefore preserve logits, state transitions, and gradients exactly
+        while reducing five tiny matrix-multiply dispatches to one.
+        """
         gates = tuple(self.bands[name].gate for name in BAND_NAMES)
-        forcing = torch.tanh(F.linear(
-            x,
-            torch.cat(tuple(gate.forcing_projection.weight for gate in gates), dim=0),
-            torch.cat(tuple(gate.forcing_projection.bias for gate in gates), dim=0),
-        )).reshape(*x.shape[:-1], len(BAND_NAMES), self.config.band_width)
-        input_gate = torch.sigmoid(F.linear(
-            x,
-            torch.cat(tuple(gate.input_gate_projection.weight for gate in gates), dim=0),
-            torch.cat(tuple(gate.input_gate_projection.bias for gate in gates), dim=0),
-        )).reshape(*x.shape[:-1], len(BAND_NAMES), self.config.band_width // 2)
-        transport_gate = torch.sigmoid(F.linear(
-            x,
-            torch.cat(tuple(gate.transport_projection.weight for gate in gates), dim=0),
-            torch.cat(tuple(gate.transport_projection.bias for gate in gates), dim=0),
-        )).reshape(*x.shape[:-1], len(BAND_NAMES), self.config.band_width // 2)
-        offsets = (torch.tanh(F.linear(
-            x,
-            torch.cat(tuple(gate.timescale_projection.weight for gate in gates), dim=0),
-            torch.cat(tuple(gate.timescale_projection.bias for gate in gates), dim=0),
-        )) * self.config.max_log_timescale_offset).reshape(*x.shape[:-1], len(BAND_NAMES), self.config.band_width)
-        geometry = torch.sigmoid(F.linear(
-            x,
-            torch.cat(tuple(gate.geometry_projection.weight for gate in gates), dim=0),
-            torch.cat(tuple(gate.geometry_projection.bias for gate in gates), dim=0),
-        )).reshape(*x.shape[:-1], len(BAND_NAMES))
+        projections = (
+            tuple(gate.forcing_projection for gate in gates),
+            tuple(gate.input_gate_projection for gate in gates),
+            tuple(gate.transport_projection for gate in gates),
+            tuple(gate.timescale_projection for gate in gates),
+            tuple(gate.geometry_projection for gate in gates),
+        )
+        packed_weight = torch.cat(tuple(projection.weight for group in projections for projection in group), dim=0)
+        packed_bias = torch.cat(tuple(projection.bias for group in projections for projection in group), dim=0)
+        packed = F.linear(x, packed_weight, packed_bias)
+        forcing_width = len(BAND_NAMES) * self.config.band_width
+        half_width = len(BAND_NAMES) * (self.config.band_width // 2)
+        offset_width = forcing_width
+        geometry_width = len(BAND_NAMES)
+        forcing_raw, input_raw, transport_raw, offset_raw, geometry_raw = torch.split(
+            packed,
+            (forcing_width, half_width, half_width, offset_width, geometry_width),
+            dim=-1,
+        )
+        forcing = torch.tanh(forcing_raw).reshape(*x.shape[:-1], len(BAND_NAMES), self.config.band_width)
+        input_gate = torch.sigmoid(input_raw).reshape(*x.shape[:-1], len(BAND_NAMES), self.config.band_width // 2)
+        transport_gate = torch.sigmoid(transport_raw).reshape(*x.shape[:-1], len(BAND_NAMES), self.config.band_width // 2)
+        offsets = (torch.tanh(offset_raw) * self.config.max_log_timescale_offset).reshape(
+            *x.shape[:-1], len(BAND_NAMES), self.config.band_width
+        )
+        geometry = torch.sigmoid(geometry_raw).reshape(*x.shape[:-1], len(BAND_NAMES))
         forcing = forcing * input_gate.repeat_interleave(2, dim=-1)
         return forcing, input_gate, transport_gate, offsets, geometry
 
@@ -645,7 +651,8 @@ class CohomodynamicCell(nn.Module):
         store_diagnostics: bool = False,
         kernel_tensors: Tuple[torch.Tensor, torch.Tensor, torch.Tensor] | None = None,
         geometry_operator: torch.Tensor | None = None,
-    ) -> Tuple[torch.Tensor, torch.Tensor] | Tuple[torch.Tensor, torch.Tensor, Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
+        return_output: bool = True,
+    ) -> Tuple[torch.Tensor | None, torch.Tensor] | Tuple[torch.Tensor | None, torch.Tensor, Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
         """Run one exact all-band step on an already packed state tensor."""
         if self.disable_harmonic or self.unconstrained_cochain is not None:
             raise RuntimeError("step_fused_stacked is only valid for the full three-band production cell.")
@@ -702,7 +709,7 @@ class CohomodynamicCell(nn.Module):
                 )
                 for index, name in enumerate(BAND_NAMES)
             }
-        output = self.readout(self._readout_features_stacked(value))
+        output = self.readout(self._readout_features_stacked(value)) if return_output else None
         if return_runtime_metrics:
             return output, value, (spectral_violation, geometry_energy, state_norm)
         return output, value

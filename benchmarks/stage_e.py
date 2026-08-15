@@ -168,7 +168,7 @@ class SequenceAllocationTrace(TorchDispatchMode):
         for value in values:
             if value.ndim >= 2 and value.shape[-1] == self.sequence_length and value.shape[-2] == self.sequence_length:
                 self.sequence_square.append({"operation": name, "shape": list(value.shape)})
-            if value.ndim >= 2 and value.numel() >= self.full_state * self.full_state and value.shape[-1] == self.full_state:
+            if value.ndim >= 2 and value.shape[-1] == self.full_state and value.shape[-2] == self.full_state:
                 self.full_state_square.append({"operation": name, "shape": list(value.shape)})
         return result
 

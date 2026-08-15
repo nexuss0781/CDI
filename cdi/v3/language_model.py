@@ -201,7 +201,6 @@ class DCSSLanguageModel(nn.Module):
             max_spectral_violation = torch.zeros((), dtype=torch.bool, device=embeddings.device)
             max_geometry_energy = torch.zeros((), dtype=embeddings.dtype, device=embeddings.device)
             max_state_norm = torch.zeros((), dtype=embeddings.dtype, device=embeddings.device)
-        hidden_steps = []
         token_residual_sequence = (
             self.token_residual(embeddings, ablated=self.config.token_residual_ablation)
             if self.token_residual is not None
@@ -216,8 +215,8 @@ class DCSSLanguageModel(nn.Module):
                 device=embeddings.device,
             )
             stacked_current = torch.stack(current.tensors(), dim=-3)
+            state_steps = []
             for index in range(embeddings.shape[1]):
-                source_embedding = embeddings[:, index]
                 step_result = self.ssm.cell.step_fused_stacked(
                     forcing[:, index],
                     input_gate[:, index],
@@ -230,24 +229,31 @@ class DCSSLanguageModel(nn.Module):
                     store_diagnostics=runtime_guard_mode in ("python", "tensor"),
                     kernel_tensors=kernel_tensors,
                     geometry_operator=geometry_operator,
+                    return_output=False,
                 )
                 if deferred_guards:
-                    hidden, stacked_current, step_metrics = step_result
+                    _, stacked_current, step_metrics = step_result
                     spectral_violation, geometry_energy, state_norm = step_metrics
                     max_spectral_violation = torch.logical_or(max_spectral_violation, spectral_violation)
                     max_geometry_energy = torch.maximum(max_geometry_energy, geometry_energy.max())
                     max_state_norm = torch.maximum(max_state_norm, state_norm.max())
                 else:
-                    hidden, stacked_current = step_result
-                if self.token_residual is not None:
-                    residual = token_residual_sequence[:, index]
-                    if self.residual_fusion is not None:
-                        hidden = self.residual_fusion(hidden, residual, ablated=self.config.residual_fusion_ablation)
-                    else:
-                        hidden = hidden + residual
-                hidden_steps.append(hidden)
+                    _, stacked_current = step_result
+                state_steps.append(stacked_current)
+            stacked_trajectory = torch.stack(state_steps, dim=1)
+            hidden_chunk = self.ssm.cell.readout(self.ssm.cell._readout_features_stacked(stacked_trajectory))
+            if token_residual_sequence is not None:
+                if self.residual_fusion is not None:
+                    hidden_chunk = self.residual_fusion(
+                        hidden_chunk,
+                        token_residual_sequence,
+                        ablated=self.config.residual_fusion_ablation,
+                    )
+                else:
+                    hidden_chunk = hidden_chunk + token_residual_sequence
             current = CohomodynamicState(*(stacked_current.select(-3, index) for index in range(len(current.tensors()))))
         else:
+            hidden_steps = []
             fused_gate_sequence = self.ssm.cell.fused_gate_values(embeddings)
             for index in range(embeddings.shape[1]):
                 source_embedding = embeddings[:, index]
@@ -283,7 +289,7 @@ class DCSSLanguageModel(nn.Module):
                     else:
                         hidden = hidden + residual
                 hidden_steps.append(hidden)
-        hidden_chunk = torch.stack(hidden_steps, dim=1)
+            hidden_chunk = torch.stack(hidden_steps, dim=1)
         logits = F.linear(hidden_chunk, self.embedding.weight, self.output_bias)
         if squeezed:
             logits = logits.squeeze(0)
