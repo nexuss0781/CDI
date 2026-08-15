@@ -613,33 +613,49 @@ class CohomodynamicCell(nn.Module):
             for index, name in enumerate(BAND_NAMES)
         }
 
-    def step_fused_tensors(
+    def fused_kernel_tensors(self) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Return chunk-reusable stacked generator tensors with gradients intact."""
+        generators = tuple(self.bands[name].generator for name in BAND_NAMES)
+        return (
+            torch.stack(tuple(generator.log_tau_base for generator in generators), dim=0),
+            torch.stack(tuple(generator.rotation_bias for generator in generators), dim=0),
+            torch.stack(tuple(generator.input_injection for generator in generators), dim=0),
+        )
+
+    def _readout_features_stacked(self, stacked_state: torch.Tensor) -> torch.Tensor:
+        """Read out ``(..., bands, vertices, width)`` without unpacking bands."""
+        means = stacked_state.mean(dim=-2)
+        contrast = torch.matmul(stacked_state.transpose(-2, -1), self.vertex_contrast_basis).transpose(-2, -1)
+        if self.config.contrast_readout_ablation:
+            contrast = torch.zeros_like(contrast)
+        per_band = torch.cat((means.unsqueeze(-2), contrast), dim=-2)
+        return per_band.reshape(*stacked_state.shape[:-3], -1)
+
+    def step_fused_stacked(
         self,
         forcing: torch.Tensor,
         input_gate: torch.Tensor,
         transport_gate: torch.Tensor,
         log_timescale_offset: torch.Tensor,
         geometry_gate: torch.Tensor,
-        state: CohomodynamicState,
+        stacked_state: torch.Tensor,
         *,
         runtime_guard_mode: Literal["python", "tensor", "deferred", "disabled"] = "python",
         return_runtime_metrics: bool = False,
         store_diagnostics: bool = False,
-    ) -> Tuple[torch.Tensor, CohomodynamicState] | Tuple[torch.Tensor, CohomodynamicState, Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
-        """Exact all-band step using already-fused tensor gates.
-
-        This production fast path is valid for the full three-band model. It
-        intentionally falls back to the structured step for named ablations
-        that disable a band or add an unconstrained cochain.
-        """
+        kernel_tensors: Tuple[torch.Tensor, torch.Tensor, torch.Tensor] | None = None,
+        geometry_operator: torch.Tensor | None = None,
+    ) -> Tuple[torch.Tensor, torch.Tensor] | Tuple[torch.Tensor, torch.Tensor, Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
+        """Run one exact all-band step on an already packed state tensor."""
         if self.disable_harmonic or self.unconstrained_cochain is not None:
-            raise RuntimeError("step_fused_tensors is only valid for the full three-band production cell.")
-        self._validate_state(forcing[..., 0, :], state)
-        stacked_state = torch.stack(state.tensors(), dim=-3)
-        generators = tuple(self.bands[name].generator for name in BAND_NAMES)
-        log_tau_base = torch.stack(tuple(generator.log_tau_base for generator in generators), dim=0)
-        rotation_bias = torch.stack(tuple(generator.rotation_bias for generator in generators), dim=0)
-        input_injection = torch.stack(tuple(generator.input_injection for generator in generators), dim=0)
+            raise RuntimeError("step_fused_stacked is only valid for the full three-band production cell.")
+        expected = tuple(forcing.shape[:-2]) + (len(BAND_NAMES), self.config.n_vertices, self.config.band_width)
+        if tuple(stacked_state.shape) != expected:
+            raise ValueError(f"Stacked state has shape {tuple(stacked_state.shape)}, expected {expected}.")
+        if kernel_tensors is None:
+            log_tau_base, rotation_bias, input_injection = self.fused_kernel_tensors()
+        else:
+            log_tau_base, rotation_bias, input_injection = kernel_tensors
         log_tau = (log_tau_base + log_timescale_offset).clamp(
             min=self.band_log_tau_lower.view(1, -1, 1),
             max=self.band_log_tau_upper.view(1, -1, 1),
@@ -655,7 +671,87 @@ class CohomodynamicCell(nn.Module):
         rotated_second = sine * pairs[..., 0] + cosine * pairs[..., 1]
         homogeneous = torch.stack((rotated_first, rotated_second), dim=-1) * decay.unsqueeze(-1)
         band_state = homogeneous.reshape_as(stacked_state) + self.config.dt * forcing.unsqueeze(-2) * input_injection
-        correction = self.geometry.apply(band_state)
+        correction = self.geometry.apply(band_state, operator=geometry_operator)
+        alpha = (self.config.geometry_step_cap * geometry_gate).unsqueeze(-1).unsqueeze(-1)
+        spectral_violation = (alpha * 2.0 * (self.config.n_vertices - 1) * self.config.max_geometry_edge_weight > 1.0).any()
+        if runtime_guard_mode == "tensor":
+            torch._assert(~spectral_violation, "Explicit geometry correction exceeded the configured spectral stability envelope.")
+        elif runtime_guard_mode not in ("deferred", "disabled") and bool(spectral_violation.item()):
+            raise FloatingPointError("Explicit geometry correction exceeded the configured spectral stability envelope.")
+        value = band_state - alpha * correction
+        geometry_energy = self.geometry.energy(value)
+        energy_violation = (geometry_energy > self.stage_b_config.energy_limit).any()
+        if runtime_guard_mode == "tensor":
+            torch._assert(~energy_violation, "Geometry energy exceeded the configured runtime limit.")
+        elif runtime_guard_mode not in ("deferred", "disabled") and bool(energy_violation.item()):
+            raise FloatingPointError("Geometry energy exceeded the configured runtime limit.")
+        state_norm = torch.linalg.vector_norm(value, dim=(-2, -1))
+        norm_violation = (state_norm > self.config.state_norm_bound).any()
+        if runtime_guard_mode == "tensor":
+            torch._assert(~norm_violation, "Cohomodynamic state norm exceeded the configured runtime limit.")
+        elif runtime_guard_mode not in ("deferred", "disabled") and bool(norm_violation.item()):
+            raise FloatingPointError("Cohomodynamic state norm exceeded the configured runtime limit.")
+        if store_diagnostics:
+            self._last_parameters = {
+                name: GeneratorParameters(
+                    forcing=forcing.select(-2, index),
+                    dissipation=dissipation.select(-2, index),
+                    omega=omega.select(-2, index),
+                    geometry_gate=geometry_gate.select(-1, index),
+                    tau=tau.select(-2, index),
+                )
+                for index, name in enumerate(BAND_NAMES)
+            }
+        output = self.readout(self._readout_features_stacked(value))
+        if return_runtime_metrics:
+            return output, value, (spectral_violation, geometry_energy, state_norm)
+        return output, value
+
+    def step_fused_tensors(
+        self,
+        forcing: torch.Tensor,
+        input_gate: torch.Tensor,
+        transport_gate: torch.Tensor,
+        log_timescale_offset: torch.Tensor,
+        geometry_gate: torch.Tensor,
+        state: CohomodynamicState,
+        *,
+        runtime_guard_mode: Literal["python", "tensor", "deferred", "disabled"] = "python",
+        return_runtime_metrics: bool = False,
+        store_diagnostics: bool = False,
+        kernel_tensors: Tuple[torch.Tensor, torch.Tensor, torch.Tensor] | None = None,
+        geometry_operator: torch.Tensor | None = None,
+    ) -> Tuple[torch.Tensor, CohomodynamicState] | Tuple[torch.Tensor, CohomodynamicState, Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
+        """Exact all-band step using already-fused tensor gates.
+
+        This production fast path is valid for the full three-band model. It
+        intentionally falls back to the structured step for named ablations
+        that disable a band or add an unconstrained cochain.
+        """
+        if self.disable_harmonic or self.unconstrained_cochain is not None:
+            raise RuntimeError("step_fused_tensors is only valid for the full three-band production cell.")
+        self._validate_state(forcing[..., 0, :], state)
+        stacked_state = torch.stack(state.tensors(), dim=-3)
+        if kernel_tensors is None:
+            log_tau_base, rotation_bias, input_injection = self.fused_kernel_tensors()
+        else:
+            log_tau_base, rotation_bias, input_injection = kernel_tensors
+        log_tau = (log_tau_base + log_timescale_offset).clamp(
+            min=self.band_log_tau_lower.view(1, -1, 1),
+            max=self.band_log_tau_upper.view(1, -1, 1),
+        )
+        tau = torch.exp(log_tau)
+        dissipation = (0.05 + input_gate) / tau[..., ::2]
+        omega = (2.0 * transport_gate - 1.0 + rotation_bias) * self.config.rotation_limit
+        pairs = stacked_state.reshape(*stacked_state.shape[:-1], self.config.band_width // 2, 2)
+        angle = (omega * self.config.dt).unsqueeze(-2)
+        decay = torch.exp((-dissipation * self.config.dt).unsqueeze(-2))
+        cosine, sine = torch.cos(angle), torch.sin(angle)
+        rotated_first = cosine * pairs[..., 0] - sine * pairs[..., 1]
+        rotated_second = sine * pairs[..., 0] + cosine * pairs[..., 1]
+        homogeneous = torch.stack((rotated_first, rotated_second), dim=-1) * decay.unsqueeze(-1)
+        band_state = homogeneous.reshape_as(stacked_state) + self.config.dt * forcing.unsqueeze(-2) * input_injection
+        correction = self.geometry.apply(band_state, operator=geometry_operator)
         alpha = (self.config.geometry_step_cap * geometry_gate).unsqueeze(-1).unsqueeze(-1)
         spectral_violation = (alpha * 2.0 * (self.config.n_vertices - 1) * self.config.max_geometry_edge_weight > 1.0).any()
         if runtime_guard_mode == "tensor":
