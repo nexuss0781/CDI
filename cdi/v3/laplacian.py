@@ -63,16 +63,42 @@ class MatrixFreeLaplacian(nn.Module):
             device=self.edge_log_weights.device,
         ) * torch.sigmoid(self.edge_log_weights)
 
-    def apply(self, x: torch.Tensor) -> torch.Tensor:
-        """Apply the factored geometry to ``(..., vertices, channels)`` state."""
+    def operator(self, *, dtype: torch.dtype | None = None, device: torch.device | str | None = None) -> torch.Tensor:
+        """Build the differentiable vertex Laplacian once for a forward chunk.
+
+        The returned operator is intentionally not cached across optimizer steps:
+        it remains connected to ``edge_log_weights`` so gradients are preserved.
+        Callers that process multiple recurrent tokens may reuse it for the whole
+        chunk instead of rebuilding the same tiny matrix at every token.
+        """
+        target_dtype = dtype or self.edge_log_weights.dtype
+        target_device = device or self.edge_log_weights.device
+        if self.config.geometry_ablation:
+            return torch.zeros(
+                self.topology.n_vertices,
+                self.topology.n_vertices,
+                dtype=target_dtype,
+                device=target_device,
+            )
+        weights = self.edge_weights.to(dtype=target_dtype, device=target_device)
+        incidence = self._dense_incidence.to(dtype=target_dtype, device=target_device)
+        return incidence.transpose(-2, -1) @ (incidence * weights.unsqueeze(-1))
+
+    def apply(self, x: torch.Tensor, operator: torch.Tensor | None = None) -> torch.Tensor:
+        """Apply the factored geometry to ``(..., vertices, channels)`` state.
+
+        ``operator`` may be supplied by a chunk-level caller to reuse the
+        differentiable Laplacian across recurrent tokens.
+        """
         if x.ndim < 2 or tuple(x.shape[-2:]) != self.state_shape:
             raise ValueError(f"Expected (..., {self.state_shape[0]}, {self.state_shape[1]}), got {tuple(x.shape)}.")
         if self.config.geometry_ablation:
             return torch.zeros_like(x)
-        weights = self.edge_weights.to(dtype=x.dtype, device=x.device)
-        incidence = self._dense_incidence.to(dtype=x.dtype, device=x.device)
-        laplacian = incidence.transpose(-2, -1) @ (incidence * weights.unsqueeze(-1))
+        laplacian = operator if operator is not None else self.operator(dtype=x.dtype, device=x.device)
+        if laplacian.ndim != 2 or tuple(laplacian.shape) != (self.topology.n_vertices, self.topology.n_vertices):
+            raise ValueError("Geometry operator must have shape (vertices, vertices).")
         return torch.matmul(laplacian, x)
+
 
     def quadratic_form(self, x: torch.Tensor) -> torch.Tensor:
         laplacian_x = self.apply(x)

@@ -210,27 +210,35 @@ class DCSSLanguageModel(nn.Module):
         flat_fused = not self.ssm.cell.disable_harmonic and self.ssm.cell.unconstrained_cochain is None
         if flat_fused:
             forcing, input_gate, transport_gate, offsets, geometry = self.ssm.cell.fused_gate_tensors(embeddings)
+            kernel_tensors = self.ssm.cell.fused_kernel_tensors()
+            geometry_operator = self.ssm.cell.geometry.operator(
+                dtype=embeddings.dtype,
+                device=embeddings.device,
+            )
+            stacked_current = torch.stack(current.tensors(), dim=-3)
             for index in range(embeddings.shape[1]):
                 source_embedding = embeddings[:, index]
-                step_result = self.ssm.cell.step_fused_tensors(
+                step_result = self.ssm.cell.step_fused_stacked(
                     forcing[:, index],
                     input_gate[:, index],
                     transport_gate[:, index],
                     offsets[:, index],
                     geometry[:, index],
-                    current,
+                    stacked_current,
                     runtime_guard_mode=runtime_guard_mode,
                     return_runtime_metrics=deferred_guards,
                     store_diagnostics=runtime_guard_mode in ("python", "tensor"),
+                    kernel_tensors=kernel_tensors,
+                    geometry_operator=geometry_operator,
                 )
                 if deferred_guards:
-                    hidden, current, step_metrics = step_result
+                    hidden, stacked_current, step_metrics = step_result
                     spectral_violation, geometry_energy, state_norm = step_metrics
                     max_spectral_violation = torch.logical_or(max_spectral_violation, spectral_violation)
                     max_geometry_energy = torch.maximum(max_geometry_energy, geometry_energy.max())
                     max_state_norm = torch.maximum(max_state_norm, state_norm.max())
                 else:
-                    hidden, current = step_result
+                    hidden, stacked_current = step_result
                 if self.token_residual is not None:
                     residual = token_residual_sequence[:, index]
                     if self.residual_fusion is not None:
@@ -238,6 +246,7 @@ class DCSSLanguageModel(nn.Module):
                     else:
                         hidden = hidden + residual
                 hidden_steps.append(hidden)
+            current = CohomodynamicState(*(stacked_current.select(-3, index) for index in range(len(current.tensors()))))
         else:
             fused_gate_sequence = self.ssm.cell.fused_gate_values(embeddings)
             for index in range(embeddings.shape[1]):
