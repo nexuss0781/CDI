@@ -207,6 +207,12 @@ def optimizer_for(model: nn.Module, config: StageDConfig) -> torch.optim.Optimiz
 
 
 def model_loss(model: nn.Module, batch: Mapping[str, Any]):
+    if isinstance(model, DCSSLanguageModel):
+        return model.causal_loss(
+            batch["input_ids"],
+            batch["attention_mask"],
+            return_logits=False,
+        )
     return model.causal_loss(batch["input_ids"], batch["attention_mask"])
 
 
