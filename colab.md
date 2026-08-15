@@ -171,28 +171,7 @@ The next action is a **performance-first audit** of the retained CCT-G3.4 execut
 
 ### Stage 3.6 — Bounded Quality Continuation
 
-CCT-G3.6 is pre-registered. It trains only the retained `dcss_residual_cdi` configuration, with matched GRU and Transformer references, to **1,500 total steps**. This is a bounded quality continuation—not the blocked 3,000-step scale ladder.
-
-```bash
-%cd /content/CDI
-!git pull --ff-only origin master
-!PYTHONPATH=. python benchmarks/cct_g3_6_bounded_quality.py \
-  --steps 1500 \
-  --document-limit 321 \
-  --chunks-per-document 32 \
-  --chunk-length 16 \
-  --batch-size 2 \
-  --eval-batches 0 \
-  --shuffle-training-batches \
-  --learning-rate 0.01 \
-  --relative-loss-tolerance 0.05 \
-  --max-host-memory-gb 11 \
-  --output-dir results/colab_cct_g3_6_bounded_quality
-!cat results/colab_cct_g3_6_bounded_quality/REPORT.md
-!cat results/colab_cct_g3_6_bounded_quality/latest.json
-```
-
-**CCT-G3.6 gates:** all 9 records must be finite; CDI training loss must decrease in all seeds; CDI must be no worse than the 1,000-step retained-CDI reference of 6.743546; CDI must match or beat GRU in every seed; and the 2% target of 6.664364 is reported separately. No outcome authorizes 3,000 steps, a larger corpus, context expansion, capacity changes, or English scaling.
+CCT-G3.6 is complete. The autonomous CPU run trained only retained `dcss_residual_cdi` with matched GRU and Transformer references to **1,500 total steps**. All nine records were finite, CDI learned in every seed, beat GRU in every seed, improved over the 1,000-step reference, and reached mean validation loss **6.576891**, below the 2% target of **6.664364**. The decision is `EARNED_BOUNDED_CONTINUATION`; the model is eligible for one separately reviewed next rung. No result authorizes 3,000 steps, a larger corpus, context expansion, capacity changes, or English scaling automatically. See `docs/CCT_G3_6_DECISION.md`.
 
 ## 8. Stage 4 — context ladder and retention test
 
@@ -274,7 +253,7 @@ If Colab has a GPU, record its name with:
 !python -c "import torch; print(torch.__version__); print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')"
 ```
 
-The performance profile is recorded in `docs/PERFORMANCE_READINESS.md`; review it before proposing any bounded quality-training cell. A 3,000-step scale ladder, context, capacity, corpus, optimization, and fluency work remain separately gated.
+The performance profile is recorded in `docs/PERFORMANCE_READINESS.md`, and the G3.6 decision is recorded in `docs/CCT_G3_6_DECISION.md`. The system is eligible for one separately reviewed next quality rung; automatic 3,000-step scaling, context, capacity, corpus, optimization, and fluency work remain separately gated.
 
 ## References
 
