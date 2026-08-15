@@ -169,6 +169,31 @@ CCT-G3.5 is complete. The fused candidate beat GRU in all three seeds but lost t
 
 The next action is a **performance-first audit** of the retained CCT-G3.4 execution path. It must measure the Python-token-serial cost, identify any semantics-preserving runtime repair, rerun regression and loss-equivalence checks, and record throughput and peak memory before any new training cell is considered.
 
+### Stage 3.6 — Bounded Quality Continuation
+
+CCT-G3.6 is pre-registered. It trains only the retained `dcss_residual_cdi` configuration, with matched GRU and Transformer references, to **1,500 total steps**. This is a bounded quality continuation—not the blocked 3,000-step scale ladder.
+
+```bash
+%cd /content/CDI
+!git pull --ff-only origin master
+!PYTHONPATH=. python benchmarks/ethiobbpe_synaxarium_pilot.py \
+  --steps 1500 \
+  --document-limit 321 \
+  --chunks-per-document 32 \
+  --chunk-length 16 \
+  --batch-size 2 \
+  --eval-batches 0 \
+  --shuffle-training-batches \
+  --learning-rate 0.01 \
+  --relative-loss-tolerance 0.05 \
+  --max-host-memory-gb 11 \
+  --output-dir results/colab_cct_g3_6_bounded_quality
+!cat results/colab_cct_g3_6_bounded_quality/REPORT.md
+!cat results/colab_cct_g3_6_bounded_quality/latest.json
+```
+
+**CCT-G3.6 gates:** all 9 records must be finite; CDI training loss must decrease in all seeds; CDI must be no worse than the 1,000-step retained-CDI reference of 6.743546; CDI must match or beat GRU in every seed; and the 2% target of 6.664364 is reported separately. No outcome authorizes 3,000 steps, a larger corpus, context expansion, capacity changes, or English scaling.
+
 ## 8. Stage 4 — context ladder and retention test
 
 Your original speed ambition matters most at longer sequences, not at 16-token chunks. State-space research motivates testing long dependencies and hardware-aware execution, but it does not grant CDI an automatic advantage. S4, Mamba, and Mamba-2 all pair structured state models with specific efficient algorithms and benchmark them against alternatives. [1] [2] [3]
@@ -240,7 +265,7 @@ I will keep the workflow bounded and visible. I will review the code and config 
 
 ## 13. First action for you to check
 
-CCT-G0, CCT-G1, CCT-G2.1, CCT-G3.1, CCT-G3.2, CCT-G3.3, CCT-G3.4, and CCT-G3.5 are complete. The selected CCT-G3.4 residual CDI beats GRU in every seed but missed the 2% material margin; G3.5 fusion earned `NO_FUSION_EVIDENCE`. Do **not** rerun G3.5, rerun Stage 2A with a larger budget, or begin Stage 2B. The performance-readiness audit is complete: `BOUNDED_RUNTIME_READY`. The next permitted action is a separately reviewed bounded quality-training proposal using retained CCT-G3.4 CDI; do not begin larger-data scaling, context expansion, capacity changes, or fluency evaluation.
+CCT-G0, CCT-G1, CCT-G2.1, CCT-G3.1, CCT-G3.2, CCT-G3.3, CCT-G3.4, and CCT-G3.5 are complete. The selected CCT-G3.4 residual CDI beats GRU in every seed but missed the 2% material margin; G3.5 fusion earned `NO_FUSION_EVIDENCE`. Do **not** rerun G3.5, rerun Stage 2A with a larger budget, or begin Stage 2B. The performance-readiness audit is complete: `BOUNDED_RUNTIME_READY`. CCT-G3.6 is the bounded 1,500-step quality continuation below, using retained CCT-G3.4 CDI and the same frozen short-context contract. Do not begin larger-data scaling, context expansion, capacity changes, or fluency evaluation.
 
 If Colab has a GPU, record its name with:
 

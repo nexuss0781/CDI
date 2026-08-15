@@ -281,6 +281,13 @@ Run one rung at a time. Every rung requires three seeds, the same evidence field
 - [x] Run the full regression suite and re-measure throughput, peak memory, and loss-equivalence after the performance repair: 297 tests passed; focused equivalence and runtime guards passed; short-context CDI throughput improved by approximately 21%; peak audit RSS was 1.256 GiB.
 - [x] Decide training eligibility: `BOUNDED_RUNTIME_READY` for a user-reviewed bounded quality approach; larger data, English scaling, 3,000-step scale ladder, longer context, capacity expansion, and fluency claims remain blocked.
 
+## CCT-G3.6 — Bounded Quality Continuation
+
+- [x] Pre-register a retained-CCT-G3.4 continuation at 1,500 total steps with the same corpus, tokenizer, context, optimizer, seeds, precision, and 11 GiB guard; see `docs/CCT_G3_6_PREREGISTRATION.md`.
+- [ ] Run retained `dcss_residual_cdi`, GRU, and Transformer across the frozen three-seed continuation matrix.
+- [ ] Require finite records, learning in all CDI seeds, CDI no worse than its 1,000-step reference, and CDI no worse than GRU in every seed.
+- [ ] Report the 2% material target separately; do not authorize 3,000 steps, larger corpus, context, capacity, or English scaling automatically.
+
 ---
 
 # CCT-G4 — Language Quality and Context Readiness

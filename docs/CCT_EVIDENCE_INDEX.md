@@ -21,7 +21,7 @@ The CCT-G1 revision is an ancestor of current `master`. Its result supports only
 
 | CCT goal | Required input before a decision | Do not proceed to |
 |---|---|---|
-| Bounded quality-training proposal | A separately reviewed training contract using retained CCT-G3.4 residual CDI, fixed tokenizer/data split/seeds/short context, explicit step budget, and the performance-readiness report | Larger corpus, English scaling, 3,000-step scale ladder, context work, capacity changes, or fluency claims |
+| CCT-G3.6 — Bounded Quality Continuation | The committed 1,500-step pre-registration, retained `dcss_residual_cdi` plus GRU/Transformer matrix, fixed tokenizer/data/splits/seeds/context, and the performance-readiness report | Larger corpus, English scaling, 3,000-step scale ladder, context work, capacity changes, or fluency claims |
 
 ## Evidence Handling Rule
 
