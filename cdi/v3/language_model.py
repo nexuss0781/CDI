@@ -21,6 +21,38 @@ class LossReport:
     loss_mask: torch.Tensor
 
 
+def _tiled_cross_entropy(
+    hidden: torch.Tensor,
+    targets: torch.Tensor,
+    loss_mask: torch.Tensor,
+    embedding_weight: torch.Tensor,
+    output_bias: torch.Tensor,
+    tile_size: int,
+) -> torch.Tensor:
+    """Compute exact causal cross-entropy in vocabulary tiles."""
+    if tile_size <= 0:
+        raise ValueError("vocab tile_size must be positive")
+    flat_hidden = hidden.reshape(-1, hidden.shape[-1])
+    flat_targets = targets.reshape(-1)
+    flat_mask = loss_mask.reshape(-1).to(dtype=hidden.dtype)
+    target_logits = torch.zeros(flat_targets.shape, dtype=hidden.dtype, device=hidden.device)
+    log_partition: torch.Tensor | None = None
+    vocabulary = embedding_weight.shape[0]
+    for start in range(0, vocabulary, tile_size):
+        end = min(start + tile_size, vocabulary)
+        tile_logits = F.linear(flat_hidden, embedding_weight[start:end], output_bias[start:end])
+        tile_log_partition = torch.logsumexp(tile_logits, dim=-1)
+        log_partition = tile_log_partition if log_partition is None else torch.logaddexp(log_partition, tile_log_partition)
+        in_tile = (flat_targets >= start) & (flat_targets < end)
+        local_targets = (flat_targets - start).clamp(min=0, max=end - start - 1)
+        gathered = tile_logits.gather(1, local_targets.unsqueeze(-1)).squeeze(-1)
+        target_logits = torch.where(in_tile, gathered, target_logits)
+    if log_partition is None:
+        raise ValueError("vocabulary must contain at least one token")
+    raw = log_partition - target_logits
+    return (raw * flat_mask).sum() / flat_mask.sum().clamp_min(1.0)
+
+
 class SelectiveTokenResidual(nn.Module):
     """Bounded causal source-token residual for the CCT-G3.4 readout candidate."""
 
@@ -127,7 +159,10 @@ class DCSSLanguageModel(nn.Module):
         state: CohomodynamicState | None = None,
         attention_mask: torch.Tensor | None = None,
         return_state: bool = True,
-    ) -> Tuple[torch.Tensor, CohomodynamicState] | torch.Tensor:
+        *,
+        return_logits: bool = True,
+        runtime_guard_mode: Literal["python", "tensor", "deferred", "disabled"] = "python",
+    ) -> Tuple[torch.Tensor, CohomodynamicState] | torch.Tensor | Tuple[torch.Tensor, CohomodynamicState, Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
         squeezed = input_ids.ndim == 1
         if squeezed:
             input_ids = input_ids.unsqueeze(0)
@@ -145,7 +180,27 @@ class DCSSLanguageModel(nn.Module):
         embeddings = self.embedding(input_ids)
         all_active = bool(attention_mask.all().item())
         if all_active:
-            dense_logits, dense_state = self._forward_active_embeddings(embeddings, current, return_state=return_state, squeezed=squeezed)
+            dense_result = self._forward_active_embeddings(
+                embeddings,
+                current,
+                return_state=return_state,
+                squeezed=squeezed,
+                runtime_guard_mode=runtime_guard_mode,
+                return_hidden=not return_logits,
+            )
+            if runtime_guard_mode == "deferred":
+                dense_logits, dense_state, metrics = dense_result
+                spectral_violation, max_geometry_energy, max_state_norm = metrics
+                if bool(spectral_violation.detach().item()):
+                    raise FloatingPointError("Deferred spectral-envelope guard failed.")
+                if bool((max_geometry_energy > self.ssm.cell.stage_b_config.energy_limit).detach().item()):
+                    raise FloatingPointError("Deferred geometry-energy guard failed.")
+                if bool((max_state_norm > self.ssm.cell.config.state_norm_bound).detach().item()):
+                    raise FloatingPointError("Deferred state-norm guard failed.")
+                if return_state:
+                    return dense_logits, dense_state, metrics
+                return dense_logits, None, metrics
+            dense_logits, dense_state = dense_result
             if return_state:
                 return dense_logits, dense_state
             return dense_logits
@@ -178,7 +233,7 @@ class DCSSLanguageModel(nn.Module):
                 current = self._select_state(current, candidate, active)
                 hidden_steps.append(hidden * active.unsqueeze(-1).to(dtype=hidden.dtype))
         hidden_chunk = torch.stack(hidden_steps, dim=1)
-        logits = F.linear(hidden_chunk, self.embedding.weight, self.output_bias)
+        logits = hidden_chunk if not return_logits else F.linear(hidden_chunk, self.embedding.weight, self.output_bias)
         if squeezed:
             logits = logits.squeeze(0)
         if return_state:
@@ -193,6 +248,7 @@ class DCSSLanguageModel(nn.Module):
         return_state: bool,
         squeezed: bool = False,
         runtime_guard_mode: Literal["python", "tensor", "deferred", "disabled"] = "python",
+        return_hidden: bool = False,
     ) -> Tuple[torch.Tensor, CohomodynamicState | None] | Tuple[torch.Tensor, CohomodynamicState, Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
         """Fast exact path for dense causal chunks with no padding."""
         current = state
@@ -316,7 +372,7 @@ class DCSSLanguageModel(nn.Module):
                         hidden = hidden + residual
                 hidden_steps.append(hidden)
             hidden_chunk = torch.stack(hidden_steps, dim=1)
-        logits = F.linear(hidden_chunk, self.embedding.weight, self.output_bias)
+        logits = hidden_chunk if return_hidden else F.linear(hidden_chunk, self.embedding.weight, self.output_bias)
         if squeezed:
             logits = logits.squeeze(0)
         if deferred_guards:
@@ -342,18 +398,45 @@ class DCSSLanguageModel(nn.Module):
             runtime_guard_mode=runtime_guard_mode,
         )
 
-    def causal_loss(self, input_ids: torch.Tensor, attention_mask: torch.Tensor | None = None) -> LossReport:
+    def causal_loss(
+        self,
+        input_ids: torch.Tensor,
+        attention_mask: torch.Tensor | None = None,
+        *,
+        return_logits: bool = True,
+        vocab_tile_size: int = 4096,
+    ) -> LossReport:
         if input_ids.ndim != 2 or input_ids.shape[1] < 2:
             raise ValueError("causal_loss expects (batch, length >= 2) token IDs.")
         if attention_mask is None:
             attention_mask = input_ids.ne(self.tokenizer.pad_id)
-        logits, _ = self.forward_chunk(input_ids[:, :-1], attention_mask=attention_mask[:, :-1], return_state=True)
-        targets = input_ids[:, 1:].to(device=logits.device)
-        loss_mask = attention_mask[:, 1:].to(dtype=torch.bool, device=logits.device) & attention_mask[:, :-1].to(dtype=torch.bool, device=logits.device)
-        raw = F.cross_entropy(logits.reshape(-1, self.vocab_size), targets.reshape(-1), reduction="none")
-        weights = loss_mask.reshape(-1).to(dtype=raw.dtype)
+        source_mask = attention_mask[:, :-1]
+        forward_result = self.forward_chunk(
+            input_ids[:, :-1],
+            attention_mask=source_mask,
+            return_state=True,
+            return_logits=return_logits,
+            runtime_guard_mode="deferred",
+        )
+        hidden_or_logits = forward_result[0]
+        targets = input_ids[:, 1:].to(device=hidden_or_logits.device)
+        loss_mask = attention_mask[:, 1:].to(dtype=torch.bool, device=hidden_or_logits.device) & source_mask.to(dtype=torch.bool, device=hidden_or_logits.device)
         count = int(loss_mask.sum().item())
-        loss = (raw * weights).sum() / weights.sum().clamp_min(1.0)
+        if return_logits:
+            raw = F.cross_entropy(hidden_or_logits.reshape(-1, self.vocab_size), targets.reshape(-1), reduction="none")
+            weights = loss_mask.reshape(-1).to(dtype=raw.dtype)
+            loss = (raw * weights).sum() / weights.sum().clamp_min(1.0)
+            logits = hidden_or_logits
+        else:
+            loss = _tiled_cross_entropy(
+                hidden_or_logits,
+                targets,
+                loss_mask,
+                self.embedding.weight,
+                self.output_bias,
+                vocab_tile_size,
+            )
+            logits = torch.empty(0, dtype=hidden_or_logits.dtype, device=hidden_or_logits.device)
         return LossReport(loss=loss, token_count=count, logits=logits, targets=targets, loss_mask=loss_mask)
 
     @torch.no_grad()
