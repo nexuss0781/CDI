@@ -236,7 +236,7 @@ Run one rung at a time. Every rung requires three seeds, the same evidence field
 - [x] At least one CCT-specific mechanism shows repeated predeclared value in held-out loss: sparse geometry improved held-out validation loss against the exact geometry-free counterpart in all three seeds.
 - [x] The geometry value survives three-seed comparison and does not depend on hidden budget changes; parameter spread was 0.49% and the protocol was frozen.
 
-**CCT-G3 status:** `EARNED_GEOMETRY_EVIDENCE`, `EARNED_READOUT_EVIDENCE`, `EARNED_HARMONIC_EVIDENCE`, and `EARNED_TOKEN_RESIDUAL_EVIDENCE`; the CCT-G3.5 fusion extension earned `NO_FUSION_EVIDENCE`. The selected CCT-G3.4 residual CDI beats GRU in all three seeds but remains `QUALITY_RECOVERY_PARTIAL`, not scale-authorized, because it did not reach the pre-registered 2% material-quality margin. The active gate is now performance readiness before training.
+**CCT-G3 status:** `EARNED_GEOMETRY_EVIDENCE`, `EARNED_READOUT_EVIDENCE`, `EARNED_HARMONIC_EVIDENCE`, and `EARNED_TOKEN_RESIDUAL_EVIDENCE`; the CCT-G3.5 fusion extension earned `NO_FUSION_EVIDENCE`. The selected CCT-G3.4 residual CDI beats GRU in all three seeds but remains `QUALITY_RECOVERY_PARTIAL`, not scale-authorized, because it did not reach the pre-registered 2% material-quality margin. The performance gate is now `BOUNDED_RUNTIME_READY`; only a user-reviewed bounded quality training approach is eligible.
 
 **If the gate passes:** retain each contributing mechanism. Any architecture-selection or quality-recovery proposal must be separately pre-registered and must preserve the frozen evidence contract.
 
@@ -276,10 +276,10 @@ Run one rung at a time. Every rung requires three seeds, the same evidence field
 
 ## Performance Readiness Before Training
 
-- [ ] Profile the retained CCT-G3.4 residual CDI execution path before any new training command.
-- [ ] Identify semantics-preserving runtime improvements, if any, without changing the frozen quality protocol.
-- [ ] Run the full regression suite and re-measure throughput, peak memory, and loss-equivalence after any performance repair.
-- [ ] Decide training eligibility only after the performance report is complete; larger data, English scaling, 3,000 steps, longer context, capacity expansion, and fluency claims remain blocked.
+- [x] Profile the retained CCT-G3.4 residual CDI execution path before any new training command; see `docs/PERFORMANCE_READINESS.md`.
+- [x] Identify and implement semantics-preserving runtime improvements without changing the frozen quality protocol: dense-mask fast path, equivalent contrast matmul, and cached geometry scale.
+- [x] Run the full regression suite and re-measure throughput, peak memory, and loss-equivalence after the performance repair: 297 tests passed; focused equivalence and runtime guards passed; short-context CDI throughput improved by approximately 21%; peak audit RSS was 1.256 GiB.
+- [x] Decide training eligibility: `BOUNDED_RUNTIME_READY` for a user-reviewed bounded quality approach; larger data, English scaling, 3,000-step scale ladder, longer context, capacity expansion, and fluency claims remain blocked.
 
 ---
 

@@ -240,7 +240,7 @@ I will keep the workflow bounded and visible. I will review the code and config 
 
 ## 13. First action for you to check
 
-CCT-G0, CCT-G1, CCT-G2.1, CCT-G3.1, CCT-G3.2, CCT-G3.3, CCT-G3.4, and CCT-G3.5 are complete. The selected CCT-G3.4 residual CDI beats GRU in every seed but missed the 2% material margin; G3.5 fusion earned `NO_FUSION_EVIDENCE`. Do **not** rerun G3.5, rerun Stage 2A with a larger budget, or begin Stage 2B. The next permitted action is the performance-readiness audit.
+CCT-G0, CCT-G1, CCT-G2.1, CCT-G3.1, CCT-G3.2, CCT-G3.3, CCT-G3.4, and CCT-G3.5 are complete. The selected CCT-G3.4 residual CDI beats GRU in every seed but missed the 2% material margin; G3.5 fusion earned `NO_FUSION_EVIDENCE`. Do **not** rerun G3.5, rerun Stage 2A with a larger budget, or begin Stage 2B. The performance-readiness audit is complete: `BOUNDED_RUNTIME_READY`. The next permitted action is a separately reviewed bounded quality-training proposal using retained CCT-G3.4 CDI; do not begin larger-data scaling, context expansion, capacity changes, or fluency evaluation.
 
 If Colab has a GPU, record its name with:
 
@@ -249,7 +249,7 @@ If Colab has a GPU, record its name with:
 !python -c "import torch; print(torch.__version__); print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')"
 ```
 
-We will review the performance profile and any loss-equivalence report before any 3,000-step, context, capacity, corpus, or optimization work.
+The performance profile is recorded in `docs/PERFORMANCE_READINESS.md`; review it before proposing any bounded quality-training cell. A 3,000-step scale ladder, context, capacity, corpus, optimization, and fluency work remain separately gated.
 
 ## References
 

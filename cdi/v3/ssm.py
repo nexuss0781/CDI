@@ -525,7 +525,7 @@ class CohomodynamicCell(nn.Module):
         for name in BAND_NAMES:
             band = state.by_name(name)
             mean = band.mean(dim=-2)
-            contrast = torch.einsum("vi,...vw->...iw", self.vertex_contrast_basis, band)
+            contrast = torch.matmul(band.transpose(-2, -1), self.vertex_contrast_basis).transpose(-2, -1)
             contrast = contrast.reshape(*band.shape[:-2], -1)
             if self.config.contrast_readout_ablation:
                 contrast = torch.zeros_like(contrast)
