@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# CDI Module 1.1 — single-script Colab/Google Drive training pipeline.
+# CDI Module 1 staged Colab/Google Drive training pipeline.
 #
-# This script intentionally runs only M1.1. It prepares bounded English chunks,
-# trains causal next-token prediction, fine-tunes on a disjoint continuation
-# subset, validates the final checkpoint, runs competency tests, persists every
-# artifact under Google Drive, and stops. It never advances automatically.
+# This script runs exactly one selected submodule at a time. It prepares bounded
+# English chunks, trains from the approved parent checkpoint when required,
+# validates the selected competency, persists every artifact under Google Drive,
+# and stops. It never advances automatically.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -13,7 +13,13 @@ cd "$ROOT"
 # In Colab, mount Drive before running this script. For local dry-runs, set
 # CDI_DRIVE_ROOT to a writable directory such as /tmp/cdi-drive.
 DRIVE_ROOT="${CDI_DRIVE_ROOT:-/content/drive/MyDrive/CDI}"
-BASE_ROOT="${DRIVE_ROOT}/module1/M1.1"
+STAGE="${CDI_STAGE:-m1.1}"
+if [[ "$STAGE" == "m1.2" ]]; then
+  BASE_ROOT="${DRIVE_ROOT}/module1/M1.2"
+else
+  STAGE="m1.1"
+  BASE_ROOT="${DRIVE_ROOT}/module1/M1.1"
+fi
 if [[ "${CDI_NEW_SESSION:-0}" == "1" ]]; then
   SESSION_ID="${CDI_SESSION_ID:-$(date -u +%Y%m%dT%H%M%SZ)}"
   RUN_ROOT="${BASE_ROOT}/sessions/${SESSION_ID}"
@@ -38,6 +44,7 @@ fi
 
 export PYTHONPATH="$ROOT${PYTHONPATH:+:$PYTHONPATH}"
 export CDI_RUN_ROOT="$RUN_ROOT"
+export CDI_STAGE="$STAGE"
 export CDI_SESSION_ID="$SESSION_ID"
 export CDI_DATA_ROOT="$DATA_ROOT"
 export CDI_CHECKPOINT_ROOT="$CHECKPOINT_ROOT"
@@ -66,7 +73,10 @@ from datasets import load_dataset
 from cdi.v3 import DCSSLanguageModel, EthioBBPETokenizer, StageCConfig, TokenizerConfig
 
 RUN_ROOT = Path(os.environ["CDI_RUN_ROOT"])
+STAGE = os.environ["CDI_STAGE"]
 SESSION_ID = os.environ["CDI_SESSION_ID"]
+SUBMODULE = "M1.2" if STAGE == "m1.2" else "M1.1"
+REPORT_NAME = f"{SUBMODULE}_REPORT.md"
 DATA_ROOT = Path(os.environ["CDI_DATA_ROOT"])
 CHECKPOINT_ROOT = Path(os.environ["CDI_CHECKPOINT_ROOT"])
 REPORT_ROOT = Path(os.environ["CDI_REPORT_ROOT"])
@@ -125,6 +135,15 @@ CONFIG = {
         "require_user_verdict_before_next_stage": True,
     },
 }
+
+if STAGE == "m1.2":
+    CONFIG["submodule"] = "M1.2"
+    CONFIG["objective"] = "Local English sentence and short-passage continuation"
+    CONFIG["dataset"]["split_seed"] = 137
+    CONFIG["optimization"]["pretrain_learning_rate"] = 0.002
+    CONFIG["optimization"]["finetune_learning_rate"] = 0.001
+    CONFIG["competency"]["maximum_test_gap"] = 0.02
+    CONFIG["competency"]["minimum_prompt_pass_fraction"] = 0.75
 
 
 def sha256_bytes(value: bytes) -> str:
@@ -322,7 +341,7 @@ def loss_on(model: DCSSLanguageModel, rows: list[list[int]], batch_size: int, de
 
 def save_checkpoint(path: Path, model: DCSSLanguageModel, optimizer: torch.optim.Optimizer, metadata: dict[str, Any]) -> str:
     payload = {
-        "format": "dcss-cdi-module1-m1-1-checkpoint-v1",
+        "format": f"dcss-cdi-module1-{STAGE}-checkpoint-v1",
         "model_state": {key: value.detach().cpu() for key, value in model.state_dict().items()},
         "optimizer_state": optimizer.state_dict(),
         "metadata": metadata,
@@ -362,6 +381,17 @@ def train_phase(name: str, model: DCSSLanguageModel, rows: list[list[int]], toke
     digest = save_checkpoint(checkpoint_path, model, optimizer, {"phase": name, "step": step, "token_budget": token_budget, "requested_steps": requested_steps, "manifest": manifest["fingerprint"]})
     print(f"{name}: loss {before:.6f} -> {after:.6f}; steps={phase_steps}; budget={token_budget}; checkpoint={digest}")
     return before, after, step, digest
+
+
+def load_parent_m1_1(model: DCSSLanguageModel, device: str) -> Path:
+    parent_root = Path(os.environ["CDI_DRIVE_ROOT"]) / "module1" / "M1.1"
+    candidates = sorted(parent_root.glob("**/checkpoints/m1_1_candidate.pt"), key=lambda path: path.stat().st_mtime, reverse=True)
+    if not candidates:
+        raise FileNotFoundError(f"No accepted M1.1 checkpoint found below {parent_root}")
+    checkpoint = candidates[0]
+    payload = torch.load(checkpoint, map_location=device, weights_only=False)
+    model.load_state_dict(payload["model_state"], strict=True)
+    return checkpoint
 
 
 def competency_test(model: DCSSLanguageModel, tokenizer: EthioBBPETokenizer, validation_rows: list[list[int]], test_rows: list[list[int]], batch_size: int, device: str, initial_validation_loss: float, final_validation_loss: float, checkpoint_path: Path, manifest: dict[str, Any]) -> dict[str, Any]:
@@ -411,16 +441,73 @@ def competency_test(model: DCSSLanguageModel, tokenizer: EthioBBPETokenizer, val
     return results
 
 
+def competency_test_m1_2(model: DCSSLanguageModel, tokenizer: EthioBBPETokenizer, validation_rows: list[list[int]], test_rows: list[list[int]], batch_size: int, device: str, initial_validation_loss: float, final_validation_loss: float, checkpoint_path: Path, manifest: dict[str, Any]) -> dict[str, Any]:
+    reload_model = build_model(tokenizer, device, CONFIG["optimization"]["seed"])
+    payload = torch.load(checkpoint_path, map_location=device, weights_only=False)
+    reload_model.load_state_dict(payload["model_state"], strict=True)
+    reloaded_validation_loss = loss_on(reload_model, validation_rows, batch_size, device)
+    reload_error = abs(reloaded_validation_loss - final_validation_loss)
+    test_loss = loss_on(reload_model, test_rows, batch_size, device)
+    test_gap = (test_loss - final_validation_loss) / max(abs(final_validation_loss), 1e-6)
+    prompt_count = min(12, len(validation_rows))
+    prompt_records = []
+    with torch.no_grad():
+        for row in validation_rows[:prompt_count]:
+            prompt_length = min(8, len(row))
+            prompt = torch.tensor(row[:prompt_length], dtype=torch.long, device=device)
+            generated = reload_model.generate(prompt, max_new_tokens=16, mode="greedy")
+            tokenizer.assert_ids_in_range(generated)
+            generated_ids = generated.detach().cpu().tolist()
+            continuation = generated_ids[prompt_length:]
+            repetition_rate = 1.0 if not continuation else 1.0 - (len(set(continuation)) / len(continuation))
+            prompt_records.append({
+                "repetition_rate": repetition_rate,
+                "valid": bool(torch.isfinite(generated.float()).all().item()),
+                "continuation_token_count": len(continuation),
+                "text": tokenizer.decode(generated_ids),
+            })
+    average_repetition = sum(record["repetition_rate"] for record in prompt_records) / max(len(prompt_records), 1)
+    valid_fraction = sum(record["valid"] for record in prompt_records) / max(len(prompt_records), 1)
+    prompt_pass_fraction = sum(record["repetition_rate"] <= CONFIG["competency"]["maximum_repetition_rate"] for record in prompt_records) / max(len(prompt_records), 1)
+    results = {
+        "initial_validation_loss": initial_validation_loss,
+        "final_validation_loss": final_validation_loss,
+        "test_loss": test_loss,
+        "test_gap_fraction": test_gap,
+        "reloaded_validation_loss": reloaded_validation_loss,
+        "reload_loss_abs_error": reload_error,
+        "prompt_count": prompt_count,
+        "average_repetition_rate": average_repetition,
+        "prompt_pass_fraction": prompt_pass_fraction,
+        "finite_prompt_fraction": valid_fraction,
+        "prompt_records": prompt_records,
+        "dataset_manifest": manifest["fingerprint"],
+        "checkpoint_sha256": sha256_file(checkpoint_path),
+        "peak_rss_gib": rss_gib(),
+    }
+    results["criteria"] = {
+        "validation_improved": final_validation_loss < initial_validation_loss,
+        "test_gap_within_limit": test_gap <= CONFIG["competency"]["maximum_test_gap"],
+        "prompt_continuation_pass_fraction": prompt_pass_fraction >= CONFIG["competency"]["minimum_prompt_pass_fraction"],
+        "repetition_controlled": average_repetition <= CONFIG["competency"]["maximum_repetition_rate"],
+        "finite_prompts": valid_fraction >= 1.0,
+        "reload_equivalent": reload_error <= CONFIG["competency"]["required_reload_max_abs_error"],
+        "memory_within_hard_limit": rss_gib() <= CONFIG["resource"]["hard_memory_gib"],
+    }
+    results["status"] = "PASS" if all(results["criteria"].values()) else "FAIL"
+    return results
+
+
 def main() -> int:
     if not Path("/content/drive/MyDrive").exists() and "CDI_DRIVE_ROOT" not in os.environ:
         print("ERROR: Google Drive is not mounted. Run drive.mount('/content/drive') first, or set CDI_DRIVE_ROOT for a local dry run.", file=sys.stderr)
         return 2
-    existing_status = RUN_ROOT / "reports" / "m1_1_status.json"
+    existing_status = RUN_ROOT / "reports" / f"{STAGE}_status.json"
     if existing_status.exists() and os.environ.get("CDI_FORCE_RERUN", "0") != "1":
         previous = json.loads(existing_status.read_text(encoding="utf-8"))
         if previous.get("status") in {"PASS", "FAIL"}:
-            print("M1.1 already has a persisted result:", previous["status"])
-            print("Review the report before rerunning. Set CDI_FORCE_RERUN=1 only after a new session decision.")
+            print(f"{SUBMODULE} already has a persisted result:", previous["status"])
+            print("Review the report before rerunning. Use a new session for another approved run.")
             return 0
 
     start = time.time()
@@ -434,20 +521,32 @@ def main() -> int:
     test_rows = read_chunks(DATA_ROOT / "test.jsonl")
     batch_size = 8 if device == "cuda" else 2
     model = build_model(tokenizer, device, CONFIG["optimization"]["seed"])
+    parent_checkpoint = None
+    if STAGE == "m1.2":
+        parent_checkpoint = load_parent_m1_1(model, device)
     initial_validation_loss = loss_on(model, validation_rows, batch_size, device)
+    pretrain_name = "m1_2_adaptation" if STAGE == "m1.2" else "pretrain"
+    pretrain_path = CHECKPOINT_ROOT / ("m1_2_adaptation.pt" if STAGE == "m1.2" else "m1_1_pretrain.pt")
+    candidate_path = CHECKPOINT_ROOT / ("m1_2_candidate.pt" if STAGE == "m1.2" else "m1_1_candidate.pt")
     pretrain_before, pretrain_after, step, pretrain_digest = train_phase(
-        "pretrain", model, train_rows, tokenizer, device, CONFIG["optimization"]["pretrain_learning_rate"], batch_size, CONFIG["dataset"]["train_tokens"], CHECKPOINT_ROOT / "m1_1_pretrain.pt", manifest, 0
+        pretrain_name, model, train_rows, tokenizer, device, CONFIG["optimization"]["pretrain_learning_rate"], batch_size, CONFIG["dataset"]["train_tokens"], pretrain_path, manifest, 0
     )
     finetune_before, finetune_after, step, finetune_digest = train_phase(
-        "finetune", model, finetune_rows, tokenizer, device, CONFIG["optimization"]["finetune_learning_rate"], batch_size, CONFIG["dataset"]["finetune_tokens"], CHECKPOINT_ROOT / "m1_1_candidate.pt", manifest, step
+        "finetune", model, finetune_rows, tokenizer, device, CONFIG["optimization"]["finetune_learning_rate"], batch_size, CONFIG["dataset"]["finetune_tokens"], candidate_path, manifest, step
     )
     final_validation_loss = loss_on(model, validation_rows, batch_size, device)
-    competency = competency_test(model, tokenizer, validation_rows, test_rows, batch_size, device, initial_validation_loss, final_validation_loss, CHECKPOINT_ROOT / "m1_1_candidate.pt", manifest)
+    competency = (
+        competency_test_m1_2(model, tokenizer, validation_rows, test_rows, batch_size, device, initial_validation_loss, final_validation_loss, candidate_path, manifest)
+        if STAGE == "m1.2"
+        else competency_test(model, tokenizer, validation_rows, test_rows, batch_size, device, initial_validation_loss, final_validation_loss, candidate_path, manifest)
+    )
     report = {
-        "format": "dcss-cdi-module1-m1-1-report-v1",
+        "format": f"dcss-cdi-module1-{STAGE}-report-v1",
         "module": "M1",
-        "submodule": "M1.1",
+        "submodule": SUBMODULE,
+        "stage": STAGE,
         "session_id": SESSION_ID,
+        "parent_checkpoint": str(parent_checkpoint) if parent_checkpoint else None,
         "status": competency["status"],
         "device": device,
         "torch_version": torch.__version__,
@@ -467,27 +566,31 @@ def main() -> int:
         "requires_user_verdict": True,
     }
     report["fingerprint"] = sha256_bytes(json.dumps(report, sort_keys=True, default=str, separators=(",", ":")).encode("utf-8"))
-    write_json(REPORT_ROOT / "m1_1_latest.json", report)
-    write_json(REPORT_ROOT / "m1_1_status.json", {"module": "M1", "submodule": "M1.1", "session_id": SESSION_ID, "status": report["status"], "report": str(REPORT_ROOT / "m1_1_latest.json"), "next_stage_locked": True})
-    (REPORT_ROOT / "M1.1_REPORT.md").write_text(
-        "# CDI M1.1 Competency Report\n\n"
+    latest_path = REPORT_ROOT / f"{STAGE}_latest.json"
+    status_path = REPORT_ROOT / f"{STAGE}_status.json"
+    report_path = REPORT_ROOT / REPORT_NAME
+    write_json(latest_path, report)
+    write_json(status_path, {"module": "M1", "submodule": SUBMODULE, "session_id": SESSION_ID, "status": report["status"], "report": str(latest_path), "next_stage_locked": True})
+    criteria_text = "\n".join(f"- **{name}:** `{value}`" for name, value in competency["criteria"].items())
+    if STAGE == "m1.2":
+        evidence_text = "\n".join(f"- `{record['text']}` — repetition rate `{record['repetition_rate']:.3f}`" for record in competency["prompt_records"])
+        extra_text = "\n\n## Fixed-prompt evidence\n\n" + evidence_text
+    else:
+        extra_text = "\n\n## Deferred observations\n\n" + "\n".join(f"- **{name}:** `{value}`" for name, value in competency["observations"].items()) + "\n\n## Generated continuation\n\n````text\n" + competency["generated_text"] + "\n````"
+    report_path.write_text(
+        f"# CDI {SUBMODULE} Competency Report\n\n"
         f"**Status:** `{report['status']}`  \\n"
         f"**Session:** `{SESSION_ID}`  \\n"
+        f"**Parent checkpoint:** `{parent_checkpoint or 'fresh model'}`  \\n"
         f"**Device:** `{device}`  \\n"
         f"**Peak RSS:** `{report['peak_rss_gib']:.3f} GiB`  \n"
         f"**Validation loss:** `{final_validation_loss:.6f}`  \n"
         f"**Test loss:** `{competency['test_loss']:.6f}`  \n"
         f"**Checkpoint:** `{competency['checkpoint_sha256']}`\n\n"
-        "## Competency criteria\n\n"
-        + "\n".join(f"- **{name}:** `{value}`" for name, value in competency["criteria"].items())
-        + "\n\n## Deferred observations\n\n"
-        + "\n".join(f"- **{name}:** `{value}`" for name, value in competency["observations"].items())
-        + "\n\n## Generated continuation\n\n````text\n"
-        + competency["generated_text"]
-        + "\n````\n\n**Next stage remains locked until the user reviews this report and returns the result for joint verdict.**\n",
+        "## Competency criteria\n\n" + criteria_text + extra_text + "\n\n**Next stage remains locked until the user reviews this report and returns the result for joint verdict.**\n",
         encoding="utf-8",
     )
-    print(f"M1.1 {report['status']}; report={REPORT_ROOT / 'M1.1_REPORT.md'}")
+    print(f"{SUBMODULE} {report['status']}; report={report_path}")
     print("STOP: no later Module 1 submodule will run automatically.")
     return 0
 
