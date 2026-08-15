@@ -15,6 +15,12 @@ cd "$ROOT"
 DRIVE_ROOT="${CDI_DRIVE_ROOT:-/content/drive/MyDrive/CDI}"
 STAGE="${CDI_STAGE:-m1.1}"
 PARENT_STAGE="${CDI_PARENT_STAGE:-}"
+case "${PARENT_STAGE,,}" in
+  m1.1) PARENT_STAGE="M1.1" ;;
+  m1.2) PARENT_STAGE="M1.2" ;;
+  "") ;;
+  *) echo "ERROR: unsupported CDI_PARENT_STAGE=$PARENT_STAGE; expected M1.1 or M1.2" >&2; exit 2 ;;
+esac
 PARENT_DATA_VARIANT="${CDI_PARENT_DATA_VARIANT:-base}"
 if [[ "$STAGE" == "m1.2" ]]; then
   BASE_ROOT="${DRIVE_ROOT}/module1/M1.2"
