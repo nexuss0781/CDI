@@ -146,6 +146,9 @@ CONFIG = {
         "stop_after_submodule": True,
         "auto_advance": False,
         "require_user_verdict_before_next_stage": True,
+        "compiled": os.environ.get("CDI_COMPILE", "0") == "1",
+        "compile_mode": os.environ.get("CDI_COMPILE_MODE", "reduce-overhead"),
+        "compile_fullgraph": True,
     },
 }
 
@@ -341,12 +344,73 @@ def read_chunks(path: Path) -> list[list[int]]:
     return rows
 
 
-def batch(rows: list[list[int]], batch_size: int, index: int, device: str) -> tuple[torch.Tensor, torch.Tensor]:
+class CompiledDenseCDI(torch.nn.Module):
+    """Fixed-shape compiled wrapper for the exact dense CDI recurrence."""
+
+    def __init__(self, model: DCSSLanguageModel, compile_mode: str) -> None:
+        super().__init__()
+        self.model = model
+        self.compile_mode = compile_mode
+
+    def forward(self, input_ids: torch.Tensor):
+        return self.model.forward_chunk_active(
+            input_ids,
+            return_state=False,
+            runtime_guard_mode="deferred",
+        )
+
+
+def build_runner(model: DCSSLanguageModel, compile_enabled: bool, compile_mode: str) -> torch.nn.Module:
+    if not compile_enabled:
+        return model
+    if not hasattr(torch, "compile"):
+        raise RuntimeError("Compiled CDI training was requested, but this PyTorch build has no torch.compile.")
+    print(f"COMPILE: enabling fixed-shape CDI training with mode={compile_mode!r}, fullgraph=True")
+    return torch.compile(
+        CompiledDenseCDI(model, compile_mode),
+        mode=compile_mode,
+        dynamic=False,
+        fullgraph=True,
+    )
+
+
+def check_deferred_metrics(metrics: tuple[torch.Tensor, torch.Tensor, torch.Tensor], model: DCSSLanguageModel) -> None:
+    spectral_violation, max_geometry_energy, max_state_norm = metrics
+    if bool(spectral_violation.detach().item()):
+        raise FloatingPointError("Deferred spectral-envelope guard failed.")
+    if bool((max_geometry_energy > model.ssm.cell.stage_b_config.energy_limit).detach().item()):
+        raise FloatingPointError("Deferred geometry-energy guard failed.")
+    if bool((max_state_norm > model.ssm.cell.config.state_norm_bound).detach().item()):
+        raise FloatingPointError("Deferred state-norm guard failed.")
+
+
+def batch(rows: list[list[int]], batch_size: int, index: int, device: str, fixed_length: int | None = None) -> tuple[torch.Tensor, torch.Tensor]:
     selected = [rows[(index + offset) % len(rows)] for offset in range(batch_size)]
-    length = max(len(row) for row in selected)
+    length = fixed_length or max(len(row) for row in selected)
+    if any(len(row) > length for row in selected):
+        raise ValueError(f"A chunk of length {max(len(row) for row in selected)} exceeds fixed compiled length {length}.")
     ids = [row + [0] * (length - len(row)) for row in selected]
     mask = [[True] * len(row) + [False] * (length - len(row)) for row in selected]
     return torch.tensor(ids, dtype=torch.long, device=device), torch.tensor(mask, dtype=torch.bool, device=device)
+
+
+def loss_tensor(
+    runner: torch.nn.Module,
+    model: DCSSLanguageModel,
+    ids: torch.Tensor,
+    mask: torch.Tensor,
+    compiled: bool,
+) -> torch.Tensor:
+    if compiled:
+        if not bool(mask.all().item()):
+            raise ValueError("Compiled CDI training requires all-active fixed-length chunks.")
+        logits, _, metrics = runner(ids[:, :-1])
+        check_deferred_metrics(metrics, model)
+        return torch.nn.functional.cross_entropy(
+            logits.reshape(-1, model.vocab_size),
+            ids[:, 1:].reshape(-1),
+        )
+    return model.causal_loss(ids, mask).loss
 
 
 def build_model(tokenizer: EthioBBPETokenizer, device: str, seed: int) -> DCSSLanguageModel:
@@ -356,17 +420,28 @@ def build_model(tokenizer: EthioBBPETokenizer, device: str, seed: int) -> DCSSLa
     return DCSSLanguageModel(tokenizer, config).to(device)
 
 
-def loss_on(model: DCSSLanguageModel, rows: list[list[int]], batch_size: int, device: str, max_batches: int | None = None) -> float:
+def loss_on(
+    model: DCSSLanguageModel,
+    runner: torch.nn.Module,
+    rows: list[list[int]],
+    batch_size: int,
+    device: str,
+    compiled: bool,
+    max_batches: int | None = None,
+) -> float:
     model.eval()
+    runner.eval()
     total = 0.0
     tokens = 0
+    fixed_length = CONFIG["optimization"]["chunk_length"] if compiled else None
     with torch.no_grad():
         count = len(rows) if max_batches is None else min(len(rows), max_batches)
         for index in range(count):
-            ids, mask = batch(rows, batch_size, index, device)
-            report = model.causal_loss(ids, mask)
-            total += float(report.loss.detach().cpu()) * report.token_count
-            tokens += report.token_count
+            ids, mask = batch(rows, batch_size, index, device, fixed_length=fixed_length)
+            loss = loss_tensor(runner, model, ids, mask, compiled)
+            token_count = int(mask[:, 1:].sum().item())
+            total += float(loss.detach().cpu()) * token_count
+            tokens += token_count
     if tokens <= 0:
         raise RuntimeError("Evaluation produced zero causal target tokens.")
     return total / tokens
@@ -387,32 +462,52 @@ def save_checkpoint(path: Path, model: DCSSLanguageModel, optimizer: torch.optim
     return digest
 
 
-def train_phase(name: str, model: DCSSLanguageModel, rows: list[list[int]], tokenizer: EthioBBPETokenizer, device: str, learning_rate: float, batch_size: int, token_budget: int, checkpoint_path: Path, manifest: dict[str, Any], starting_step: int) -> tuple[float, float, int, str]:
-    optimizer = torch.optim.AdamW([parameter for parameter in model.parameters() if parameter.requires_grad], lr=learning_rate, weight_decay=CONFIG["optimization"]["weight_decay"])
-    before = loss_on(model, rows, batch_size, device)
+def train_phase(
+    name: str,
+    model: DCSSLanguageModel,
+    runner: torch.nn.Module,
+    rows: list[list[int]],
+    tokenizer: EthioBBPETokenizer,
+    device: str,
+    learning_rate: float,
+    batch_size: int,
+    token_budget: int,
+    checkpoint_path: Path,
+    manifest: dict[str, Any],
+    starting_step: int,
+    compiled: bool,
+) -> tuple[float, float, int, str]:
+    optimizer = torch.optim.AdamW(
+        [parameter for parameter in runner.parameters() if parameter.requires_grad],
+        lr=learning_rate,
+        weight_decay=CONFIG["optimization"]["weight_decay"],
+    )
+    before = loss_on(model, runner, rows, batch_size, device, compiled)
     model.train()
+    runner.train()
     step = starting_step
     tokens_per_step = batch_size * (CONFIG["optimization"]["chunk_length"] - 1)
     requested_steps = max(1, math.ceil(token_budget / tokens_per_step))
     max_steps = int(CONFIG["optimization"].get("max_steps", 250))
     phase_steps = min(requested_steps, max_steps)
     order_rng = random.Random(CONFIG["optimization"]["seed"] + starting_step)
+    fixed_length = CONFIG["optimization"]["chunk_length"] if compiled else None
     for local_step in range(phase_steps):
         position = order_rng.randrange(len(rows))
-        ids, mask = batch(rows, batch_size, position, device)
+        ids, mask = batch(rows, batch_size, position, device, fixed_length=fixed_length)
         optimizer.zero_grad(set_to_none=True)
-        report = model.causal_loss(ids, mask)
-        if not bool(torch.isfinite(report.loss).item()):
+        loss = loss_tensor(runner, model, ids, mask, compiled)
+        if not bool(torch.isfinite(loss).item()):
             raise FloatingPointError(f"{name} produced non-finite loss at step {step}.")
-        report.loss.backward()
+        loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), CONFIG["optimization"]["gradient_clip_norm"])
         optimizer.step()
         step += 1
         if step % CONFIG["resource"]["checkpoint_every_steps"] == 0:
-            save_checkpoint(checkpoint_path, model, optimizer, {"phase": name, "step": step, "token_budget": token_budget, "requested_steps": requested_steps, "manifest": manifest["fingerprint"]})
-    after = loss_on(model, rows, batch_size, device)
-    digest = save_checkpoint(checkpoint_path, model, optimizer, {"phase": name, "step": step, "token_budget": token_budget, "requested_steps": requested_steps, "manifest": manifest["fingerprint"]})
-    print(f"{name}: loss {before:.6f} -> {after:.6f}; steps={phase_steps}; budget={token_budget}; checkpoint={digest}")
+            save_checkpoint(checkpoint_path, model, optimizer, {"phase": name, "step": step, "token_budget": token_budget, "requested_steps": requested_steps, "manifest": manifest["fingerprint"], "compiled": compiled})
+    after = loss_on(model, runner, rows, batch_size, device, compiled)
+    digest = save_checkpoint(checkpoint_path, model, optimizer, {"phase": name, "step": step, "token_budget": token_budget, "requested_steps": requested_steps, "manifest": manifest["fingerprint"], "compiled": compiled})
+    print(f"{name}: loss {before:.6f} -> {after:.6f}; steps={phase_steps}; budget={token_budget}; compiled={compiled}; checkpoint={digest}")
     return before, after, step, digest
 
 
@@ -559,17 +654,19 @@ def main() -> int:
     if STAGE != "m1.1":
         parent_stage = PARENT_STAGE or ("M1.2" if STAGE == "m1.2" and DATA_VARIANT == "r2" else "M1.1")
         parent_checkpoint = load_parent_checkpoint(model, device, parent_stage)
-    initial_validation_loss = loss_on(model, validation_rows, batch_size, device)
+    compiled = bool(CONFIG["execution"]["compiled"])
+    runner = build_runner(model, compiled, str(CONFIG["execution"]["compile_mode"]))
+    initial_validation_loss = loss_on(model, runner, validation_rows, batch_size, device, compiled)
     pretrain_name = "m1_2_adaptation" if STAGE == "m1.2" else "pretrain"
     pretrain_path = CHECKPOINT_ROOT / ("m1_2_adaptation.pt" if STAGE == "m1.2" else "m1_1_pretrain.pt")
     candidate_path = CHECKPOINT_ROOT / ("m1_2_candidate.pt" if STAGE == "m1.2" else "m1_1_candidate.pt")
     pretrain_before, pretrain_after, step, pretrain_digest = train_phase(
-        pretrain_name, model, train_rows, tokenizer, device, CONFIG["optimization"]["pretrain_learning_rate"], batch_size, CONFIG["dataset"]["train_tokens"], pretrain_path, manifest, 0
+        pretrain_name, model, runner, train_rows, tokenizer, device, CONFIG["optimization"]["pretrain_learning_rate"], batch_size, CONFIG["dataset"]["train_tokens"], pretrain_path, manifest, 0, compiled
     )
     finetune_before, finetune_after, step, finetune_digest = train_phase(
-        "finetune", model, finetune_rows, tokenizer, device, CONFIG["optimization"]["finetune_learning_rate"], batch_size, CONFIG["dataset"]["finetune_tokens"], candidate_path, manifest, step
+        "finetune", model, runner, finetune_rows, tokenizer, device, CONFIG["optimization"]["finetune_learning_rate"], batch_size, CONFIG["dataset"]["finetune_tokens"], candidate_path, manifest, step, compiled
     )
-    final_validation_loss = loss_on(model, validation_rows, batch_size, device)
+    final_validation_loss = loss_on(model, runner, validation_rows, batch_size, device, compiled)
     competency = (
         competency_test_m1_2(model, tokenizer, validation_rows, test_rows, batch_size, device, initial_validation_loss, final_validation_loss, candidate_path, manifest)
         if STAGE == "m1.2"
@@ -584,6 +681,14 @@ def main() -> int:
         "parent_stage": parent_stage if parent_checkpoint else None,
         "parent_checkpoint": str(parent_checkpoint) if parent_checkpoint else None,
         "status": competency["status"],
+        "execution": {
+            "compiled": compiled,
+            "compile_mode": CONFIG["execution"]["compile_mode"] if compiled else None,
+            "compile_fullgraph": CONFIG["execution"]["compile_fullgraph"] if compiled else None,
+            "fixed_batch_size": batch_size if compiled else None,
+            "fixed_sequence_length": CONFIG["optimization"]["chunk_length"] if compiled else None,
+            "loss_path": "full_vocabulary_cross_entropy_outside_compiled_recurrence" if compiled else "model_causal_loss",
+        },
         "device": device,
         "torch_version": torch.__version__,
         "python_version": sys.version,
