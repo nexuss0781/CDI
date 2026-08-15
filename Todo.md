@@ -279,14 +279,14 @@ Run one rung at a time. Every rung requires three seeds, the same evidence field
 - [x] Profile the retained CCT-G3.4 residual CDI execution path before any new training command; see `docs/PERFORMANCE_READINESS.md`.
 - [x] Identify and implement semantics-preserving runtime improvements without changing the frozen quality protocol: dense-mask fast path, equivalent contrast matmul, and cached geometry scale.
 - [x] Run the full regression suite and re-measure throughput, peak memory, and loss-equivalence after the performance repair: 297 tests passed; focused equivalence and runtime guards passed; short-context CDI throughput improved by approximately 21%; peak audit RSS was 1.256 GiB.
-- [x] Decide training eligibility: `BOUNDED_RUNTIME_READY` for a user-reviewed bounded quality approach; larger data, English scaling, 3,000-step scale ladder, longer context, capacity expansion, and fluency claims remain blocked.
+- [x] Decide training eligibility: `BOUNDED_RUNTIME_READY` for a user-reviewed bounded quality approach; CCT-G3.6 now passes as `EARNED_BOUNDED_CONTINUATION` and is `ELIGIBLE_FOR_REVIEWED_NEXT_RUNG`; larger data, English scaling, 3,000-step scale ladder, longer context, capacity expansion, and fluency claims remain separately gated.
 
 ## CCT-G3.6 — Bounded Quality Continuation
 
 - [x] Pre-register a retained-CCT-G3.4 continuation at 1,500 total steps with the same corpus, tokenizer, context, optimizer, seeds, precision, and 11 GiB guard; see `docs/CCT_G3_6_PREREGISTRATION.md`.
-- [ ] Run retained `dcss_residual_cdi`, GRU, and Transformer across the frozen three-seed continuation matrix.
-- [ ] Require finite records, learning in all CDI seeds, CDI no worse than its 1,000-step reference, and CDI no worse than GRU in every seed.
-- [ ] Report the 2% material target separately; do not authorize 3,000 steps, larger corpus, context, capacity, or English scaling automatically.
+- [x] Run retained `dcss_residual_cdi`, GRU, and Transformer across the frozen three-seed continuation matrix; autonomous CPU result contains all nine finite records.
+- [x] Require finite records, learning in all CDI seeds, CDI no worse than its 1,000-step reference, and CDI no worse than GRU in every seed; all gates passed.
+- [x] Report the 2% material target separately: CDI reached 6.576891 versus the 6.664364 target. The result is `EARNED_BOUNDED_CONTINUATION` and `ELIGIBLE_FOR_REVIEWED_NEXT_RUNG`; 3,000 steps, larger corpus, context, capacity, and English scaling remain separately gated.
 
 ---
 
