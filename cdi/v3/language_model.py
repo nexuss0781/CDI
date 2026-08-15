@@ -143,6 +143,7 @@ class DCSSLanguageModel(nn.Module):
                 raise ValueError("attention_mask must match input_ids shape.")
         current = state if state is not None else self.ssm.initial_state(batch_shape=(batch,), mode="zero")
         embeddings = self.embedding(input_ids)
+        all_active = bool(attention_mask.all().item())
         hidden_steps = []
         for index in range(length):
             source_embedding = embeddings[:, index]
@@ -153,9 +154,13 @@ class DCSSLanguageModel(nn.Module):
                     hidden = self.residual_fusion(hidden, residual, ablated=self.config.residual_fusion_ablation)
                 else:
                     hidden = hidden + residual
-            active = attention_mask[:, index]
-            current = self._select_state(current, candidate, active)
-            hidden_steps.append(hidden * active.unsqueeze(-1).to(dtype=hidden.dtype))
+            if all_active:
+                current = candidate
+                hidden_steps.append(hidden)
+            else:
+                active = attention_mask[:, index]
+                current = self._select_state(current, candidate, active)
+                hidden_steps.append(hidden * active.unsqueeze(-1).to(dtype=hidden.dtype))
         hidden_chunk = torch.stack(hidden_steps, dim=1)
         logits = F.linear(hidden_chunk, self.embedding.weight, self.output_bias)
         if squeezed:

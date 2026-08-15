@@ -21,7 +21,7 @@ The CCT-G1 revision is an ancestor of current `master`. Its result supports only
 
 | CCT goal | Required input before a decision | Do not proceed to |
 |---|---|---|
-| Performance readiness before training | A performance profile of retained CCT-G3.4 residual CDI, any semantics-preserving runtime repair, full regression, loss-equivalence check, throughput measurement, and peak-memory record | Larger corpus, English scaling, CCT-G2.2, context work, capacity changes, or fluency claims |
+| Bounded quality-training proposal | A separately reviewed training contract using retained CCT-G3.4 residual CDI, fixed tokenizer/data split/seeds/short context, explicit step budget, and the performance-readiness report | Larger corpus, English scaling, 3,000-step scale ladder, context work, capacity changes, or fluency claims |
 
 ## Evidence Handling Rule
 

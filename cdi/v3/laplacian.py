@@ -37,6 +37,11 @@ class MatrixFreeLaplacian(nn.Module):
         ratio = (historical_weights / maximum).clamp(min=1.0e-6, max=1.0 - 1.0e-6)
         initial = torch.logit(ratio)
         self.edge_log_weights = nn.Parameter(initial)
+        self.register_buffer(
+            "_maximum_edge_weight",
+            torch.as_tensor(config.max_geometry_edge_weight, dtype=config.dtype, device=config.device),
+            persistent=False,
+        )
 
     @property
     def state_shape(self) -> tuple[int, int]:
@@ -48,12 +53,10 @@ class MatrixFreeLaplacian(nn.Module):
 
     @property
     def edge_weights(self) -> torch.Tensor:
-        maximum = torch.as_tensor(
-            self.config.max_geometry_edge_weight,
+        return self._maximum_edge_weight.to(
             dtype=self.edge_log_weights.dtype,
             device=self.edge_log_weights.device,
-        )
-        return maximum * torch.sigmoid(self.edge_log_weights)
+        ) * torch.sigmoid(self.edge_log_weights)
 
     def apply(self, x: torch.Tensor) -> torch.Tensor:
         """Apply the factored geometry to ``(..., vertices, channels)`` state."""
