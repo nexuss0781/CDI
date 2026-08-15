@@ -1,0 +1,40 @@
+{
+  "benchmark": "performance_10k_compiled",
+  "target_tokens_per_second": 10000,
+  "device": "cpu",
+  "threads": 1,
+  "dtype": "float32",
+  "compile_mode": "reduce-overhead",
+  "compile_fullgraph": true,
+  "tokenizer_vocab_size": 16000,
+  "tokenizer_fingerprint": "d78996f0aca122d74054b927902aa9bf80c2b5cf00747a7cf4327ff0f7d1a88c",
+  "torch_version": "2.13.0+cu130",
+  "python_version": "3.12.3",
+  "platform": "Linux-6.1.102-x86_64-with-glibc2.39",
+  "models": {
+    "dcss_residual_cdi": {
+      "16": {
+        "length": 16,
+        "batch_size": 2,
+        "parameters": 80550,
+        "warmup_steps": 3,
+        "measured_steps": 8,
+        "mean_step_seconds": 0.009278511872253148,
+        "median_step_seconds": 0.009358812996651977,
+        "tokens_per_second": 3448.8289114221157,
+        "last_loss": 9.367989540100098,
+        "raw_step_seconds": [
+          0.010194642003625631,
+          0.009358812996651977,
+          0.009098142996663228,
+          0.009369678009534255,
+          0.0094955789973028,
+          0.009010800975374877,
+          0.008500833995640278,
+          0.009199605003232136
+        ]
+      }
+    }
+  },
+  "peak_rss_gib": 0.9790420532226562
+}
