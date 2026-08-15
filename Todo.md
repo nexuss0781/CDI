@@ -236,7 +236,7 @@ Run one rung at a time. Every rung requires three seeds, the same evidence field
 - [x] At least one CCT-specific mechanism shows repeated predeclared value in held-out loss: sparse geometry improved held-out validation loss against the exact geometry-free counterpart in all three seeds.
 - [x] The geometry value survives three-seed comparison and does not depend on hidden budget changes; parameter spread was 0.49% and the protocol was frozen.
 
-**CCT-G3 status:** `EARNED_GEOMETRY_EVIDENCE`, `EARNED_READOUT_EVIDENCE`, `EARNED_HARMONIC_EVIDENCE`, and `EARNED_TOKEN_RESIDUAL_EVIDENCE`; see `docs/CCT_G3_1_DECISION.md`, `docs/CCT_G3_2_DECISION.md`, `docs/CCT_G3_3_DECISION.md`, and `docs/CCT_G3_4_DECISION.md`. The selected residual CDI now beats GRU in all three seeds but remains `QUALITY_RECOVERY_PARTIAL`, not scale-authorized, because it did not reach the pre-registered 2% material-quality margin.
+**CCT-G3 status:** `EARNED_GEOMETRY_EVIDENCE`, `EARNED_READOUT_EVIDENCE`, `EARNED_HARMONIC_EVIDENCE`, and `EARNED_TOKEN_RESIDUAL_EVIDENCE`; the CCT-G3.5 fusion extension earned `NO_FUSION_EVIDENCE`. The selected CCT-G3.4 residual CDI beats GRU in all three seeds but remains `QUALITY_RECOVERY_PARTIAL`, not scale-authorized, because it did not reach the pre-registered 2% material-quality margin. The active gate is now performance readiness before training.
 
 **If the gate passes:** retain each contributing mechanism. Any architecture-selection or quality-recovery proposal must be separately pre-registered and must preserve the frozen evidence contract.
 
@@ -270,9 +270,16 @@ Run one rung at a time. Every rung requires three seeds, the same evidence field
 
 - [x] Pre-register one bounded state-conditioned fusion gate over the retained CCT-G3.4 token residual and exact parameter-aware fusion-one control; see `docs/CCT_G3_5_PREREGISTRATION.md`.
 - [x] Verify causal source-token/state dependence, retained DCSS state trajectory and residual values, narrow inactive-gradient contract, stability, parameter equality, and five-model harness locally before training; 27 focused CCT-G3 control/harness tests and the full 294-test regression suite passed, and a non-evidentiary `/tmp` smoke run passed the 11 GiB guard.
-- [ ] Run fused residual CDI, exact fusion control, CCT-G3.4 residual CDI, GRU, and Transformer across the frozen three-seed, 1,000-step contract.
-- [ ] Record held-out loss, test loss, token accuracy, throughput, host memory, and parameter counts.
-- [ ] Apply the 2% material-quality gate: fused candidate must beat GRU in every seed and reach mean validation loss at or below 6.664364 before any CCT-G2.2 proposal can be reviewed.
+- [x] Run fused residual CDI, exact fusion control, CCT-G3.4 residual CDI, GRU, and Transformer across the frozen three-seed, 1,000-step contract; the submitted formal artifact contains all 15 finite records.
+- [x] Record held-out loss, test loss, token accuracy, throughput, host memory, and parameter counts; see `docs/CCT_G3_5_DECISION.md`.
+- [x] Apply the 2% material-quality gate: candidate beat GRU in all three seeds but lost to the exact fusion control in seeds 11 and 29, so the mechanism decision is `NO_FUSION_EVIDENCE`. Retain CCT-G3.4 residual CDI; do not retain the fusion extension or authorize scale.
+
+## Performance Readiness Before Training
+
+- [ ] Profile the retained CCT-G3.4 residual CDI execution path before any new training command.
+- [ ] Identify semantics-preserving runtime improvements, if any, without changing the frozen quality protocol.
+- [ ] Run the full regression suite and re-measure throughput, peak memory, and loss-equivalence after any performance repair.
+- [ ] Decide training eligibility only after the performance report is complete; larger data, English scaling, 3,000 steps, longer context, capacity expansion, and fluency claims remain blocked.
 
 ---
 
