@@ -27,7 +27,12 @@ else
   SESSION_ID="initial"
   RUN_ROOT="$BASE_ROOT"
 fi
-DATA_ROOT="${BASE_ROOT}/dataset"
+DATA_VARIANT="${CDI_DATA_VARIANT:-base}"
+if [[ "$DATA_VARIANT" == "base" ]]; then
+  DATA_ROOT="${BASE_ROOT}/dataset"
+else
+  DATA_ROOT="${BASE_ROOT}/dataset_${DATA_VARIANT}"
+fi
 CHECKPOINT_ROOT="${RUN_ROOT}/checkpoints"
 REPORT_ROOT="${RUN_ROOT}/reports"
 LOG_ROOT="${RUN_ROOT}/logs"
@@ -46,6 +51,7 @@ export PYTHONPATH="$ROOT${PYTHONPATH:+:$PYTHONPATH}"
 export CDI_RUN_ROOT="$RUN_ROOT"
 export CDI_STAGE="$STAGE"
 export CDI_SESSION_ID="$SESSION_ID"
+export CDI_DATA_VARIANT="$DATA_VARIANT"
 export CDI_DATA_ROOT="$DATA_ROOT"
 export CDI_CHECKPOINT_ROOT="$CHECKPOINT_ROOT"
 export CDI_REPORT_ROOT="$REPORT_ROOT"
@@ -75,6 +81,7 @@ from cdi.v3 import DCSSLanguageModel, EthioBBPETokenizer, StageCConfig, Tokenize
 RUN_ROOT = Path(os.environ["CDI_RUN_ROOT"])
 STAGE = os.environ["CDI_STAGE"]
 SESSION_ID = os.environ["CDI_SESSION_ID"]
+DATA_VARIANT = os.environ["CDI_DATA_VARIANT"]
 SUBMODULE = "M1.2" if STAGE == "m1.2" else "M1.1"
 REPORT_NAME = f"{SUBMODULE}_REPORT.md"
 DATA_ROOT = Path(os.environ["CDI_DATA_ROOT"])
@@ -144,6 +151,11 @@ if STAGE == "m1.2":
     CONFIG["optimization"]["finetune_learning_rate"] = 0.001
     CONFIG["competency"]["maximum_test_gap"] = 0.02
     CONFIG["competency"]["minimum_prompt_pass_fraction"] = 0.75
+    if DATA_VARIANT == "r2":
+        CONFIG["dataset"]["split_seed"] = 2718
+        CONFIG["dataset"]["train_tokens"] = 100000
+        CONFIG["dataset"]["finetune_tokens"] = 20000
+        CONFIG["optimization"]["max_steps"] = 500
 
 
 def sha256_bytes(value: bytes) -> str:
@@ -230,6 +242,7 @@ def prepare_dataset() -> dict[str, Any]:
     manifest_path = DATA_ROOT / "manifest.json"
     expected_config = {
         "dataset": CONFIG["dataset"],
+        "data_variant": DATA_VARIANT,
         "chunk_length": CONFIG["optimization"]["chunk_length"],
     }
     if manifest_path.exists():
@@ -251,6 +264,17 @@ def prepare_dataset() -> dict[str, Any]:
     validation_rows = text_rows(dataset["validation"])
     test_rows = text_rows(dataset["test"])
     seed = CONFIG["dataset"]["split_seed"]
+    if DATA_VARIANT == "r2":
+        previous_manifest_path = Path(os.environ["CDI_DRIVE_ROOT"]) / "module1" / "M1.2" / "dataset" / "manifest.json"
+        if not previous_manifest_path.is_file():
+            raise FileNotFoundError(f"M1.2 base manifest is required before creating {DATA_VARIANT}.")
+        previous_manifest = json.loads(previous_manifest_path.read_text(encoding="utf-8"))
+        excluded_ids = {document_id for ids in previous_manifest.get("document_ids", {}).values() for document_id in ids}
+        train_rows = [row for row in train_rows if row[0] not in excluded_ids]
+        validation_rows = [row for row in validation_rows if row[0] not in excluded_ids]
+        test_rows = [row for row in test_rows if row[0] not in excluded_ids]
+        if not train_rows or not validation_rows or not test_rows:
+            raise RuntimeError("The new M1.2 data variant has no documents after excluding the prior M1.2 corpus.")
     random.Random(seed).shuffle(train_rows)
     random.Random(seed + 1).shuffle(validation_rows)
     random.Random(seed + 2).shuffle(test_rows)
@@ -276,6 +300,7 @@ def prepare_dataset() -> dict[str, Any]:
     manifest = {
         "format": "dcss-cdi-module1-dataset-manifest-v1",
         "config": expected_config,
+        "data_variant": DATA_VARIANT,
         "tokenizer_fingerprint": tokenizer.fingerprint,
         "vocab_size": tokenizer.vocab_size,
         "source_splits": {"pretrain": "train", "finetune": "train", "validation": "validation", "test": "test"},
@@ -383,11 +408,12 @@ def train_phase(name: str, model: DCSSLanguageModel, rows: list[list[int]], toke
     return before, after, step, digest
 
 
-def load_parent_m1_1(model: DCSSLanguageModel, device: str) -> Path:
-    parent_root = Path(os.environ["CDI_DRIVE_ROOT"]) / "module1" / "M1.1"
-    candidates = sorted(parent_root.glob("**/checkpoints/m1_1_candidate.pt"), key=lambda path: path.stat().st_mtime, reverse=True)
+def load_parent_checkpoint(model: DCSSLanguageModel, device: str, parent_stage: str) -> Path:
+    parent_root = Path(os.environ["CDI_DRIVE_ROOT"]) / "module1" / parent_stage
+    checkpoint_name = "m1_2_candidate.pt" if parent_stage == "M1.2" else "m1_1_candidate.pt"
+    candidates = sorted(parent_root.glob(f"**/checkpoints/{checkpoint_name}"), key=lambda path: path.stat().st_mtime, reverse=True)
     if not candidates:
-        raise FileNotFoundError(f"No accepted M1.1 checkpoint found below {parent_root}")
+        raise FileNotFoundError(f"No {parent_stage} checkpoint found below {parent_root}")
     checkpoint = candidates[0]
     payload = torch.load(checkpoint, map_location=device, weights_only=False)
     model.load_state_dict(payload["model_state"], strict=True)
@@ -523,7 +549,8 @@ def main() -> int:
     model = build_model(tokenizer, device, CONFIG["optimization"]["seed"])
     parent_checkpoint = None
     if STAGE == "m1.2":
-        parent_checkpoint = load_parent_m1_1(model, device)
+        parent_stage = "M1.2" if DATA_VARIANT == "r2" else "M1.1"
+        parent_checkpoint = load_parent_checkpoint(model, device, parent_stage)
     initial_validation_loss = loss_on(model, validation_rows, batch_size, device)
     pretrain_name = "m1_2_adaptation" if STAGE == "m1.2" else "pretrain"
     pretrain_path = CHECKPOINT_ROOT / ("m1_2_adaptation.pt" if STAGE == "m1.2" else "m1_1_pretrain.pt")
