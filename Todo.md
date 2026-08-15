@@ -281,6 +281,13 @@ Run one rung at a time. Every rung requires three seeds, the same evidence field
 - [x] Run the full regression suite and re-measure throughput, peak memory, and loss-equivalence after the performance repair: 297 tests passed; focused equivalence and runtime guards passed; short-context CDI throughput improved by approximately 21%; peak audit RSS was 1.256 GiB.
 - [x] Decide training eligibility: `BOUNDED_RUNTIME_READY` for a user-reviewed bounded quality approach; CCT-G3.6 now passes as `EARNED_BOUNDED_CONTINUATION` and is `ELIGIBLE_FOR_REVIEWED_NEXT_RUNG`; larger data, English scaling, 3,000-step scale ladder, longer context, capacity expansion, and fluency claims remain separately gated.
 
+## Performance Sprint — 10,000 Token-Positions per Second
+
+- [x] Define the primary training-throughput benchmark, current baseline, optimization ladder, and equivalence gates; see `docs/PERFORMANCE_10K_PREREGISTRATION.md`.
+- [x] Implement and test only semantics-preserving dense geometry, fused gate projection, fixed-length compilation, or allocation-reduction tiers; retained dense Laplacian, fused gates, flat three-band recurrence, dense token-residual precomputation, and deferred fail-closed guard metrics.
+- [x] Re-measure the registered length-16 primary training gate plus length-64/256 secondary diagnostics; record peak memory, state/loss/gradient equivalence, and full regression in `docs/PERFORMANCE_10K_DECISION.md` and `results/performance_10k_compiled/latest.json`.
+- [x] Record `PARTIAL_PERFORMANCE_EVIDENCE`: compiled CDI reached 3,448.83 token-positions/s at length 16 versus the 10,000 target; do not change quality, data, context, or capacity gates.
+
 ## CCT-G3.6 — Bounded Quality Continuation
 
 - [x] Pre-register a retained-CCT-G3.4 continuation at 1,500 total steps with the same corpus, tokenizer, context, optimizer, seeds, precision, and 11 GiB guard; see `docs/CCT_G3_6_PREREGISTRATION.md`.
@@ -463,23 +470,20 @@ Run one rung at a time. Every rung requires three seeds, the same evidence field
 
 | Field | Status |
 |---|---|
-| Active CCT Goal | **CCT-G3 — Architecture Value** |
-| Active sprint | **CCT-G3.3 — Controlled harmonic-memory-band contribution ablation** |
-| Completed foundation | CCT-G0 readiness validation at `a038147`, bounded three-seed learning proof, CCT-G2.1 full-corpus diagnostic at `d5a2180`, CCT-G3.1 geometry evidence at `646c272`, and CCT-G3.2 readout evidence at `fb50b57` under 11 GiB guarded execution. |
-| Required next evidence | A pre-registered, parameter-aware CCT-G3.3 harmonic-band control report under the frozen CCT-G3 contract. |
-| Not yet approved | CCT-G2.2 (3,000 steps), larger corpus training, context/capacity changes, speed claims, fluency claims, broad instruction training, or any work outside this Todo. |
+| Active CCT Goal | **CCT Level 1 — Performance Sprint closure** |
+| Active sprint | **Performance Sprint — 10,000 Token-Positions per Second** |
+| Completed foundation | CCT-G0 through CCT-G3.6 evidence, bounded runtime repairs, full recurrence equivalence, 304-test regression, and the registered primary performance artifact under the 11 GiB guard. |
+| Required next evidence | A separately reviewed next rung; the 10,000 token-position/s gate remains unmet and no scale transition is automatic. |
+| Not yet approved | CCT-G2.2 (3,000 steps), larger corpus training, context/capacity changes, any claim of reaching 10,000 token-positions/s, fluency claims, broad instruction training, or any work outside this Todo. |
 
 ## Immediate Next Checklist
 
-- [x] Record the CCT-G3.1 empirical result as `EARNED_GEOMETRY_EVIDENCE`; see `docs/CCT_G3_1_DECISION.md`.
-- [x] Preserve the submitted CCT-G3.1 report/JSON identifiers, 11 GiB memory evidence, and strict base `REDESIGN_BEFORE_SCALE` quality decision.
-- [x] Retain sparse geometry because it supplied repeated held-out value against the exact geometry-free CDI control.
-- [x] Record CCT-G3.2 as `EARNED_READOUT_EVIDENCE` and re-confirm CCT-G3.1 geometry evidence; see `docs/CCT_G3_2_DECISION.md`.
-- [x] Preserve the submitted five-model artifact identifiers, three-seed gates, and 11 GiB host-memory evidence.
-- [x] Retain the contrast readout and sparse geometry; neither result unlocks scale because CDI remains above GRU in every seed.
-- [ ] Pre-register the exact CCT-G3.3 harmonic-band control and its parameter-aware fairness rule.
-- [ ] Verify CCT-G3.3 local causal, gradient, numerical, harness, and parameter-fairness gates.
-- [ ] Run and review CCT-G3.3 before any quality rerun; CCT-G2.2, context, capacity, corpus, and performance work remain blocked.
+- [x] Complete the registered performance optimization ladder without changing the frozen quality contract.
+- [x] Verify full recurrence logits, state trajectory, loss, and gradients against the reference implementation.
+- [x] Preserve eager fail-closed runtime guards and validate deferred guard metrics after compiled dense chunks.
+- [x] Run the full regression suite: 304 tests passed.
+- [x] Record `PARTIAL_PERFORMANCE_EVIDENCE` at 2,553.01 token-positions/s for the compiled primary length-16 workload; see `docs/PERFORMANCE_10K_DECISION.md`.
+- [x] Keep CCT-G2.2, larger corpus, context, capacity, English scaling, and fluency claims locked.
 
 ## Stage Discipline
 

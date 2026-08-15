@@ -26,6 +26,11 @@ class MatrixFreeLaplacian(nn.Module):
         self.topology = topology
         self.config = config
         self.incidence = SparseIncidence(topology)
+        self.register_buffer(
+            "_dense_incidence",
+            self.incidence.dense(dtype=config.dtype, device=config.device),
+            persistent=False,
+        )
         # Preserve the historical softplus effective initialization while using
         # a bounded logit parameterization thereafter.  A hard post-update
         # rejection makes a valid optimizer trajectory terminate at the cap;
@@ -64,10 +69,10 @@ class MatrixFreeLaplacian(nn.Module):
             raise ValueError(f"Expected (..., {self.state_shape[0]}, {self.state_shape[1]}), got {tuple(x.shape)}.")
         if self.config.geometry_ablation:
             return torch.zeros_like(x)
-        edge_values = self.incidence.apply(x)
         weights = self.edge_weights.to(dtype=x.dtype, device=x.device)
-        edge_values = edge_values * weights.view((1,) * (edge_values.ndim - 2) + (-1, 1))
-        return self.incidence.transpose_apply(edge_values)
+        incidence = self._dense_incidence.to(dtype=x.dtype, device=x.device)
+        laplacian = incidence.transpose(-2, -1) @ (incidence * weights.unsqueeze(-1))
+        return torch.matmul(laplacian, x)
 
     def quadratic_form(self, x: torch.Tensor) -> torch.Tensor:
         laplacian_x = self.apply(x)

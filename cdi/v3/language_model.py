@@ -8,7 +8,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 
-from .ssm import CohomodynamicState, SelectiveCohomodynamicSSM, StageCConfig
+from .ssm import CohomodynamicState, GateValues, SelectiveCohomodynamicSSM, StageCConfig
 from .tokenizer import EthioBBPETokenizer
 
 
@@ -144,10 +144,26 @@ class DCSSLanguageModel(nn.Module):
         current = state if state is not None else self.ssm.initial_state(batch_shape=(batch,), mode="zero")
         embeddings = self.embedding(input_ids)
         all_active = bool(attention_mask.all().item())
+        if all_active:
+            dense_logits, dense_state = self._forward_active_embeddings(embeddings, current, return_state=return_state, squeezed=squeezed)
+            if return_state:
+                return dense_logits, dense_state
+            return dense_logits
+        fused_gate_sequence = self.ssm.cell.fused_gate_values(embeddings)
         hidden_steps = []
         for index in range(length):
             source_embedding = embeddings[:, index]
-            hidden, candidate = self.ssm.step(source_embedding, current)
+            step_gates = {
+                name: GateValues(
+                    forcing=values.forcing[:, index],
+                    input_gate=values.input_gate[:, index],
+                    transport_gate=values.transport_gate[:, index],
+                    log_timescale_offset=values.log_timescale_offset[:, index],
+                    geometry_gate=values.geometry_gate[:, index],
+                )
+                for name, values in fused_gate_sequence.items()
+            }
+            hidden, candidate = self.ssm.step(source_embedding, current, fused_gates=step_gates)
             if self.token_residual is not None:
                 residual = self.token_residual(source_embedding, ablated=self.config.token_residual_ablation)
                 if self.residual_fusion is not None:
@@ -168,6 +184,122 @@ class DCSSLanguageModel(nn.Module):
         if return_state:
             return logits, current
         return logits
+
+    def _forward_active_embeddings(
+        self,
+        embeddings: torch.Tensor,
+        state: CohomodynamicState,
+        *,
+        return_state: bool,
+        squeezed: bool = False,
+        runtime_guard_mode: Literal["python", "tensor", "deferred", "disabled"] = "python",
+    ) -> Tuple[torch.Tensor, CohomodynamicState | None] | Tuple[torch.Tensor, CohomodynamicState, Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
+        """Fast exact path for dense causal chunks with no padding."""
+        current = state
+        deferred_guards = runtime_guard_mode == "deferred"
+        if deferred_guards:
+            max_spectral_violation = torch.zeros((), dtype=torch.bool, device=embeddings.device)
+            max_geometry_energy = torch.zeros((), dtype=embeddings.dtype, device=embeddings.device)
+            max_state_norm = torch.zeros((), dtype=embeddings.dtype, device=embeddings.device)
+        hidden_steps = []
+        token_residual_sequence = (
+            self.token_residual(embeddings, ablated=self.config.token_residual_ablation)
+            if self.token_residual is not None
+            else None
+        )
+        flat_fused = not self.ssm.cell.disable_harmonic and self.ssm.cell.unconstrained_cochain is None
+        if flat_fused:
+            forcing, input_gate, transport_gate, offsets, geometry = self.ssm.cell.fused_gate_tensors(embeddings)
+            for index in range(embeddings.shape[1]):
+                source_embedding = embeddings[:, index]
+                step_result = self.ssm.cell.step_fused_tensors(
+                    forcing[:, index],
+                    input_gate[:, index],
+                    transport_gate[:, index],
+                    offsets[:, index],
+                    geometry[:, index],
+                    current,
+                    runtime_guard_mode=runtime_guard_mode,
+                    return_runtime_metrics=deferred_guards,
+                    store_diagnostics=runtime_guard_mode in ("python", "tensor"),
+                )
+                if deferred_guards:
+                    hidden, current, step_metrics = step_result
+                    spectral_violation, geometry_energy, state_norm = step_metrics
+                    max_spectral_violation = torch.logical_or(max_spectral_violation, spectral_violation)
+                    max_geometry_energy = torch.maximum(max_geometry_energy, geometry_energy.max())
+                    max_state_norm = torch.maximum(max_state_norm, state_norm.max())
+                else:
+                    hidden, current = step_result
+                if self.token_residual is not None:
+                    residual = token_residual_sequence[:, index]
+                    if self.residual_fusion is not None:
+                        hidden = self.residual_fusion(hidden, residual, ablated=self.config.residual_fusion_ablation)
+                    else:
+                        hidden = hidden + residual
+                hidden_steps.append(hidden)
+        else:
+            fused_gate_sequence = self.ssm.cell.fused_gate_values(embeddings)
+            for index in range(embeddings.shape[1]):
+                source_embedding = embeddings[:, index]
+                step_gates = {
+                    name: GateValues(
+                        forcing=values.forcing[:, index],
+                        input_gate=values.input_gate[:, index],
+                        transport_gate=values.transport_gate[:, index],
+                        log_timescale_offset=values.log_timescale_offset[:, index],
+                        geometry_gate=values.geometry_gate[:, index],
+                    )
+                    for name, values in fused_gate_sequence.items()
+                }
+                step_result = self.ssm.step(
+                    source_embedding,
+                    current,
+                    fused_gates=step_gates,
+                    runtime_guard_mode=runtime_guard_mode,
+                    return_runtime_metrics=deferred_guards,
+                )
+                if deferred_guards:
+                    hidden, current, step_metrics = step_result
+                    spectral_violation, geometry_energy, state_norm = step_metrics
+                    max_spectral_violation = torch.logical_or(max_spectral_violation, spectral_violation)
+                    max_geometry_energy = torch.maximum(max_geometry_energy, geometry_energy.max())
+                    max_state_norm = torch.maximum(max_state_norm, state_norm.max())
+                else:
+                    hidden, current = step_result
+                if self.token_residual is not None:
+                    residual = token_residual_sequence[:, index]
+                    if self.residual_fusion is not None:
+                        hidden = self.residual_fusion(hidden, residual, ablated=self.config.residual_fusion_ablation)
+                    else:
+                        hidden = hidden + residual
+                hidden_steps.append(hidden)
+        hidden_chunk = torch.stack(hidden_steps, dim=1)
+        logits = F.linear(hidden_chunk, self.embedding.weight, self.output_bias)
+        if squeezed:
+            logits = logits.squeeze(0)
+        if deferred_guards:
+            return logits, current if return_state else None, (max_spectral_violation, max_geometry_energy, max_state_norm)
+        return logits, current if return_state else None
+
+    def forward_chunk_active(
+        self,
+        input_ids: torch.Tensor,
+        *,
+        state: CohomodynamicState | None = None,
+        return_state: bool = False,
+        runtime_guard_mode: Literal["python", "tensor", "deferred", "disabled"] = "python",
+    ) -> Tuple[torch.Tensor, CohomodynamicState | None] | Tuple[torch.Tensor, CohomodynamicState, Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
+        """Compile-friendly exact path for fixed dense chunks."""
+        input_ids = input_ids.to(dtype=torch.long, device=self.embedding.weight.device)
+        embeddings = self.embedding(input_ids)
+        current = state if state is not None else self.ssm.initial_state(batch_shape=(input_ids.shape[0],), mode="zero")
+        return self._forward_active_embeddings(
+            embeddings,
+            current,
+            return_state=return_state,
+            runtime_guard_mode=runtime_guard_mode,
+        )
 
     def causal_loss(self, input_ids: torch.Tensor, attention_mask: torch.Tensor | None = None) -> LossReport:
         if input_ids.ndim != 2 or input_ids.shape[1] < 2:
