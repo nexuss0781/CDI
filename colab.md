@@ -176,7 +176,7 @@ CCT-G3.6 is pre-registered. It trains only the retained `dcss_residual_cdi` conf
 ```bash
 %cd /content/CDI
 !git pull --ff-only origin master
-!PYTHONPATH=. python benchmarks/ethiobbpe_synaxarium_pilot.py \
+!PYTHONPATH=. python benchmarks/cct_g3_6_bounded_quality.py \
   --steps 1500 \
   --document-limit 321 \
   --chunks-per-document 32 \
