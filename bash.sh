@@ -13,12 +13,19 @@ cd "$ROOT"
 # In Colab, mount Drive before running this script. For local dry-runs, set
 # CDI_DRIVE_ROOT to a writable directory such as /tmp/cdi-drive.
 DRIVE_ROOT="${CDI_DRIVE_ROOT:-/content/drive/MyDrive/CDI}"
-RUN_ROOT="${DRIVE_ROOT}/module1/M1.1"
-DATA_ROOT="${RUN_ROOT}/dataset"
+BASE_ROOT="${DRIVE_ROOT}/module1/M1.1"
+if [[ "${CDI_NEW_SESSION:-0}" == "1" ]]; then
+  SESSION_ID="${CDI_SESSION_ID:-$(date -u +%Y%m%dT%H%M%SZ)}"
+  RUN_ROOT="${BASE_ROOT}/sessions/${SESSION_ID}"
+else
+  SESSION_ID="initial"
+  RUN_ROOT="$BASE_ROOT"
+fi
+DATA_ROOT="${BASE_ROOT}/dataset"
 CHECKPOINT_ROOT="${RUN_ROOT}/checkpoints"
 REPORT_ROOT="${RUN_ROOT}/reports"
 LOG_ROOT="${RUN_ROOT}/logs"
-CACHE_ROOT="${RUN_ROOT}/cache"
+CACHE_ROOT="${BASE_ROOT}/cache"
 
 mkdir -p "$RUN_ROOT" "$DATA_ROOT" "$CHECKPOINT_ROOT" "$REPORT_ROOT" "$LOG_ROOT" "$CACHE_ROOT"
 cp "$ROOT/bash.sh" "$RUN_ROOT/bash.sh.snapshot"
@@ -31,6 +38,7 @@ fi
 
 export PYTHONPATH="$ROOT${PYTHONPATH:+:$PYTHONPATH}"
 export CDI_RUN_ROOT="$RUN_ROOT"
+export CDI_SESSION_ID="$SESSION_ID"
 export CDI_DATA_ROOT="$DATA_ROOT"
 export CDI_CHECKPOINT_ROOT="$CHECKPOINT_ROOT"
 export CDI_REPORT_ROOT="$REPORT_ROOT"
@@ -58,6 +66,7 @@ from datasets import load_dataset
 from cdi.v3 import DCSSLanguageModel, EthioBBPETokenizer, StageCConfig, TokenizerConfig
 
 RUN_ROOT = Path(os.environ["CDI_RUN_ROOT"])
+SESSION_ID = os.environ["CDI_SESSION_ID"]
 DATA_ROOT = Path(os.environ["CDI_DATA_ROOT"])
 CHECKPOINT_ROOT = Path(os.environ["CDI_CHECKPOINT_ROOT"])
 REPORT_ROOT = Path(os.environ["CDI_REPORT_ROOT"])
@@ -438,6 +447,7 @@ def main() -> int:
         "format": "dcss-cdi-module1-m1-1-report-v1",
         "module": "M1",
         "submodule": "M1.1",
+        "session_id": SESSION_ID,
         "status": competency["status"],
         "device": device,
         "torch_version": torch.__version__,
@@ -458,11 +468,12 @@ def main() -> int:
     }
     report["fingerprint"] = sha256_bytes(json.dumps(report, sort_keys=True, default=str, separators=(",", ":")).encode("utf-8"))
     write_json(REPORT_ROOT / "m1_1_latest.json", report)
-    write_json(REPORT_ROOT / "m1_1_status.json", {"module": "M1", "submodule": "M1.1", "status": report["status"], "report": str(REPORT_ROOT / "m1_1_latest.json"), "next_stage_locked": True})
+    write_json(REPORT_ROOT / "m1_1_status.json", {"module": "M1", "submodule": "M1.1", "session_id": SESSION_ID, "status": report["status"], "report": str(REPORT_ROOT / "m1_1_latest.json"), "next_stage_locked": True})
     (REPORT_ROOT / "M1.1_REPORT.md").write_text(
         "# CDI M1.1 Competency Report\n\n"
-        f"**Status:** `{report['status']}`  \n"
-        f"**Device:** `{device}`  \n"
+        f"**Status:** `{report['status']}`  \\n"
+        f"**Session:** `{SESSION_ID}`  \\n"
+        f"**Device:** `{device}`  \\n"
         f"**Peak RSS:** `{report['peak_rss_gib']:.3f} GiB`  \n"
         f"**Validation loss:** `{final_validation_loss:.6f}`  \n"
         f"**Test loss:** `{competency['test_loss']:.6f}`  \n"
