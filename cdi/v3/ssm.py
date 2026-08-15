@@ -16,6 +16,7 @@ from typing import Any, Dict, Iterable, Literal, Mapping, Sequence, Tuple
 import torch
 from torch import nn
 from torch.nn import functional as F
+from torch._higher_order_ops import scan as _torch_scan
 
 from .config import DCSSConfig
 from .laplacian import MatrixFreeLaplacian
@@ -23,6 +24,45 @@ from .topology import SparseTopology
 
 
 BAND_NAMES: Tuple[str, str, str] = ("fast", "middle", "harmonic")
+
+
+def _fused_scan_combine(carry: torch.Tensor, xs: Tuple[torch.Tensor, ...]) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Pure exact CDI recurrence used by the fixed-shape higher-order scan."""
+    (
+        forcing,
+        input_gate,
+        transport_gate,
+        log_timescale_offset,
+        geometry_gate,
+        log_tau_base,
+        rotation_bias,
+        input_injection,
+        geometry_operator,
+        band_log_tau_lower,
+        band_log_tau_upper,
+        dt,
+        rotation_limit,
+        geometry_step_cap,
+    ) = xs
+    log_tau = (log_tau_base + log_timescale_offset).clamp(
+        min=band_log_tau_lower,
+        max=band_log_tau_upper,
+    )
+    tau = torch.exp(log_tau)
+    dissipation = (0.05 + input_gate) / tau[..., ::2]
+    omega = (2.0 * transport_gate - 1.0 + rotation_bias) * rotation_limit
+    pairs = carry.reshape(*carry.shape[:-1], carry.shape[-1] // 2, 2)
+    angle = (omega * dt).unsqueeze(-2)
+    decay = torch.exp((-dissipation * dt).unsqueeze(-2))
+    cosine, sine = torch.cos(angle), torch.sin(angle)
+    rotated_first = cosine * pairs[..., 0] - sine * pairs[..., 1]
+    rotated_second = sine * pairs[..., 0] + cosine * pairs[..., 1]
+    homogeneous = torch.stack((rotated_first, rotated_second), dim=-1) * decay.unsqueeze(-1)
+    band_state = homogeneous.reshape_as(carry) + dt * forcing.unsqueeze(-2) * input_injection
+    correction = torch.matmul(geometry_operator, band_state)
+    alpha = (geometry_step_cap * geometry_gate).unsqueeze(-1).unsqueeze(-1)
+    value = band_state - alpha * correction
+    return value, value.clone()
 
 
 @dataclass(frozen=True)
@@ -636,6 +676,47 @@ class CohomodynamicCell(nn.Module):
             contrast = torch.zeros_like(contrast)
         per_band = torch.cat((means.unsqueeze(-2), contrast), dim=-2)
         return per_band.reshape(*stacked_state.shape[:-3], -1)
+
+    def scan_fused_stacked(
+        self,
+        forcing: torch.Tensor,
+        input_gate: torch.Tensor,
+        transport_gate: torch.Tensor,
+        log_timescale_offset: torch.Tensor,
+        geometry_gate: torch.Tensor,
+        stacked_state: torch.Tensor,
+        *,
+        kernel_tensors: Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
+        geometry_operator: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Run the exact dense CDI recurrence as a fixed-shape higher-order scan."""
+        if self.disable_harmonic or self.unconstrained_cochain is not None:
+            raise RuntimeError("scan_fused_stacked is only valid for the full three-band production cell.")
+        if forcing.ndim != 4:
+            raise ValueError(f"Expected forcing with shape (batch, length, bands, width), got {tuple(forcing.shape)}.")
+        length = forcing.shape[1]
+        if length < 1:
+            raise ValueError("scan_fused_stacked requires a non-empty sequence.")
+        lower = self.band_log_tau_lower.view(1, -1, 1)
+        upper = self.band_log_tau_upper.view(1, -1, 1)
+        dt = forcing.new_tensor(self.config.dt)
+        rotation_limit = forcing.new_tensor(self.config.rotation_limit)
+        geometry_step_cap = forcing.new_tensor(self.config.geometry_step_cap)
+        xs = (
+            forcing.transpose(0, 1),
+            input_gate.transpose(0, 1),
+            transport_gate.transpose(0, 1),
+            log_timescale_offset.transpose(0, 1),
+            geometry_gate.transpose(0, 1),
+            *(kernel.unsqueeze(0).expand(length, *kernel.shape) for kernel in kernel_tensors),
+            geometry_operator.unsqueeze(0).expand(length, *geometry_operator.shape),
+            lower.unsqueeze(0).expand(length, *lower.shape),
+            upper.unsqueeze(0).expand(length, *upper.shape),
+            dt.expand(length),
+            rotation_limit.expand(length),
+            geometry_step_cap.expand(length),
+        )
+        return _torch_scan(_fused_scan_combine, stacked_state, xs, dim=0)
 
     def step_fused_stacked(
         self,
