@@ -161,33 +161,13 @@ CCT-G3.4 is complete. The bounded four-dimensional token residual retained the r
 
 The pre-registered material-quality target was mean validation loss at or below **6.664364**—2% below the recorded GRU mean. The candidate missed that threshold by 0.079182. The formal decision is therefore `EARNED_TOKEN_RESIDUAL_EVIDENCE` and `QUALITY_RECOVERY_PARTIAL`, not a dominance result and not scale authorization. See `docs/CCT_G3_4_DECISION.md`.
 
-The next action is not automatic. CCT-G3.5 is the separately pre-registered quality-recovery diagnostic below; it retains all four earned CCT-G3 mechanisms and changes only the fusion of the existing state readout and token residual.
+The next action was the separately pre-registered CCT-G3.5 quality-recovery diagnostic below. It retained all four earned CCT-G3 mechanisms and changed only the fusion of the existing state readout and token residual; its mechanism decision is now `NO_FUSION_EVIDENCE`.
 
-### Stage 3.5 — State-Conditioned Token-Residual Fusion
+### Stage 3.5 — Closed State-Conditioned Token-Residual Fusion
 
-CCT-G3.5 is pre-registered and locally validated. It adds a bounded four-dimensional fusion gate over the retained DCSS state readout and the retained CCT-G3.4 token residual. It does **not** alter the recurrent state-space, contrast readout, geometry, harmonic memory, tokenizer, data, context, model width, optimizer, or seed protocol. The exact capacity-matched control retains the same 36 fusion parameters but deterministically uses an all-one gate, reproducing the CCT-G3.4 additive residual behavior. The five-model matrix is fused residual CDI, fusion-one control, CCT-G3.4 residual CDI, GRU, and Transformer.
+CCT-G3.5 is complete. The fused candidate beat GRU in all three seeds but lost to its exact fusion-one control in seeds 11 and 29. The mechanism decision is `NO_FUSION_EVIDENCE`; the retained CCT-G3.4 residual CDI remains the selected compact model. No further G3.5 run is permitted.
 
-```bash
-%cd /content/CDI
-!git pull --ff-only origin master
-!PYTHONPATH=. python benchmarks/cct_g3_5_residual_fusion.py \
-  --steps 1000 \
-  --document-limit 321 \
-  --chunks-per-document 32 \
-  --chunk-length 16 \
-  --batch-size 2 \
-  --eval-batches 0 \
-  --shuffle-training-batches \
-  --learning-rate 0.01 \
-  --relative-loss-tolerance 0.05 \
-  --parameter-relative-tolerance 0.01 \
-  --max-host-memory-gb 11 \
-  --output-dir results/colab_cct_g3_5_residual_fusion
-!cat results/colab_cct_g3_5_residual_fusion/REPORT.md
-!cat results/colab_cct_g3_5_residual_fusion/latest.json
-```
-
-**Material-quality rule:** the fused candidate must beat both its exact fusion-one control and the CCT-G3.4 residual predecessor in every seed. To earn the material-quality target, it must also match or beat GRU in every seed and achieve mean validation loss at or below **6.664364**, which is 2% below the recorded matched-GRU mean of 6.800372. No result scales automatically; send both generated files for review.
+The next action is a **performance-first audit** of the retained CCT-G3.4 execution path. It must measure the Python-token-serial cost, identify any semantics-preserving runtime repair, rerun regression and loss-equivalence checks, and record throughput and peak memory before any new training cell is considered.
 
 ## 8. Stage 4 — context ladder and retention test
 
@@ -260,7 +240,7 @@ I will keep the workflow bounded and visible. I will review the code and config 
 
 ## 13. First action for you to check
 
-CCT-G0, CCT-G1, CCT-G2.1, CCT-G3.1, CCT-G3.2, CCT-G3.3, and CCT-G3.4 are complete. CCT-G3.1 is recorded as `EARNED_GEOMETRY_EVIDENCE`, CCT-G3.2 as `EARNED_READOUT_EVIDENCE`, CCT-G3.3 as `EARNED_HARMONIC_EVIDENCE`, and CCT-G3.4 as `EARNED_TOKEN_RESIDUAL_EVIDENCE` with `QUALITY_RECOVERY_PARTIAL`. The selected residual CDI beat GRU in every seed but missed the pre-registered 2% material margin. Do **not** rerun Stage 2A with a larger budget or begin Stage 2B. The next permitted action is the frozen CCT-G3.5 quality-recovery command above.
+CCT-G0, CCT-G1, CCT-G2.1, CCT-G3.1, CCT-G3.2, CCT-G3.3, CCT-G3.4, and CCT-G3.5 are complete. The selected CCT-G3.4 residual CDI beats GRU in every seed but missed the 2% material margin; G3.5 fusion earned `NO_FUSION_EVIDENCE`. Do **not** rerun G3.5, rerun Stage 2A with a larger budget, or begin Stage 2B. The next permitted action is the performance-readiness audit.
 
 If Colab has a GPU, record its name with:
 
@@ -269,7 +249,7 @@ If Colab has a GPU, record its name with:
 !python -c "import torch; print(torch.__version__); print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')"
 ```
 
-We will review the submitted CCT-G3.5 report and JSON before any 3,000-step, context, capacity, corpus, or optimization work.
+We will review the performance profile and any loss-equivalence report before any 3,000-step, context, capacity, corpus, or optimization work.
 
 ## References
 

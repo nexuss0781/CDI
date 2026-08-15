@@ -20,11 +20,12 @@ The active language-engine path is **`cdi.v3`**. It uses the EthioBBPE tokenizer
 | [`docs/CCT_G3_4_PREREGISTRATION.md`](docs/CCT_G3_4_PREREGISTRATION.md) | Approved G3.4 bounded selective token-residual quality-recovery mechanism, exact control, and material-quality gate. |
 | [`docs/CCT_G3_4_DECISION.md`](docs/CCT_G3_4_DECISION.md) | Recorded G3.4 result: `EARNED_TOKEN_RESIDUAL_EVIDENCE`; `QUALITY_RECOVERY_PARTIAL`; no scale authorization. |
 | [`docs/CCT_G3_5_PREREGISTRATION.md`](docs/CCT_G3_5_PREREGISTRATION.md) | Approved G3.5 bounded state-conditioned residual-fusion mechanism, exact control, and material-quality gate. |
+| [`docs/CCT_G3_5_DECISION.md`](docs/CCT_G3_5_DECISION.md) | Recorded G3.5 result: `NO_FUSION_EVIDENCE`; CCT-G3.4 residual CDI retained; performance readiness required before training. |
 | [`benchmarks/cct_g3_3_harmonic_ablation.py`](benchmarks/cct_g3_3_harmonic_ablation.py) | CPU-safe executable G3.3 harness with 11 GiB guard and fixed-held-out state/gradient diagnostics. |
 | [`benchmarks/cct_g3_4_token_residual.py`](benchmarks/cct_g3_4_token_residual.py) | CPU-safe executable G3.4 five-model quality-recovery harness with a 2% material-GRU target. |
 | [`benchmarks/cct_g3_5_residual_fusion.py`](benchmarks/cct_g3_5_residual_fusion.py) | CPU-safe executable G3.5 five-model state-conditioned fusion harness with the same 2% material-GRU target. |
 
-CCT-G3.1 established repeated sparse-geometry value, CCT-G3.2 established repeated contrast-readout value, CCT-G3.3 established repeated harmonic-memory-band value, and CCT-G3.4 established repeated token-residual value under capacity-matched three-seed comparisons. The selected residual CDI beats GRU in every seed but falls short of the separate 2% material-quality margin, so its decision is `QUALITY_RECOVERY_PARTIAL`. The only active work is **CCT-G3.5**, a pre-registered bounded state-conditioned residual-fusion evaluation; the CCT-G2.2 scale ladder remains blocked.
+CCT-G3.1 established repeated sparse-geometry value, CCT-G3.2 established repeated contrast-readout value, CCT-G3.3 established repeated harmonic-memory-band value, and CCT-G3.4 established repeated token-residual value under capacity-matched three-seed comparisons. The selected CCT-G3.4 residual CDI beats GRU in every seed but falls short of the separate 2% material-quality margin, so its decision is `QUALITY_RECOVERY_PARTIAL`. CCT-G3.5 earned `NO_FUSION_EVIDENCE` and is closed. The only active work is **performance readiness before training**; the CCT-G2.2 scale ladder remains blocked.
 
 ## Safe Setup and Validation
 
